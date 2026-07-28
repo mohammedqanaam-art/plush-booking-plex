@@ -280,6 +280,16 @@ export type SyncedAvayaReport = AvayaReportResult & {
 
 export type AvayaSyncStatus = {
   report: SyncedAvayaReport | null;
+  availableRanges: Array<{
+    reportId: string;
+    from: string;
+    to: string;
+    rangeStart: string;
+    rangeEnd: string;
+    syncedAt: string;
+    employeeCount: number;
+  }>;
+  selectedRange: { from: string; to: string } | null;
   sync: {
     configured: boolean;
     updatedAt: string | null;
@@ -420,8 +430,9 @@ export const api = {
     return data as OperaSearchStatus;
   },
 
-  async getLatestAvayaReport() {
-    const res = await fetch(AVAYA_SYNC_API, { headers: authHeaders(), cache: "no-store" });
+  async getLatestAvayaReport(range?: { from: string; to: string }) {
+    const params = range ? new URLSearchParams(range).toString() : "";
+    const res = await fetch(`${AVAYA_SYNC_API}${params ? `?${params}` : ""}`, { headers: authHeaders(), cache: "no-store" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "تعذر تحميل آخر مزامنة من Avaya");
     return data as AvayaSyncStatus;

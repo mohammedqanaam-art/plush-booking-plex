@@ -41,6 +41,9 @@ describe("UNO integration boundary", () => {
     expect(fn).toContain('action === "list"');
     expect(page).toContain("api.listUnoReservations()");
     expect(page).toContain('autoComplete="one-time-code"');
+    expect(page).toContain("الملغاة / NS");
+    expect(page).toContain("navigator.clipboard.writeText");
+    expect(page).toContain("فلترة النتائج: اسم، جوال، UNO أو PMS");
   });
 
   it("builds a property-scoped reservation lookup", () => {

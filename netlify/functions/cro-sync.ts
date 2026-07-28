@@ -5,7 +5,10 @@ import {
   getCroSyncStatus,
   isActiveCroSync,
   setCroSyncStatus,
+  updateCroAutomationSettings,
   validCroDateRange,
+  type CroAutomaticMode,
+  type CroAutomationInterval,
 } from "./_shared/croSync";
 import { json, validateSession } from "./_shared/security";
 
@@ -18,6 +21,7 @@ type SyncRequest = {
 };
 
 const canSync = (role: string) => ["superadmin", "admin", "editor"].includes(role);
+const canControlAutomation = (role: string) => ["superadmin", "admin"].includes(role);
 
 export default async (req: Request, context: Context) => {
   const session = await validateSession(req);
@@ -27,7 +31,40 @@ export default async (req: Request, context: Context) => {
   if (req.method === "GET") {
     return json({
       status: await getCroSyncStatus(),
-      automation: automaticCroConfig(),
+      automation: await automaticCroConfig(),
+    });
+  }
+
+  if (req.method === "PATCH") {
+    if (!canControlAutomation(session.role)) return json({ error: "Permission Denied" }, 403);
+    const body = await req.json().catch(() => ({})) as {
+      enabled?: boolean;
+      intervalMinutes?: CroAutomationInterval;
+      mode?: CroAutomaticMode;
+      from?: string;
+      to?: string;
+    };
+    if (typeof body.enabled !== "boolean") return json({ error: "حالة التشغيل غير صحيحة." }, 400);
+    if (![30, 60, 120, 360].includes(Number(body.intervalMinutes))) {
+      return json({ error: "اختر تكرارًا صحيحًا للمزامنة." }, 400);
+    }
+    if (body.mode !== "rolling-month" && body.mode !== "fixed") {
+      return json({ error: "اختر نطاقًا صحيحًا للمزامنة." }, 400);
+    }
+    if (body.mode === "fixed" && !validCroDateRange(body.from, body.to)) {
+      return json({ error: "اختر تاريخ بداية ونهاية صحيحين للنطاق الثابت." }, 400);
+    }
+    await updateCroAutomationSettings({
+      enabled: body.enabled,
+      intervalMinutes: Number(body.intervalMinutes) as CroAutomationInterval,
+      mode: body.mode,
+      fixedFrom: body.mode === "fixed" ? body.from : undefined,
+      fixedTo: body.mode === "fixed" ? body.to : undefined,
+    }, session.username);
+    return json({
+      ok: true,
+      status: await getCroSyncStatus(),
+      automation: await automaticCroConfig(),
     });
   }
 
@@ -40,7 +77,7 @@ export default async (req: Request, context: Context) => {
 
   const current = await getCroSyncStatus();
   if (isActiveCroSync(current)) {
-    return json({ ok: true, alreadyRunning: true, status: current, automation: automaticCroConfig() }, 202);
+    return json({ ok: true, alreadyRunning: true, status: current, automation: await automaticCroConfig() }, 202);
   }
 
   const attemptId = randomUUID();
@@ -81,8 +118,8 @@ export default async (req: Request, context: Context) => {
       finishedAt: new Date().toISOString(),
       message: "تعذر بدء مهمة التحديث في الخلفية. حاول مرة أخرى.",
     });
-    return json({ error: failed.message, status: failed, automation: automaticCroConfig() }, 502);
+    return json({ error: failed.message, status: failed, automation: await automaticCroConfig() }, 502);
   }
 
-  return json({ ok: true, status: queued, automation: automaticCroConfig() }, 202);
+  return json({ ok: true, status: queued, automation: await automaticCroConfig() }, 202);
 };

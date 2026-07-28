@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Cable,
+  CalendarCheck2,
+  CalendarClock,
   CheckCircle2,
+  Copy,
+  ExternalLink,
   FileSpreadsheet,
+  Filter,
   Loader2,
   LogOut,
   RefreshCw,
@@ -33,7 +38,46 @@ const displayDate = (value: string) => {
   }).format(date);
 };
 
+const displayTimestamp = (value?: string) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
+    timeZone: "Asia/Riyadh",
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+};
+
+type ResultFilter = "all" | "confirmed" | "cancelled" | "arrivals" | "departures";
+
+const riyadhToday = () => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Riyadh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value || "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+};
+
+const dateKey = (value: string) => {
+  const iso = value.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+  if (iso) return iso;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+};
+
+const reservationState = (status: string) => {
+  const normalized = status.trim().toLocaleLowerCase("en");
+  if (["c", "ns"].includes(normalized) || /ملغ|عدم حضور|cancel|no[\s-]?show/.test(normalized)) return "cancelled";
+  if (["m", "o", "n", "i"].includes(normalized) || /مؤكد|confirm/.test(normalized)) return "confirmed";
+  return "other";
+};
+
 const AdminUno = () => {
+  const copyResetTimer = useRef<number | null>(null);
   const [status, setStatus] = useState<UnoConnectionStatus | null>(null);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
@@ -42,6 +86,10 @@ const AdminUno = () => {
   const [field, setField] = useState<UnoSearchField>("phone");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UnoReservation[] | null>(null);
+  const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
+  const [resultQuery, setResultQuery] = useState("");
+  const [propertyFilter, setPropertyFilter] = useState("all");
+  const [copiedKey, setCopiedKey] = useState("");
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -58,6 +106,10 @@ const AdminUno = () => {
     const timer = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
   }, [status?.phase]);
+
+  useEffect(() => () => {
+    if (copyResetTimer.current !== null) window.clearTimeout(copyResetTimer.current);
+  }, []);
 
   const resendSeconds = useMemo(() => {
     if (!status?.resendAt) return 0;
@@ -101,6 +153,9 @@ const AdminUno = () => {
     try {
       const response = await api.searchUnoReservations(field, query.trim());
       setResults(response.reservations);
+      setResultFilter("all");
+      setResultQuery("");
+      setPropertyFilter("all");
       setMessage(response.total ? "" : "لا توجد حجوزات مطابقة.");
     } catch (error) {
       setFailed(true);
@@ -117,6 +172,9 @@ const AdminUno = () => {
     try {
       const response = await api.listUnoReservations();
       setResults(response.reservations);
+      setResultFilter("all");
+      setResultQuery("");
+      setPropertyFilter("all");
       setMessage(response.total ? "" : "لا توجد حجوزات متاحة.");
     } catch (error) {
       setFailed(true);
@@ -126,8 +184,69 @@ const AdminUno = () => {
     }
   };
 
+  const properties = useMemo(
+    () => Array.from(new Set((results || []).map((reservation) => reservation.property).filter(Boolean))).sort((left, right) => left.localeCompare(right, "ar")),
+    [results],
+  );
+
+  const resultSummary = useMemo(() => {
+    const today = riyadhToday();
+    return (results || []).reduce((summary, reservation) => {
+      const state = reservationState(reservation.status);
+      if (state === "confirmed") summary.confirmed += 1;
+      if (state === "cancelled") summary.cancelled += 1;
+      if (dateKey(reservation.checkIn) === today) summary.arrivals += 1;
+      if (dateKey(reservation.checkOut) === today) summary.departures += 1;
+      return summary;
+    }, { confirmed: 0, cancelled: 0, arrivals: 0, departures: 0 });
+  }, [results]);
+
+  const visibleResults = useMemo(() => {
+    const today = riyadhToday();
+    const searchText = resultQuery.trim().toLocaleLowerCase("ar");
+    return (results || []).filter((reservation) => {
+      if (propertyFilter !== "all" && reservation.property !== propertyFilter) return false;
+      if (resultFilter === "confirmed" && reservationState(reservation.status) !== "confirmed") return false;
+      if (resultFilter === "cancelled" && reservationState(reservation.status) !== "cancelled") return false;
+      if (resultFilter === "arrivals" && dateKey(reservation.checkIn) !== today) return false;
+      if (resultFilter === "departures" && dateKey(reservation.checkOut) !== today) return false;
+      if (!searchText) return true;
+      return [
+        reservation.unoNumber,
+        reservation.pmsNumber,
+        reservation.phone,
+        reservation.guestName,
+        reservation.property,
+        reservation.status,
+      ].some((value) => value.toLocaleLowerCase("ar").includes(searchText));
+    });
+  }, [propertyFilter, resultFilter, resultQuery, results]);
+
+  const copyReservation = async (reservation: UnoReservation) => {
+    const text = [
+      `UNO: ${reservation.unoNumber || "—"}`,
+      `PMS: ${reservation.pmsNumber || "—"}`,
+      `الضيف: ${reservation.guestName || "—"}`,
+      `التواصل: ${reservation.phone || "—"}`,
+      `الفرع: ${reservation.property || "—"}`,
+      `الحالة: ${reservation.status || "—"}`,
+      `الوصول: ${displayDate(reservation.checkIn)}`,
+      `المغادرة: ${displayDate(reservation.checkOut)}`,
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      const key = `${reservation.unoNumber}-${reservation.pmsNumber}`;
+      setCopiedKey(key);
+      if (copyResetTimer.current !== null) window.clearTimeout(copyResetTimer.current);
+      copyResetTimer.current = window.setTimeout(() => setCopiedKey(""), 1_500);
+    } catch {
+      setFailed(true);
+      setMessage("تعذر نسخ بيانات الحجز.");
+    }
+  };
+
   const exportResults = async () => {
-    if (!results?.length) return;
+    if (!visibleResults.length) return;
     setBusy("export");
     setFailed(false);
     setMessage("");
@@ -153,7 +272,7 @@ const AdminUno = () => {
         { header: "المبلغ", key: "amount", width: 14 },
         { header: "العملة", key: "currency", width: 10 },
       ];
-      results.forEach((reservation) => worksheet.addRow(reservation));
+      visibleResults.forEach((reservation) => worksheet.addRow(reservation));
       const header = worksheet.getRow(1);
       header.height = 24;
       header.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -262,22 +381,39 @@ const AdminUno = () => {
 
       {status && phase === "connected" ? (
         <>
-          <section className="page-surface flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <strong className="block truncate">{status.accountName || "UNO"}</strong>
-              {status.propertyCount ? (
-                <span className="text-xs text-muted-foreground">{status.propertyCount} منشأة</span>
-              ) : null}
+          <section className="overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-l from-emerald-500/10 via-background to-primary/8 p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500/12 text-emerald-700">
+                  <CheckCircle2 className="h-6 w-6" />
+                </span>
+                <div className="min-w-0">
+                  <strong className="block truncate">{status.accountName || "UNO"}</strong>
+                  <span className="text-xs text-muted-foreground">
+                    {(status.propertyCount || 0).toLocaleString("ar-SA")} منشأة · تنتهي الجلسة {displayTimestamp(status.expiresAt)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/50 bg-background/70 px-3 text-xs font-bold"
+                  href={status.loginUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <ExternalLink className="h-4 w-4" /> فتح بوابة UNO
+                </a>
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-destructive/25 bg-background/70 px-3 text-xs font-bold text-destructive disabled:opacity-50"
+                  onClick={() => void runStatusAction("disconnect", () => api.disconnectUno())}
+                  disabled={isBusy}
+                >
+                  {busy === "disconnect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  فصل
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-destructive/25 px-3 text-xs font-bold text-destructive disabled:opacity-50"
-              onClick={() => void runStatusAction("disconnect", () => api.disconnectUno())}
-              disabled={isBusy}
-            >
-              {busy === "disconnect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-              فصل
-            </button>
           </section>
 
           <form className="page-surface space-y-3" onSubmit={submitSearch}>
@@ -330,7 +466,7 @@ const AdminUno = () => {
                 type="button"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-primary/25 px-4 text-sm font-bold disabled:opacity-50"
                 onClick={() => void exportResults()}
-                disabled={!results?.length || isBusy}
+                disabled={!visibleResults.length || isBusy}
               >
                 {busy === "export" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
                 Excel
@@ -339,44 +475,127 @@ const AdminUno = () => {
           </form>
 
           {results?.length ? (
-            <section className="page-surface overflow-hidden p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[980px] text-right text-xs">
-                  <thead className="bg-secondary text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-3 font-bold">UNO</th>
-                      <th className="px-3 py-3 font-bold">PMS</th>
-                      <th className="px-3 py-3 font-bold">التواصل</th>
-                      <th className="px-3 py-3 font-bold">العميل</th>
-                      <th className="px-3 py-3 font-bold">المنشأة</th>
-                      <th className="px-3 py-3 font-bold">الحالة</th>
-                      <th className="px-3 py-3 font-bold">الوصول</th>
-                      <th className="px-3 py-3 font-bold">المغادرة</th>
-                      <th className="px-3 py-3 font-bold">القناة</th>
-                      <th className="px-3 py-3 font-bold">المبلغ</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {results.map((reservation, index) => (
-                      <tr key={`${reservation.unoNumber}-${reservation.pmsNumber}-${index}`} className="hover:bg-secondary/40">
-                        <td className="whitespace-nowrap px-3 py-3 font-bold">{reservation.unoNumber || "—"}</td>
-                        <td className="whitespace-nowrap px-3 py-3">{reservation.pmsNumber || "—"}</td>
-                        <td className="whitespace-nowrap px-3 py-3" dir="ltr">{reservation.phone || "—"}</td>
-                        <td className="px-3 py-3">{reservation.guestName || "—"}</td>
-                        <td className="px-3 py-3">{reservation.property || "—"}</td>
-                        <td className="whitespace-nowrap px-3 py-3">{reservation.status || "—"}</td>
-                        <td className="whitespace-nowrap px-3 py-3">{displayDate(reservation.checkIn)}</td>
-                        <td className="whitespace-nowrap px-3 py-3">{displayDate(reservation.checkOut)}</td>
-                        <td className="whitespace-nowrap px-3 py-3">{reservation.channel || "—"}</td>
-                        <td className="whitespace-nowrap px-3 py-3">
-                          {[reservation.amount, reservation.currency].filter(Boolean).join(" ") || "—"}
-                        </td>
+            <>
+              <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { filter: "confirmed" as const, label: "المؤكدة", value: resultSummary.confirmed, icon: CheckCircle2, tone: "text-emerald-700" },
+                  { filter: "cancelled" as const, label: "الملغاة / NS", value: resultSummary.cancelled, icon: LogOut, tone: "text-red-700" },
+                  { filter: "arrivals" as const, label: "وصول اليوم", value: resultSummary.arrivals, icon: CalendarCheck2, tone: "text-primary" },
+                  { filter: "departures" as const, label: "مغادرة اليوم", value: resultSummary.departures, icon: CalendarClock, tone: "text-amber-700" },
+                ].map(({ filter: nextFilter, label, value, icon: Icon, tone }) => (
+                  <button
+                    key={nextFilter}
+                    type="button"
+                    className={`compact-card text-right transition hover:border-primary/40 ${resultFilter === nextFilter ? "border-primary/55 bg-primary/8" : ""}`}
+                    onClick={() => setResultFilter((current) => current === nextFilter ? "all" : nextFilter)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground">{label}</span>
+                      <Icon className={`h-4 w-4 ${tone}`} />
+                    </div>
+                    <strong className={`mt-2 block text-2xl ${tone}`}>{value.toLocaleString("ar-SA")}</strong>
+                  </button>
+                ))}
+              </section>
+
+              <section className="page-surface space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h2 className="section-title">نتائج UNO</h2>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      عرض {visibleResults.length.toLocaleString("ar-SA")} من {(results || []).length.toLocaleString("ar-SA")}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/50 px-3 text-xs font-bold"
+                    onClick={() => {
+                      setResultFilter("all");
+                      setResultQuery("");
+                      setPropertyFilter("all");
+                    }}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" /> مسح الفلاتر
+                  </button>
+                </div>
+
+                <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(180px,0.45fr)]">
+                  <label className="relative">
+                    <span className="sr-only">بحث داخل نتائج UNO</span>
+                    <Filter className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      className="h-11 w-full rounded-xl border bg-secondary/35 px-10 text-sm outline-none focus:border-primary"
+                      placeholder="فلترة النتائج: اسم، جوال، UNO أو PMS"
+                      value={resultQuery}
+                      onChange={(event) => setResultQuery(event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span className="sr-only">فلترة حسب المنشأة</span>
+                    <select
+                      className="h-11 w-full rounded-xl border bg-secondary/35 px-3 text-sm font-bold outline-none focus:border-primary"
+                      value={propertyFilter}
+                      onChange={(event) => setPropertyFilter(event.target.value)}
+                    >
+                      <option value="all">جميع المنشآت</option>
+                      {properties.map((property) => <option key={property} value={property}>{property}</option>)}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="overflow-x-auto rounded-2xl border border-border/45">
+                  <table className="w-full min-w-[1060px] text-right text-xs">
+                    <thead className="bg-secondary text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-3 font-bold">UNO</th>
+                        <th className="px-3 py-3 font-bold">PMS</th>
+                        <th className="px-3 py-3 font-bold">التواصل</th>
+                        <th className="px-3 py-3 font-bold">العميل</th>
+                        <th className="px-3 py-3 font-bold">المنشأة</th>
+                        <th className="px-3 py-3 font-bold">الحالة</th>
+                        <th className="px-3 py-3 font-bold">الوصول</th>
+                        <th className="px-3 py-3 font-bold">المغادرة</th>
+                        <th className="px-3 py-3 font-bold">القناة</th>
+                        <th className="px-3 py-3 font-bold">المبلغ</th>
+                        <th className="px-3 py-3 font-bold">أدوات</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {visibleResults.map((reservation, index) => {
+                        const key = `${reservation.unoNumber}-${reservation.pmsNumber}`;
+                        return (
+                          <tr key={`${reservation.unoNumber}-${reservation.pmsNumber}-${index}`} className="hover:bg-secondary/40">
+                            <td className="whitespace-nowrap px-3 py-3 font-bold">{reservation.unoNumber || "—"}</td>
+                            <td className="whitespace-nowrap px-3 py-3">{reservation.pmsNumber || "—"}</td>
+                            <td className="whitespace-nowrap px-3 py-3" dir="ltr">{reservation.phone || "—"}</td>
+                            <td className="px-3 py-3">{reservation.guestName || "—"}</td>
+                            <td className="px-3 py-3">{reservation.property || "—"}</td>
+                            <td className="whitespace-nowrap px-3 py-3">{reservation.status || "—"}</td>
+                            <td className="whitespace-nowrap px-3 py-3">{displayDate(reservation.checkIn)}</td>
+                            <td className="whitespace-nowrap px-3 py-3">{displayDate(reservation.checkOut)}</td>
+                            <td className="whitespace-nowrap px-3 py-3">{reservation.channel || "—"}</td>
+                            <td className="whitespace-nowrap px-3 py-3">
+                              {[reservation.amount, reservation.currency].filter(Boolean).join(" ") || "—"}
+                            </td>
+                            <td className="px-3 py-3">
+                              <button
+                                type="button"
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/50 px-2 text-[11px] font-bold hover:border-primary/50"
+                                onClick={() => void copyReservation(reservation)}
+                              >
+                                {copiedKey === key ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                                {copiedKey === key ? "تم النسخ" : "نسخ"}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {!visibleResults.length ? <div className="p-10 text-center text-sm text-muted-foreground">لا توجد نتائج مطابقة للفلاتر الحالية.</div> : null}
+                </div>
+              </section>
+            </>
           ) : null}
         </>
       ) : null}

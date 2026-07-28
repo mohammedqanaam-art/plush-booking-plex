@@ -41,15 +41,20 @@ export default async (req: Request, context: Context) => {
   if (!isSameSiteRequest(req)) return json({ error: "الطلب غير مسموح." }, 403);
   if (req.method !== "GET" && req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const automation = automaticCroConfig();
+  const automation = await automaticCroConfig();
   const secret = croEnvironmentValue("CRO_SYNC_SECRET");
-  if (!automation.configured || !secret || !validCroDateRange(automation.from, automation.to)) {
+  if (
+    !automation.enabled
+    || !automation.configured
+    || !secret
+    || !validCroDateRange(automation.from, automation.to)
+  ) {
     return json({
       ok: false,
       accepted: false,
       state: "unavailable",
       updatedAt: null,
-      message: "التحديث غير متاح مؤقتًا.",
+      message: automation.enabled ? "التحديث غير متاح مؤقتًا." : "أوقف المشرف مزامنة CRO مؤقتًا.",
     }, 503);
   }
 

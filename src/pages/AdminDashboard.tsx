@@ -14,6 +14,7 @@ import {
   Gauge,
   LogOut,
   MessageSquareMore,
+  RefreshCw,
   Save,
   Search,
   Settings,
@@ -238,6 +239,7 @@ const AdminDashboard = () => {
               <h2 className="section-title">اختصارات الإدارة</h2>
               <div className="grid gap-2 sm:grid-cols-2">
                 {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => setTab("bookings")}><Upload className="h-5 w-5 text-primary" /><strong>بيانات الحجوزات</strong></button> : null}
+                {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/cro-export")}><RefreshCw className="h-5 w-5 text-primary" /><strong>تحكم مزامنة CRO</strong></button> : null}
                 {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/avaya-reports")}><FileSpreadsheet className="h-5 w-5 text-primary" /><strong>تقارير Avaya</strong></button> : null}
                 {session?.role === "admin" || session?.role === "superadmin" ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/opera-search")}><CalendarSearch className="h-5 w-5 text-primary" /><strong>البحث برقم الجوال</strong></button> : null}
                 {session?.role === "admin" || session?.role === "superadmin" ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/uno")}><Cable className="h-5 w-5 text-primary" /><strong>ربط UNO</strong></button> : null}

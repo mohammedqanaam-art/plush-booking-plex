@@ -2,6 +2,18 @@ import { getStore } from "@netlify/blobs";
 import { croEnvironmentReady, croEnvironmentValue } from "./croEnvironment";
 
 export type CroAutomaticMode = "rolling-month" | "fixed";
+export type CroAutomationInterval = 30 | 60 | 120 | 360;
+
+export type CroAutomationSettings = {
+  enabled: boolean;
+  intervalMinutes: CroAutomationInterval;
+  mode: CroAutomaticMode;
+  fixedFrom?: string;
+  fixedTo?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  lastTriggeredAt?: string;
+};
 
 export const currentSaudiMonthRange = (now = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -47,6 +59,8 @@ export type CroSyncStatus = {
 };
 
 const store = () => getStore({ name: "cro-sync", consistency: "strong" });
+const AUTOMATION_SETTINGS_KEY = "automation-settings";
+const AUTOMATION_INTERVALS = new Set<CroAutomationInterval>([30, 60, 120, 360]);
 
 export const getCroSyncStatus = async (): Promise<CroSyncStatus> => (
   (await store().get("latest", { type: "json" })) as CroSyncStatus | null
@@ -71,7 +85,7 @@ export const validCroDateRange = (from?: string, to?: string) => Boolean(
   && from <= to,
 );
 
-export const automaticCroConfig = () => {
+const environmentAutomaticConfig = () => {
   const requestedMode = croEnvironmentValue("CRO_AUTO_MODE");
   const mode: CroAutomaticMode = requestedMode === "fixed" ? "fixed" : "rolling-month";
   const rolling = currentSaudiMonthRange();
@@ -88,5 +102,105 @@ export const automaticCroConfig = () => {
     from,
     to,
     schedule: "*/30 * * * *",
+  };
+};
+
+const defaultAutomationSettings = (): CroAutomationSettings => {
+  const environment = environmentAutomaticConfig();
+  return {
+    enabled: true,
+    intervalMinutes: 30,
+    mode: environment.mode,
+    fixedFrom: environment.mode === "fixed" ? environment.from : undefined,
+    fixedTo: environment.mode === "fixed" ? environment.to : undefined,
+  };
+};
+
+const normalizeAutomationSettings = (
+  input: Partial<CroAutomationSettings> | null,
+): CroAutomationSettings => {
+  const defaults = defaultAutomationSettings();
+  const interval = Number(input?.intervalMinutes) as CroAutomationInterval;
+  const mode: CroAutomaticMode = input?.mode === "fixed" ? "fixed" : "rolling-month";
+  return {
+    ...defaults,
+    ...input,
+    enabled: input?.enabled !== false,
+    intervalMinutes: AUTOMATION_INTERVALS.has(interval) ? interval : defaults.intervalMinutes,
+    mode,
+    fixedFrom: mode === "fixed" && validCroDateRange(input?.fixedFrom, input?.fixedTo)
+      ? input?.fixedFrom
+      : defaults.fixedFrom,
+    fixedTo: mode === "fixed" && validCroDateRange(input?.fixedFrom, input?.fixedTo)
+      ? input?.fixedTo
+      : defaults.fixedTo,
+  };
+};
+
+export const getCroAutomationSettings = async () => {
+  const saved = (await store().get(AUTOMATION_SETTINGS_KEY, { type: "json" })) as Partial<CroAutomationSettings> | null;
+  return normalizeAutomationSettings(saved);
+};
+
+export const updateCroAutomationSettings = async (
+  patch: Partial<CroAutomationSettings>,
+  updatedBy?: string,
+) => {
+  const current = await getCroAutomationSettings();
+  const next = normalizeAutomationSettings({
+    ...current,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+    updatedBy: updatedBy || current.updatedBy,
+  });
+  await store().setJSON(AUTOMATION_SETTINGS_KEY, next);
+  return next;
+};
+
+export const markCroAutomationTriggered = async (triggeredAt = new Date().toISOString()) => {
+  const current = await getCroAutomationSettings();
+  const next = { ...current, lastTriggeredAt: triggeredAt };
+  await store().setJSON(AUTOMATION_SETTINGS_KEY, next);
+  return next;
+};
+
+export const isCroAutomationDue = (
+  settings: Pick<CroAutomationSettings, "enabled" | "intervalMinutes" | "lastTriggeredAt">,
+  now = Date.now(),
+) => {
+  if (!settings.enabled) return false;
+  const lastTriggeredAt = Date.parse(settings.lastTriggeredAt || "");
+  if (!Number.isFinite(lastTriggeredAt)) return true;
+  return now - lastTriggeredAt >= settings.intervalMinutes * 60 * 1000 - 30_000;
+};
+
+export const automaticCroConfig = async () => {
+  const environment = environmentAutomaticConfig();
+  const settings = await getCroAutomationSettings();
+  const rolling = currentSaudiMonthRange();
+  const mode = settings.mode;
+  const from = mode === "fixed" && validCroDateRange(settings.fixedFrom, settings.fixedTo)
+    ? settings.fixedFrom as string
+    : rolling.from;
+  const to = mode === "fixed" && validCroDateRange(settings.fixedFrom, settings.fixedTo)
+    ? settings.fixedTo as string
+    : rolling.to;
+  const lastTriggeredAt = settings.lastTriggeredAt || null;
+  const nextRunAt = settings.enabled && lastTriggeredAt
+    ? new Date(Date.parse(lastTriggeredAt) + settings.intervalMinutes * 60 * 1000).toISOString()
+    : null;
+  return {
+    ...environment,
+    enabled: settings.enabled,
+    intervalMinutes: settings.intervalMinutes,
+    mode,
+    from,
+    to,
+    fixedFrom: settings.fixedFrom,
+    fixedTo: settings.fixedTo,
+    updatedAt: settings.updatedAt || null,
+    updatedBy: settings.updatedBy || null,
+    lastTriggeredAt,
+    nextRunAt,
   };
 };

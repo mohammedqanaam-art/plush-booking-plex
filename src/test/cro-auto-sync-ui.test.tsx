@@ -25,7 +25,15 @@ describe("CRO automatic synchronization", () => {
       }
       return new Response(JSON.stringify({
         status: { state: "success", finishedAt: "2026-07-17T09:00:00.000Z" },
-        automation: { configured: true, from: "2026-07-01", to: "2026-07-31", schedule: "*/30 * * * *" },
+        automation: {
+          configured: true,
+          enabled: true,
+          intervalMinutes: 30,
+          mode: "rolling-month",
+          from: "2026-07-01",
+          to: "2026-07-31",
+          schedule: "*/30 * * * *",
+        },
       }), { status: 200 });
     }));
 
@@ -33,6 +41,8 @@ describe("CRO automatic synchronization", () => {
 
     expect(screen.getByRole("img", { name: "أيقونة مزامنة الحجوزات" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByText(/كل 30 دقيقة/).length).toBeGreaterThan(0));
+    expect(screen.getByRole("switch", { name: "تشغيل مزامنة CRO" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "حفظ التحكم" })).toBeEnabled();
     expect(screen.getByRole("button", { name: /أرشفة فترة سابقة/ })).toBeEnabled();
   });
 });
