@@ -1,4 +1,4 @@
-import { getStore } from "@netlify/blobs";
+import { getDeployStore, getStore } from "@netlify/blobs";
 import type { Config, Context } from "@netlify/functions";
 import {
   createCipheriv,
@@ -223,7 +223,11 @@ const decryptSession = (value: EncryptedValue, password: string): UnoSession | n
   }
 };
 
-const sessionStore = () => getStore({ name: "uno-sessions", consistency: "strong" });
+const sessionStore = () => (
+  Netlify.context?.deploy.context === "production"
+    ? getStore({ name: "uno-sessions", consistency: "strong" })
+    : getDeployStore("uno-sessions")
+);
 
 const getState = async (key: string) => {
   const store = sessionStore();
