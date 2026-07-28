@@ -59,7 +59,7 @@ const BookingReports = () => {
         const status = await api.getPublicBookingSyncStatus();
         if (status.state === "success" || status.state === "fresh") {
           await finish("تم تحديث بيانات التقرير.");
-        } else if (status.state === "error" || status.state === "unavailable") {
+        } else if (status.state === "error" || status.state === "cancelled" || status.state === "unavailable") {
           await finish("تعذر إكمال التحديث حاليًا. حاول لاحقًا.", true);
         }
       } catch {

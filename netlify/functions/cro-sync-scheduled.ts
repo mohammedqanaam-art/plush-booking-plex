@@ -7,7 +7,7 @@ import {
   isCroAutomationDue,
   markCroAutomationTriggered,
   setCroSyncStatus,
-  validCroDateRange,
+  validCroSyncDateRange,
 } from "./_shared/croSync";
 import { croEnvironmentValue } from "./_shared/croEnvironment";
 
@@ -19,7 +19,7 @@ export default async (req: Request, context: Context) => {
     || !isCroAutomationDue(automation)
     || !automation.configured
     || !secret
-    || !validCroDateRange(automation.from, automation.to)
+    || !validCroSyncDateRange(automation.from, automation.to)
   ) {
     return new Response(null, { status: 204 });
   }

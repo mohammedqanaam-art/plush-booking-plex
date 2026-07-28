@@ -31,4 +31,16 @@ describe("CRO automation control", () => {
     expect(publicRoute).toContain("!automation.enabled");
     expect(adminRoute).toContain('req.method === "PATCH"');
   });
+
+  it("supports administrator cancellation and checks it before saving", () => {
+    const adminRoute = fs.readFileSync("netlify/functions/cro-sync.ts", "utf8");
+    const background = fs.readFileSync("netlify/functions/cro-sync-background.ts", "utf8");
+    const savePosition = background.indexOf("await saveBookingCsv");
+    const cancellationGuardPosition = background.indexOf('active.state !== "running"');
+
+    expect(adminRoute).toContain('req.method === "DELETE"');
+    expect(adminRoute).toContain("cancelCroSync");
+    expect(cancellationGuardPosition).toBeGreaterThan(-1);
+    expect(cancellationGuardPosition).toBeLessThan(savePosition);
+  });
 });

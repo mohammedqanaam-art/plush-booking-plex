@@ -36,7 +36,7 @@ export const currentSaudiMonthRange = (now = new Date()) => {
   };
 };
 
-export type CroSyncState = "idle" | "queued" | "running" | "success" | "error";
+export type CroSyncState = "idle" | "queued" | "running" | "success" | "error" | "cancelled";
 export type CroSyncSource = "manual" | "automatic" | "viewer";
 
 export type CroSyncStatus = {
@@ -61,17 +61,15 @@ export type CroSyncStatus = {
 const store = () => getStore({ name: "cro-sync", consistency: "strong" });
 const AUTOMATION_SETTINGS_KEY = "automation-settings";
 const AUTOMATION_INTERVALS = new Set<CroAutomationInterval>([30, 60, 120, 360]);
-
-export const getCroSyncStatus = async (): Promise<CroSyncStatus> => (
-  (await store().get("latest", { type: "json" })) as CroSyncStatus | null
-) || { state: "idle" };
+export const MAX_CRO_SYNC_DAYS = 31;
+export const CRO_SYNC_STALE_AFTER_MS = 16 * 60 * 1000;
 
 export const setCroSyncStatus = async (status: CroSyncStatus) => {
   await store().setJSON("latest", status);
   return status;
 };
 
-export const isActiveCroSync = (status: CroSyncStatus, maxAgeMs = 20 * 60 * 1000) => {
+export const isActiveCroSync = (status: CroSyncStatus, maxAgeMs = CRO_SYNC_STALE_AFTER_MS) => {
   if (status.state !== "queued" && status.state !== "running") return false;
   const timestamp = Date.parse(status.startedAt || status.queuedAt || "");
   return Number.isFinite(timestamp) && Date.now() - timestamp < maxAgeMs;
@@ -85,12 +83,70 @@ export const validCroDateRange = (from?: string, to?: string) => Boolean(
   && from <= to,
 );
 
+export const croDateRangeDays = (from?: string, to?: string) => {
+  if (!validCroDateRange(from, to)) return null;
+  const start = Date.parse(`${from}T00:00:00Z`);
+  const end = Date.parse(`${to}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return Math.floor((end - start) / (24 * 60 * 60 * 1000)) + 1;
+};
+
+export const validCroSyncDateRange = (from?: string, to?: string) => {
+  const days = croDateRangeDays(from, to);
+  return days !== null && days <= MAX_CRO_SYNC_DAYS;
+};
+
+export const croSyncNeedsRecovery = (
+  status: CroSyncStatus,
+  now = Date.now(),
+) => {
+  if (status.state !== "queued" && status.state !== "running") return false;
+  if (!validCroSyncDateRange(status.from, status.to)) return true;
+  const timestamp = Date.parse(status.startedAt || status.queuedAt || "");
+  return !Number.isFinite(timestamp) || now - timestamp >= CRO_SYNC_STALE_AFTER_MS;
+};
+
+const cancelledCroSyncStatus = (
+  status: CroSyncStatus,
+  message: string,
+): CroSyncStatus => ({
+  ...status,
+  state: "cancelled",
+  attemptId: undefined,
+  finishedAt: new Date().toISOString(),
+  message,
+});
+
+export const getCroSyncStatus = async (): Promise<CroSyncStatus> => {
+  const status = (
+    (await store().get("latest", { type: "json" })) as CroSyncStatus | null
+  ) || { state: "idle" };
+  if (!croSyncNeedsRecovery(status)) return status;
+  return setCroSyncStatus(cancelledCroSyncStatus(
+    status,
+    validCroSyncDateRange(status.from, status.to)
+      ? "تم تحرير مهمة CRO تلقائيًا بعد تجاوز مدة التنفيذ الآمنة."
+      : `تم إلغاء الطلب تلقائيًا لأن الحد الأعلى للمزامنة هو ${MAX_CRO_SYNC_DAYS} يومًا.`,
+  ));
+};
+
+export const cancelCroSync = async (
+  status: CroSyncStatus,
+  message = "تم إلغاء مهمة مزامنة CRO.",
+) => {
+  if (status.state !== "queued" && status.state !== "running") return status;
+  return setCroSyncStatus(cancelledCroSyncStatus(status, message));
+};
+
 const environmentAutomaticConfig = () => {
   const requestedMode = croEnvironmentValue("CRO_AUTO_MODE");
   const mode: CroAutomaticMode = requestedMode === "fixed" ? "fixed" : "rolling-month";
   const rolling = currentSaudiMonthRange();
-  const from = mode === "fixed" ? croEnvironmentValue("CRO_AUTO_FROM") || rolling.from : rolling.from;
-  const to = mode === "fixed" ? croEnvironmentValue("CRO_AUTO_TO") || rolling.to : rolling.to;
+  const requestedFrom = croEnvironmentValue("CRO_AUTO_FROM");
+  const requestedTo = croEnvironmentValue("CRO_AUTO_TO");
+  const fixedRangeIsSafe = validCroSyncDateRange(requestedFrom, requestedTo);
+  const from = mode === "fixed" && fixedRangeIsSafe ? requestedFrom : rolling.from;
+  const to = mode === "fixed" && fixedRangeIsSafe ? requestedTo : rolling.to;
   return {
     configured: Boolean(
       croEnvironmentValue("CRO_USERNAME")
@@ -128,10 +184,10 @@ const normalizeAutomationSettings = (
     enabled: input?.enabled !== false,
     intervalMinutes: AUTOMATION_INTERVALS.has(interval) ? interval : defaults.intervalMinutes,
     mode,
-    fixedFrom: mode === "fixed" && validCroDateRange(input?.fixedFrom, input?.fixedTo)
+    fixedFrom: mode === "fixed" && validCroSyncDateRange(input?.fixedFrom, input?.fixedTo)
       ? input?.fixedFrom
       : defaults.fixedFrom,
-    fixedTo: mode === "fixed" && validCroDateRange(input?.fixedFrom, input?.fixedTo)
+    fixedTo: mode === "fixed" && validCroSyncDateRange(input?.fixedFrom, input?.fixedTo)
       ? input?.fixedTo
       : defaults.fixedTo,
   };
@@ -179,10 +235,10 @@ export const automaticCroConfig = async () => {
   const settings = await getCroAutomationSettings();
   const rolling = currentSaudiMonthRange();
   const mode = settings.mode;
-  const from = mode === "fixed" && validCroDateRange(settings.fixedFrom, settings.fixedTo)
+  const from = mode === "fixed" && validCroSyncDateRange(settings.fixedFrom, settings.fixedTo)
     ? settings.fixedFrom as string
     : rolling.from;
-  const to = mode === "fixed" && validCroDateRange(settings.fixedFrom, settings.fixedTo)
+  const to = mode === "fixed" && validCroSyncDateRange(settings.fixedFrom, settings.fixedTo)
     ? settings.fixedTo as string
     : rolling.to;
   const lastTriggeredAt = settings.lastTriggeredAt || null;

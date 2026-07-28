@@ -2,11 +2,13 @@ import type { Context } from "@netlify/functions";
 import { randomUUID } from "node:crypto";
 import {
   automaticCroConfig,
+  cancelCroSync,
   getCroSyncStatus,
   isActiveCroSync,
+  MAX_CRO_SYNC_DAYS,
   setCroSyncStatus,
   updateCroAutomationSettings,
-  validCroDateRange,
+  validCroSyncDateRange,
   type CroAutomaticMode,
   type CroAutomationInterval,
 } from "./_shared/croSync";
@@ -51,8 +53,8 @@ export default async (req: Request, context: Context) => {
     if (body.mode !== "rolling-month" && body.mode !== "fixed") {
       return json({ error: "اختر نطاقًا صحيحًا للمزامنة." }, 400);
     }
-    if (body.mode === "fixed" && !validCroDateRange(body.from, body.to)) {
-      return json({ error: "اختر تاريخ بداية ونهاية صحيحين للنطاق الثابت." }, 400);
+    if (body.mode === "fixed" && !validCroSyncDateRange(body.from, body.to)) {
+      return json({ error: `النطاق الثابت يجب ألا يتجاوز ${MAX_CRO_SYNC_DAYS} يومًا.` }, 400);
     }
     await updateCroAutomationSettings({
       enabled: body.enabled,
@@ -68,11 +70,24 @@ export default async (req: Request, context: Context) => {
     });
   }
 
+  if (req.method === "DELETE") {
+    if (!canControlAutomation(session.role)) return json({ error: "Permission Denied" }, 403);
+    const current = await getCroSyncStatus();
+    const status = await cancelCroSync(current, "تم إلغاء مهمة مزامنة CRO وتحرير النظام.");
+    return json({
+      ok: true,
+      status,
+      automation: await automaticCroConfig(),
+    });
+  }
+
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const body = await req.json().catch(() => ({})) as SyncRequest;
-  if (!validCroDateRange(body.from, body.to)) {
-    return json({ error: "اختر تاريخ بداية ونهاية صحيحين للمزامنة." }, 400);
+  if (!validCroSyncDateRange(body.from, body.to)) {
+    return json({
+      error: `الحد الأعلى لكل عملية مزامنة هو ${MAX_CRO_SYNC_DAYS} يومًا. قسّم الفترات السابقة شهرًا بشهر.`,
+    }, 400);
   }
 
   const current = await getCroSyncStatus();

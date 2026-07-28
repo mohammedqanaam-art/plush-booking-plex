@@ -3,6 +3,7 @@ import {
   Activity,
   Archive,
   CalendarDays,
+  CircleStop,
   Clock3,
   DatabaseZap,
   Download,
@@ -26,8 +27,8 @@ type CroExportStatus = {
 };
 
 type CroSyncStatus = {
-  state: "idle" | "queued" | "running" | "success" | "error";
-  source?: "manual" | "automatic";
+  state: "idle" | "queued" | "running" | "success" | "error" | "cancelled";
+  source?: "manual" | "automatic" | "viewer";
   from?: string;
   to?: string;
   queuedAt?: string;
@@ -63,6 +64,7 @@ const isoDate = (date: Date) => date.toISOString().slice(0, 10);
 const now = new Date();
 const defaultFrom = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
 const defaultTo = isoDate(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+const MAX_SYNC_DAYS = 31;
 const API_BASE = "/.netlify/functions";
 const authHeaders = (): Record<string, string> => {
   const token = typeof window === "undefined" ? null : sessionStorage.getItem("admin_token");
@@ -74,12 +76,27 @@ const readError = async (response: Response, fallback: string) => {
   return data.error || fallback;
 };
 
+const dateRangeDays = (from: string, to: string) => {
+  if (!from || !to || from > to) return null;
+  const start = Date.parse(`${from}T00:00:00Z`);
+  const end = Date.parse(`${to}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return Math.floor((end - start) / 86_400_000) + 1;
+};
+
+const maxEndDate = (from: string) => {
+  const start = Date.parse(`${from}T00:00:00Z`);
+  if (!Number.isFinite(start)) return undefined;
+  return new Date(start + ((MAX_SYNC_DAYS - 1) * 86_400_000)).toISOString().slice(0, 10);
+};
+
 const syncStateLabel: Record<CroSyncStatus["state"], string> = {
   idle: "جاهز للمزامنة",
   queued: "بانتظار التنفيذ",
   running: "جاري تحديث الحجوزات",
   success: "تمت المزامنة بنجاح",
   error: "تحتاج المزامنة مراجعة",
+  cancelled: "تم إلغاء المزامنة",
 };
 
 const formatTimestamp = (value?: string) => {
@@ -118,14 +135,20 @@ const AdminCroExport = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState<"status" | "test" | "export" | "sync" | "archive" | "automation" | "">("status");
+  const [loading, setLoading] = useState<"status" | "test" | "export" | "sync" | "archive" | "automation" | "cancel" | "">("status");
 
   const credentialsReady = Boolean(status?.configured || (username.trim() && password));
   const syncIsActive = sync?.status.state === "queued" || sync?.status.state === "running";
+  const manualRangeDays = dateRangeDays(from, to);
+  const manualRangeIsSafe = manualRangeDays !== null && manualRangeDays <= MAX_SYNC_DAYS;
+  const automaticRangeDays = dateRangeDays(autoFrom, autoTo);
+  const automaticRangeIsSafe = autoMode !== "fixed"
+    || (automaticRangeDays !== null && automaticRangeDays <= MAX_SYNC_DAYS);
   const busy = Boolean(loading) || syncIsActive;
   const syncTone = useMemo(() => {
     if (sync?.status.state === "success") return "text-emerald-700";
     if (sync?.status.state === "error") return "text-red-700";
+    if (sync?.status.state === "cancelled") return "text-slate-600";
     if (syncIsActive) return "text-amber-700";
     return "text-foreground";
   }, [sync?.status.state, syncIsActive]);
@@ -167,7 +190,7 @@ const AdminCroExport = () => {
             setLoading("");
             setPassword("");
             setMessage(result.status.message || "تم تحديث تقارير الحجوزات من CRO.");
-          } else if (result.status.state === "error") {
+          } else if (result.status.state === "error" || result.status.state === "cancelled") {
             setLoading("");
             setMessage(result.status.message || "تعذر تحديث التقارير من CRO.");
           }
@@ -201,6 +224,10 @@ const AdminCroExport = () => {
   };
 
   const startSync = async (archiveOnly: boolean) => {
+    if (!manualRangeIsSafe) {
+      setMessage(`لحماية CRO، اختر فترة لا تتجاوز ${MAX_SYNC_DAYS} يومًا.`);
+      return;
+    }
     setLoading(archiveOnly ? "archive" : "sync");
     setMessage("");
     try {
@@ -219,7 +246,30 @@ const AdminCroExport = () => {
     }
   };
 
+  const cancelSync = async () => {
+    setLoading("cancel");
+    setMessage("");
+    try {
+      const response = await fetch(`${API_BASE}/cro-sync`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      const result = await response.json().catch(() => ({})) as CroSyncResponse & { error?: string };
+      if (!response.ok) throw new Error(result.error || "تعذر إلغاء المزامنة.");
+      setSync(result);
+      setMessage(result.status.message || "تم إلغاء المزامنة وتحرير النظام.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر إلغاء المزامنة.");
+    } finally {
+      setLoading("");
+    }
+  };
+
   const saveAutomation = async () => {
+    if (!automaticRangeIsSafe) {
+      setMessage(`الفترة الثابتة يجب ألا تتجاوز ${MAX_SYNC_DAYS} يومًا.`);
+      return;
+    }
     setLoading("automation");
     setMessage("");
     try {
@@ -253,6 +303,10 @@ const AdminCroExport = () => {
   };
 
   const exportBookings = async () => {
+    if (!manualRangeIsSafe) {
+      setMessage(`لحماية CRO، نزّل الفترات الطويلة شهرًا بشهر بحد أقصى ${MAX_SYNC_DAYS} يومًا.`);
+      return;
+    }
     setLoading("export");
     setMessage("");
     try {
@@ -310,17 +364,30 @@ const AdminCroExport = () => {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:min-w-64">
-            <div className="rounded-2xl border border-border/40 bg-background/70 p-3 text-center backdrop-blur">
-              <Clock3 className="mx-auto h-4 w-4 text-primary" />
-              <span className="mt-1 block text-[11px] text-muted-foreground">المزامنة القادمة</span>
-              <strong className="text-sm">{sync?.automation.enabled && sync?.automation.configured ? formatTime(sync.automation.nextRunAt) : "—"}</strong>
+          <div className="space-y-2 sm:min-w-64">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-2xl border border-border/40 bg-background/70 p-3 text-center backdrop-blur">
+                <Clock3 className="mx-auto h-4 w-4 text-primary" />
+                <span className="mt-1 block text-[11px] text-muted-foreground">المزامنة القادمة</span>
+                <strong className="text-sm">{sync?.automation.enabled && sync?.automation.configured ? formatTime(sync.automation.nextRunAt) : "—"}</strong>
+              </div>
+              <div className="rounded-2xl border border-border/40 bg-background/70 p-3 text-center backdrop-blur">
+                <Activity className="mx-auto h-4 w-4 text-primary" />
+                <span className="mt-1 block text-[11px] text-muted-foreground">الحالة</span>
+                <strong className={`text-sm ${syncTone}`}>{syncStateLabel[sync?.status.state || "idle"]}</strong>
+              </div>
             </div>
-            <div className="rounded-2xl border border-border/40 bg-background/70 p-3 text-center backdrop-blur">
-              <Activity className="mx-auto h-4 w-4 text-primary" />
-              <span className="mt-1 block text-[11px] text-muted-foreground">الحالة</span>
-              <strong className={`text-sm ${syncTone}`}>{syncStateLabel[sync?.status.state || "idle"]}</strong>
-            </div>
+            {syncIsActive ? (
+              <button
+                type="button"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 px-3 text-xs font-black text-red-700 disabled:opacity-50"
+                onClick={() => void cancelSync()}
+                disabled={loading === "cancel"}
+              >
+                {loading === "cancel" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CircleStop className="h-4 w-4" />}
+                إلغاء العملية العالقة
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -385,12 +452,15 @@ const AdminCroExport = () => {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-xs">
               <span className="mb-1.5 block text-muted-foreground">من تاريخ Check-Out</span>
-              <input type="date" className="h-11 w-full rounded-xl border bg-secondary/40 px-3" value={autoFrom} onChange={(event) => setAutoFrom(event.target.value)} />
+              <input type="date" className="h-11 w-full rounded-xl border bg-secondary/40 px-3" value={autoFrom} max={autoTo || undefined} onChange={(event) => setAutoFrom(event.target.value)} />
             </label>
             <label className="text-xs">
               <span className="mb-1.5 block text-muted-foreground">إلى تاريخ Check-Out</span>
-              <input type="date" className="h-11 w-full rounded-xl border bg-secondary/40 px-3" value={autoTo} onChange={(event) => setAutoTo(event.target.value)} />
+              <input type="date" className="h-11 w-full rounded-xl border bg-secondary/40 px-3" value={autoTo} min={autoFrom || undefined} max={maxEndDate(autoFrom)} onChange={(event) => setAutoTo(event.target.value)} />
             </label>
+            <p className={`sm:col-span-2 text-xs ${automaticRangeIsSafe ? "text-muted-foreground" : "font-bold text-red-700"}`}>
+              الحد الآمن: {MAX_SYNC_DAYS} يومًا لكل مزامنة{automaticRangeDays ? ` · المحدد ${automaticRangeDays} يومًا` : ""}.
+            </p>
           </div>
         ) : null}
 
@@ -398,7 +468,7 @@ const AdminCroExport = () => {
           type="button"
           className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-4 text-sm font-bold text-primary-foreground disabled:opacity-50"
           onClick={() => void saveAutomation()}
-          disabled={loading === "automation" || (autoMode === "fixed" && (!autoFrom || !autoTo || autoFrom > autoTo))}
+          disabled={loading === "automation" || !automaticRangeIsSafe}
         >
           {loading === "automation" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           حفظ التحكم
@@ -436,19 +506,22 @@ const AdminCroExport = () => {
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-xs">
             <span className="mb-1.5 flex items-center gap-1 text-muted-foreground"><CalendarDays className="h-3.5 w-3.5" /> من تاريخ Check-Out</span>
-            <input type="date" className="h-12 w-full rounded-2xl border bg-secondary/50 px-4 outline-none focus:border-primary/60" value={from} onChange={(event) => setFrom(event.target.value)} />
+            <input type="date" className="h-12 w-full rounded-2xl border bg-secondary/50 px-4 outline-none focus:border-primary/60" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} />
           </label>
           <label className="text-xs">
             <span className="mb-1.5 flex items-center gap-1 text-muted-foreground"><CalendarDays className="h-3.5 w-3.5" /> إلى تاريخ Check-Out</span>
-            <input type="date" className="h-12 w-full rounded-2xl border bg-secondary/50 px-4 outline-none focus:border-primary/60" value={to} onChange={(event) => setTo(event.target.value)} />
+            <input type="date" className="h-12 w-full rounded-2xl border bg-secondary/50 px-4 outline-none focus:border-primary/60" value={to} min={from || undefined} max={maxEndDate(from)} onChange={(event) => setTo(event.target.value)} />
           </label>
+          <p className={`sm:col-span-2 text-xs ${manualRangeIsSafe ? "text-muted-foreground" : "font-bold text-red-700"}`}>
+            حماية النظام: الحد الأعلى {MAX_SYNC_DAYS} يومًا لكل عملية{manualRangeDays ? ` · المحدد ${manualRangeDays} يومًا` : ""}. للفترات الأطول نفّذ كل شهر على حدة.
+          </p>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
-          <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl gold-gradient px-4 text-sm font-bold text-primary-foreground shadow-sm disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void startSync(false)} disabled={busy || !credentialsReady || !status?.exportConfigured}>
+          <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl gold-gradient px-4 text-sm font-bold text-primary-foreground shadow-sm disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void startSync(false)} disabled={busy || !manualRangeIsSafe || !credentialsReady || !status?.exportConfigured}>
             {loading === "sync" || syncIsActive ? <Loader2 className="h-4 w-4 animate-spin" /> : <DatabaseZap className="h-4 w-4" />} تحديث التقرير الحالي
           </button>
-          <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-primary/5 px-4 text-sm font-bold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void startSync(true)} disabled={busy || !credentialsReady || !status?.exportConfigured}>
+          <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-primary/5 px-4 text-sm font-bold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void startSync(true)} disabled={busy || !manualRangeIsSafe || !credentialsReady || !status?.exportConfigured}>
             {loading === "archive" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />} أرشفة فترة سابقة
           </button>
         </div>
@@ -457,7 +530,7 @@ const AdminCroExport = () => {
           <button className="inline-flex h-11 items-center gap-2 rounded-xl border border-primary/25 px-4 text-sm font-bold" onClick={() => void testLogin()} disabled={busy || !credentialsReady}>
             {loading === "test" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />} اختبار الدخول
           </button>
-          <button className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/50 px-4 text-sm font-bold" onClick={() => void exportBookings()} disabled={busy || !credentialsReady || !status?.exportConfigured}>
+          <button className="inline-flex h-11 items-center gap-2 rounded-xl border border-border/50 px-4 text-sm font-bold" onClick={() => void exportBookings()} disabled={busy || !manualRangeIsSafe || !credentialsReady || !status?.exportConfigured}>
             {loading === "export" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} تنزيل CSV فقط
           </button>
           {status?.dashboardUrl ? (
