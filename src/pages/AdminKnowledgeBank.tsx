@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { BookOpenText, Search } from "lucide-react";
 import { getAdminSession, hasPermission } from "@/lib/adminAuth";
-import { branchRecords, globalReferences } from "@/data/knowledge";
+import { branchRecords } from "@/data/knowledge";
 import PageHeader from "@/components/PageHeader";
 
 const AdminKnowledgeBank = () => {
@@ -30,7 +30,6 @@ const AdminKnowledgeBank = () => {
             placeholder="بحث بالفرع أو المدينة أو العلامة"
           />
         </div>
-        <p className="text-xs text-muted-foreground">إجمالي المراجع العامة: {globalReferences.length}</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-3">

@@ -49,6 +49,20 @@ describe("operations data module", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("does not publish removed policy cards", () => {
+    const removedTitles = new Set([
+      "سياسة الإلغاء",
+      "سياسة عدم الحضور",
+      "خطوات الحجز المركزي",
+      "الردود الجاهزة",
+      "تصنيف حالات الحجوزات",
+      "سياسة رابط الدفع",
+    ]);
+
+    expect(knowledgeEntries.some((entry) => removedTitles.has(entry.title))).toBe(false);
+    expect(knowledgeEntries.map((entry) => String(entry.group))).not.toContain("سياسات");
+  });
+
   it("themePreset ids match the enterprise theme map keys", () => {
     const knownThemeIds = new Set([
       "executive-dark-glass",
