@@ -54,17 +54,6 @@ export type BranchRecord = {
   priority: number;
 };
 
-export type GlobalReference = {
-  id: string;
-  title: string;
-  category: string;
-  summary: string;
-  responseProtocol: string;
-  internalSteps: string[];
-  relatedNotes?: string;
-  attachmentUrl?: string;
-};
-
 const brandMap: Record<string, BrandKey> = {
   "بريرا": "Braira",
   "بودل": "Boudl",
@@ -229,59 +218,7 @@ export const branchesByBrand: Record<BrandKey, BranchRecord[]> = {
   "Z'MN": branchRecords.filter((row) => row.brand === "Z'MN"),
 };
 
-export const quickIntents = ["سياسة الإلغاء", "رقم الاستقبال", "الإفطار", "المسبح", "الغرف"];
-
-export const globalReferences: GlobalReference[] = [
-  {
-    id: "cancellation-policy",
-    title: "سياسة الإلغاء",
-    category: "سياسة الإلغاء",
-    summary: "الإلغاء المجاني حتى 48 ساعة في المواسم وفترات الذروة، وحتى 24 ساعة خارج المواسم، ما لم تنص شروط السعر على غير ذلك.",
-    responseProtocol: "تحقق من قناة الحجز ونوع السعر والموسم، ثم وضّح للضيف المهلة والرسوم قبل تنفيذ الإلغاء.",
-    internalSteps: ["التحقق من رقم الحجز", "تأكيد نافذة الإلغاء", "تحديث الحالة في النظام", "إرسال تأكيد للضيف"],
-    relatedNotes: "حجوزات منصات السفر الإلكترونية تُعالج من خلال المنصة الأصلية.",
-  },
-  {
-    id: "no-show-policy",
-    title: "سياسة عدم الحضور",
-    category: "عدم الحضور",
-    summary: "الحجز المسجل بحالة NS يُصنف عدم حضور ويُحتسب ضمن الحجوزات الملغاة.",
-    responseProtocol: "وضّح الفرق بين الإلغاء المسبق وعدم الحضور، وراجع شروط السعر قبل تأكيد أي رسوم.",
-    internalSteps: ["التحقق من تاريخ الوصول", "مراجعة شروط السعر", "تسجيل حالة NS", "تصعيد الحالات الاستثنائية"],
-  },
-  {
-    id: "central-reservation-protocol",
-    title: "خطوات الحجز المركزي",
-    category: "إجراءات الحجز المركزي",
-    summary: "إجراءات موحدة لموظفي الحجز المركزي للتعامل مع الاستفسارات والحجوزات والتعديلات.",
-    responseProtocol: "ابدأ بالترحيب، ثم اجمع اسم الفرع وتاريخ الوصول وعدد الليالي والضيوف، واعرض الخيارات المتاحة بدقة.",
-    internalSteps: ["الترحيب وتحديد الطلب", "جمع بيانات الإقامة", "تأكيد السعر والبيانات والسياسات", "تثبيت الحجز وتوضيح آلية السداد"],
-  },
-  {
-    id: "response-scripts",
-    title: "الردود الجاهزة",
-    category: "نماذج الرد",
-    summary: "نماذج مختصرة للسياسات والخدمات والتصعيد، مع ضرورة تخصيصها لكل حالة.",
-    responseProtocol: "اختر الرد الأقرب، ثم راجعه وخصّصه باسم الضيف والفرع والسياسة قبل الإرسال.",
-    internalSteps: ["تحديد نية العميل", "اختيار السكربت", "التخصيص", "التوثيق"],
-  },
-  {
-    id: "reservation-status-mapping",
-    title: "تصنيف حالات الحجوزات",
-    category: "تقارير الحجوزات",
-    summary: "الحالات M وO وN وI مؤكدة، والحالتان C وNS ملغاة.",
-    responseProtocol: "لا تعتمد أي حالة أخرى تلقائيًا في التقرير قبل مراجعتها والتحقق من معناها.",
-    internalSteps: ["قراءة رمز الحالة", "تطبيق التصنيف المعتمد", "استبعاد الرموز غير المعروفة", "مراجعة الإجماليات"],
-  },
-  {
-    id: "payment-link-policy",
-    title: "سياسة رابط الدفع",
-    category: "السداد",
-    summary: "يُرسل رابط الدفع آليًا برسالة نصية بعد تأكيد الحجز لضمان عدم إلغائه.",
-    responseProtocol: "أبلغ الضيف بأن رسالة تأكيد الحجز ورابط الدفع ستصل آليًا، واطلب منه مراجعة البيانات والسياسات قبل السداد.",
-    internalSteps: ["تأكيد بيانات الحجز", "التأكد من رقم الجوال", "توضيح مهلة السداد", "متابعة حالة الحجز عند الحاجة"],
-  },
-];
+export const quickIntents = ["رقم الاستقبال", "الإفطار", "المسبح", "الغرف"];
 
 export const branchInventoryByBrand = {
   Braira: branchesByBrand.Braira.map((b) => b.branch),
