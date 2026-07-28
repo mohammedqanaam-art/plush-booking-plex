@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { BookOpenCheck, ExternalLink, Filter, Search, Tags } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { branchRecords, branchesByBrand, globalReferences, quickIntents } from "@/data/knowledge";
+import { branchRecords, branchesByBrand, quickIntents } from "@/data/knowledge";
 import PageHeader from "@/components/PageHeader";
 
-type ResultCategory = "سياسات" | "فروع" | "جهات اتصال" | "وجبات" | "غرف" | "مرافق" | "قاعات";
-const categories: ResultCategory[] = ["سياسات", "فروع", "جهات اتصال", "وجبات", "غرف", "مرافق", "قاعات"];
+type ResultCategory = "فروع" | "جهات اتصال" | "وجبات" | "غرف" | "مرافق" | "قاعات";
+const categories: ResultCategory[] = ["فروع", "جهات اتصال", "وجبات", "غرف", "مرافق", "قاعات"];
 type SearchResult = {
   id: string;
   kind: ResultCategory;
@@ -40,21 +40,6 @@ const KnowledgeBank = () => {
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const policyRows: SearchResult[] = globalReferences.map((row) => ({
-      id: row.id,
-      kind: "سياسات" as ResultCategory,
-      title: row.title,
-      summary: row.summary,
-      details: [
-        row.responseProtocol,
-        `الخطوات:\n- ${row.internalSteps.join("\n- ")}`,
-        row.relatedNotes ? `ملاحظة: ${row.relatedNotes}` : "",
-      ].filter(Boolean).join("\n\n"),
-      tags: [row.category, "مرجع عام"],
-      brand: undefined,
-      branch: undefined,
-    }));
-
     const branchRows: SearchResult[] = branchRecords.flatMap((row) => {
       const contacts = detailLines([
         ["الاستقبال", row.receptionPhone],
@@ -117,7 +102,7 @@ const KnowledgeBank = () => {
       return rows.filter((item): item is SearchResult => Boolean(item));
     });
 
-    return [...policyRows, ...branchRows].filter((row) => {
+    return branchRows.filter((row) => {
       const matchBrand = brand === "الكل" || row.brand === brand;
       const matchBranch = branch === "الكل" || row.branch === branch;
       const matchCategory = category === "الكل" || row.kind === category;
