@@ -31,6 +31,8 @@ describe("UNO integration boundary", () => {
     expect(page).not.toContain("SessionID");
     expect(fn).toContain('Netlify.env.get(key)');
     expect(fn).toContain('name: "uno-sessions"');
+    expect(fn).toContain('deploy.context === "production"');
+    expect(fn).toContain('getDeployStore("uno-sessions")');
     expect(fn).toContain('createCipheriv("aes-256-gcm"');
     expect(fn).toContain('createHash("sha256").update(configuration.password)');
     expect(fn).toContain('path: "/api/admin/uno"');
