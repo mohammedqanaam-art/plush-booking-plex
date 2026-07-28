@@ -10,6 +10,7 @@ import {
 describe("UNO integration boundary", () => {
   it("allows only approved HTTPS UNO endpoints", () => {
     expect(isTrustedRateGainUrl("https://unolive.rategain.com/")).toBe(true);
+    expect(isTrustedRateGainUrl("https://unolive-voice.rategain.com/create-booking")).toBe(true);
     expect(isTrustedRateGainUrl("https://api.rategain.com/uno")).toBe(true);
     expect(isTrustedRateGainUrl("https://uno-prod-ui-api-1087875874170.us-central1.run.app/api/")).toBe(true);
     expect(isTrustedRateGainUrl("http://unolive.rategain.com/")).toBe(false);
@@ -42,6 +43,10 @@ describe("UNO integration boundary", () => {
     expect(page).toContain("api.listUnoReservations()");
     expect(page).toContain('autoComplete="one-time-code"');
     expect(page).toContain("الملغاة / NS");
+    expect(fn).toContain('const DEFAULT_UNO_BOOKING_URL = "https://unolive-voice.rategain.com/create-booking"');
+    expect(fn).toContain('trimmedEnv("UNO_BOOKING_URL")');
+    expect(fn).not.toContain('trimmedEnv("UNO_LOGIN_URL")');
+    expect(page).toContain("عرض وتأكيد الحجوزات");
     expect(page).toContain("navigator.clipboard.writeText");
     expect(page).toContain("فلترة النتائج: اسم، جوال، UNO أو PMS");
   });

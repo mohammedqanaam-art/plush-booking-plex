@@ -329,7 +329,7 @@ const AdminUno = () => {
       ) : null}
 
       {status && phase === "idle" ? (
-        <section className="page-surface">
+        <section className="page-surface flex flex-wrap items-center gap-2">
           <button
             type="button"
             className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-5 text-sm font-bold text-primary-foreground disabled:opacity-50"
@@ -339,6 +339,14 @@ const AdminUno = () => {
             {busy === "connect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cable className="h-4 w-4" />}
             اتصال
           </button>
+          <a
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-border px-4 text-sm font-bold"
+            href={status.loginUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            <ExternalLink className="h-4 w-4" /> عرض وتأكيد الحجوزات
+          </a>
           {!status.configured ? (
             <span className="ms-3 text-xs font-bold text-destructive">إعدادات UNO غير مكتملة.</span>
           ) : null}
@@ -401,7 +409,7 @@ const AdminUno = () => {
                   target="_blank"
                   rel="noreferrer noopener"
                 >
-                  <ExternalLink className="h-4 w-4" /> فتح بوابة UNO
+                  <ExternalLink className="h-4 w-4" /> عرض وتأكيد الحجوزات
                 </a>
                 <button
                   type="button"

@@ -8,7 +8,7 @@ import {
 } from "node:crypto";
 import { getBearerToken, json, validateSession } from "./_shared/security";
 
-const DEFAULT_UNO_LOGIN_URL = "https://unolive.rategain.com/";
+const DEFAULT_UNO_BOOKING_URL = "https://unolive-voice.rategain.com/create-booking";
 const DEFAULT_UNO_API_BASE_URL = "https://uno-prod-ui-api-1087875874170.us-central1.run.app/api/";
 const AUTH_PATH = "AuthenticateUser/ValidateUserDetails";
 const SEARCH_PATHS = ["reservation/SearchReservations", "reservation/allreservaions"] as const;
@@ -156,11 +156,11 @@ export const isTrustedRateGainUrl = (value: string) => {
 };
 
 const readConfiguration = () => {
-  const configuredLoginUrl = trimmedEnv("UNO_LOGIN_URL");
+  const configuredBookingUrl = trimmedEnv("UNO_BOOKING_URL");
   const configuredApiBaseUrl = trimmedEnv("UNO_API_BASE_URL");
-  const loginUrl = isTrustedRateGainUrl(configuredLoginUrl)
-    ? configuredLoginUrl
-    : DEFAULT_UNO_LOGIN_URL;
+  const loginUrl = isTrustedRateGainUrl(configuredBookingUrl)
+    ? configuredBookingUrl
+    : DEFAULT_UNO_BOOKING_URL;
   const apiBaseUrl = isTrustedRateGainUrl(configuredApiBaseUrl)
     ? configuredApiBaseUrl
     : DEFAULT_UNO_API_BASE_URL;
