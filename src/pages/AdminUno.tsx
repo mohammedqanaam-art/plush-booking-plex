@@ -110,6 +110,22 @@ const AdminUno = () => {
     }
   };
 
+  const loadReservations = async () => {
+    setBusy("list");
+    setFailed(false);
+    setMessage("");
+    try {
+      const response = await api.listUnoReservations();
+      setResults(response.reservations);
+      setMessage(response.total ? "" : "لا توجد حجوزات متاحة.");
+    } catch (error) {
+      setFailed(true);
+      setMessage(error instanceof Error ? error.message : "تعذر عرض حجوزات UNO.");
+    } finally {
+      setBusy("");
+    }
+  };
+
   const exportResults = async () => {
     if (!results?.length) return;
     setBusy("export");
@@ -165,6 +181,7 @@ const AdminUno = () => {
 
   const activeField = searchFields.find((option) => option.value === field) || searchFields[0];
   const phase = status?.phase || "idle";
+  const isBusy = Boolean(busy);
 
   return (
     <div className="page-wrap-narrow">
@@ -198,7 +215,7 @@ const AdminUno = () => {
             type="button"
             className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-5 text-sm font-bold text-primary-foreground disabled:opacity-50"
             onClick={() => void runStatusAction("connect", () => api.connectUno())}
-            disabled={busy === "connect" || !status.configured}
+            disabled={isBusy || !status.configured}
           >
             {busy === "connect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cable className="h-4 w-4" />}
             اتصال
@@ -226,7 +243,7 @@ const AdminUno = () => {
           <button
             type="submit"
             className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-5 text-sm font-bold text-primary-foreground disabled:opacity-50"
-            disabled={busy === "verify" || !otp.trim()}
+            disabled={isBusy || !otp.trim()}
           >
             {busy === "verify" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
             تأكيد
@@ -235,7 +252,7 @@ const AdminUno = () => {
             type="button"
             className="inline-flex h-11 items-center gap-2 rounded-xl border border-border px-4 text-sm font-bold disabled:opacity-50"
             onClick={() => void runStatusAction("resend", () => api.resendUnoOtp(), "تم إرسال رمز جديد.")}
-            disabled={busy === "resend" || resendSeconds > 0}
+            disabled={isBusy || resendSeconds > 0}
           >
             {busy === "resend" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             {resendSeconds > 0 ? `إعادة الإرسال (${resendSeconds})` : "إعادة الإرسال"}
@@ -256,7 +273,7 @@ const AdminUno = () => {
               type="button"
               className="inline-flex h-10 items-center gap-2 rounded-xl border border-destructive/25 px-3 text-xs font-bold text-destructive disabled:opacity-50"
               onClick={() => void runStatusAction("disconnect", () => api.disconnectUno())}
-              disabled={busy === "disconnect"}
+              disabled={isBusy}
             >
               {busy === "disconnect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
               فصل
@@ -295,16 +312,25 @@ const AdminUno = () => {
               <button
                 type="submit"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl gold-gradient px-5 text-sm font-bold text-primary-foreground disabled:opacity-50"
-                disabled={busy === "search" || !query.trim()}
+                disabled={isBusy || !query.trim()}
               >
                 {busy === "search" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 بحث
               </button>
               <button
                 type="button"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-bold disabled:opacity-50"
+                onClick={() => void loadReservations()}
+                disabled={isBusy}
+              >
+                {busy === "list" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                عرض
+              </button>
+              <button
+                type="button"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-primary/25 px-4 text-sm font-bold disabled:opacity-50"
                 onClick={() => void exportResults()}
-                disabled={!results?.length || busy === "export"}
+                disabled={!results?.length || isBusy}
               >
                 {busy === "export" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
                 Excel

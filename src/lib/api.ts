@@ -513,6 +513,10 @@ export const api = {
     return unoAction<UnoSearchResponse>({ action: "search", field, query });
   },
 
+  async listUnoReservations() {
+    return unoAction<UnoSearchResponse>({ action: "list" });
+  },
+
   async createContactRequest(payload: { brand: string; branchName: string; guestName: string; guestPhone: string; reason: string }) {
     const res = await fetch(`${API_BASE}/contacts`, {
       method: "POST",

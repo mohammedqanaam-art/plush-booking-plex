@@ -34,6 +34,9 @@ describe("UNO integration boundary", () => {
     expect(fn).toContain('createCipheriv("aes-256-gcm"');
     expect(fn).toContain('createHash("sha256").update(configuration.password)');
     expect(fn).toContain('path: "/api/admin/uno"');
+    expect(fn).toContain('action === "list"');
+    expect(page).toContain("api.listUnoReservations()");
+    expect(page).toContain('autoComplete="one-time-code"');
   });
 
   it("builds a property-scoped reservation lookup", () => {
@@ -48,6 +51,19 @@ describe("UNO integration boundary", () => {
     expect(payload.chainID).toBe("4");
     expect(payload.propertyId).toBe("11,12");
     expect(payload.pmsConfirmationNo).toBe("PMS-9988");
+    expect(payload.phoneNo).toBe("");
+  });
+
+  it("builds a property-scoped list request without a search value", () => {
+    const payload = createReservationSearchPayload({
+      chainId: "4",
+      properties: [{ id: "11", name: "One" }],
+    });
+
+    expect(payload.chainID).toBe("4");
+    expect(payload.propertyId).toBe("11");
+    expect(payload.reservationNo).toBe("");
+    expect(payload.pmsConfirmationNo).toBe("");
     expect(payload.phoneNo).toBe("");
   });
 
