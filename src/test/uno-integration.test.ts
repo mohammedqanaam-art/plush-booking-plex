@@ -30,6 +30,8 @@ describe("UNO integration boundary", () => {
     expect(page).not.toContain("userToken");
     expect(page).not.toContain("SessionID");
     expect(fn).toContain('Netlify.env.get(key)');
+    expect(fn).toContain('trimmedEnv("UNO_LOGIN_EMAIL")');
+    expect(fn).toContain('rawEnv("UNO_LOGIN_PASSWORD")');
     expect(fn).toContain('name: "uno-sessions"');
     expect(fn).toContain('deploy.context === "production"');
     expect(fn).toContain('getDeployStore("uno-sessions")');

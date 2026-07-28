@@ -164,8 +164,8 @@ const readConfiguration = () => {
   const apiBaseUrl = isTrustedRateGainUrl(configuredApiBaseUrl)
     ? configuredApiBaseUrl
     : DEFAULT_UNO_API_BASE_URL;
-  const username = trimmedEnv("UNO_USERNAME");
-  const password = rawEnv("UNO_PASSWORD");
+  const username = trimmedEnv("UNO_USERNAME") || trimmedEnv("UNO_LOGIN_EMAIL");
+  const password = rawEnv("UNO_PASSWORD") || rawEnv("UNO_LOGIN_PASSWORD");
   const companyId = Math.max(1, Math.trunc(asNumber(trimmedEnv("UNO_COMPANY_ID")) || 1));
   const appVersion = trimmedEnv("UNO_APP_VERSION") || "29.1";
 
