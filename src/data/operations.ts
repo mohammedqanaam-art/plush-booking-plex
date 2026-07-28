@@ -1,4 +1,4 @@
-import { branchRecords, globalReferences, quickIntents as kbQuickIntents } from "@/data/knowledge";
+import { branchRecords, quickIntents as kbQuickIntents } from "@/data/knowledge";
 
 export type ThemePreset = {
   id: string;
@@ -16,12 +16,12 @@ export const themePresets: ThemePreset[] = [
 
 export const quickIntents = kbQuickIntents;
 
-export type KnowledgeGroup = "سياسات" | "فروع" | "جهات اتصال" | "وجبات" | "غرف" | "مرافق" | "قاعات" | "تعاميم" | "إجراءات";
-export type KnowledgeCategory = "branch_info" | "meals" | "amenities" | "policies" | "contacts" | "rooms" | "halls";
+export type KnowledgeGroup = "فروع" | "جهات اتصال" | "وجبات" | "غرف" | "مرافق" | "قاعات" | "تعاميم" | "إجراءات";
+export type KnowledgeCategory = "branch_info" | "meals" | "amenities" | "contacts" | "rooms" | "halls";
 
 export type KnowledgeEntry = {
   id: string;
-  type: "policy" | "procedure" | "branch_info" | "contact";
+  type: "procedure" | "branch_info" | "contact";
   category: KnowledgeCategory;
   group: KnowledgeGroup;
   brand?: "Boudl" | "Braira" | "Narcissus" | "Aber" | "Z'MN";
@@ -152,16 +152,4 @@ const branchEntries: KnowledgeEntry[] = branchRecords.flatMap((branch) => {
   return rows.filter((row): row is KnowledgeEntry => Boolean(row));
 });
 
-const policyEntries: KnowledgeEntry[] = globalReferences.map((policy, idx) => ({
-  id: policy.id,
-  type: "policy",
-  category: "policies",
-  group: "سياسات",
-  title: policy.title,
-  summary: policy.summary,
-  body: `${policy.responseProtocol}\n\nالخطوات الداخلية:\n- ${policy.internalSteps.join("\n- ")}`,
-  tags: ["سياسة", policy.category],
-  priority: idx + 1,
-}));
-
-export const knowledgeEntries: KnowledgeEntry[] = [...policyEntries, ...branchEntries];
+export const knowledgeEntries: KnowledgeEntry[] = branchEntries;
