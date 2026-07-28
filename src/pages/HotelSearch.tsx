@@ -1,13 +1,12 @@
 import { type ReactNode, useMemo, useState } from "react";
-import { BedDouble, Building2, PhoneCall, Presentation, Search, ShieldCheck, UtensilsCrossed } from "lucide-react";
+import { BedDouble, Building2, PhoneCall, Presentation, Search, UtensilsCrossed } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { knowledgeEntries, quickIntents } from "@/data/operations";
 
-type GroupKey = "الكل" | "سياسات" | "فروع" | "جهات اتصال" | "وجبات" | "غرف" | "مرافق" | "قاعات";
+type GroupKey = "الكل" | "فروع" | "جهات اتصال" | "وجبات" | "غرف" | "مرافق" | "قاعات";
 
 const groupIcons: Record<GroupKey, ReactNode> = {
   "الكل": <Search className="w-4 h-4" />,
-  "سياسات": <ShieldCheck className="w-4 h-4" />,
   "فروع": <Building2 className="w-4 h-4" />,
   "جهات اتصال": <PhoneCall className="w-4 h-4" />,
   "وجبات": <UtensilsCrossed className="w-4 h-4" />,
@@ -16,7 +15,7 @@ const groupIcons: Record<GroupKey, ReactNode> = {
   "قاعات": <Presentation className="w-4 h-4" />,
 };
 
-const groups: GroupKey[] = ["الكل", "سياسات", "فروع", "جهات اتصال", "وجبات", "غرف", "مرافق", "قاعات"];
+const groups: GroupKey[] = ["الكل", "فروع", "جهات اتصال", "وجبات", "غرف", "مرافق", "قاعات"];
 
 const HotelSearch = () => {
   const [query, setQuery] = useState("");
@@ -55,7 +54,7 @@ const HotelSearch = () => {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="مثال: إلغاء، إفطار، بودل العليا…"
+            placeholder="مثال: إفطار، مسبح، بودل العليا…"
             className="w-full h-11 rounded-lg bg-secondary border px-9"
           />
         </div>
