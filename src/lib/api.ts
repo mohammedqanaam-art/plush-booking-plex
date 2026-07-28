@@ -50,7 +50,7 @@ export type PublicBookingReport = {
 export type PublicBookingSyncStatus = {
   ok: boolean;
   accepted: boolean;
-  state: "idle" | "queued" | "running" | "success" | "fresh" | "error" | "unavailable";
+  state: "idle" | "queued" | "running" | "success" | "fresh" | "error" | "cancelled" | "unavailable";
   updatedAt: string | null;
   message: string;
 };

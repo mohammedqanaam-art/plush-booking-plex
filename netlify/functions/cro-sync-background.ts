@@ -3,7 +3,7 @@ import { saveBookingCsv } from "./_shared/bookingCsv";
 import {
   getCroSyncStatus,
   setCroSyncStatus,
-  validCroDateRange,
+  validCroSyncDateRange,
 } from "./_shared/croSync";
 import { validateSession } from "./_shared/security";
 import { croEnvironmentValue } from "./_shared/croEnvironment";
@@ -44,7 +44,7 @@ export default async (req: Request) => {
     !body.attemptId
     || current.attemptId !== body.attemptId
     || current.state !== "queued"
-    || !validCroDateRange(body.from, body.to)
+    || !validCroSyncDateRange(body.from, body.to)
   ) {
     return new Response(null, { status: 409 });
   }
@@ -61,12 +61,20 @@ export default async (req: Request) => {
 
   try {
     const exported = await downloadCroBookings(body);
+    const active = await getCroSyncStatus();
+    if (active.attemptId !== body.attemptId || active.state !== "running") {
+      return new Response(null, { status: 204 });
+    }
     const payload = await exported.arrayBuffer();
     const csvText = decodeCsv(payload);
     if (!csvText.includes(",") || !/\r?\n/.test(csvText)) {
       throw new Error("ملف CRO المستلم ليس بصيغة CSV صالحة للتحديث التلقائي.");
     }
 
+    const readyToSave = await getCroSyncStatus();
+    if (readyToSave.attemptId !== body.attemptId || readyToSave.state !== "running") {
+      return new Response(null, { status: 204 });
+    }
     const stats = await saveBookingCsv(csvText, { updateCurrent: !body.archiveOnly, archivePeriod: { from: body.from!, to: body.to! } });
     if (body.archiveOnly && !stats.archive?.configured) throw new Error("أرشيف البحث بالجوال غير مهيأ على السيرفر.");
     if (body.archiveOnly && stats.archive?.latestPeriodPhoneColumnCount === 0) throw new Error("تم تنزيل الفترة، لكن تقرير CRO لا يحتوي عمود رقم الجوال؛ لم تُضف نتائج قابلة للبحث.");

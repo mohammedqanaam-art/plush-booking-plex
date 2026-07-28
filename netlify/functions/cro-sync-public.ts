@@ -6,7 +6,7 @@ import {
   isActiveCroSync,
   setCroSyncStatus,
   type CroSyncStatus,
-  validCroDateRange,
+  validCroSyncDateRange,
 } from "./_shared/croSync";
 import { croEnvironmentValue } from "./_shared/croEnvironment";
 import { json } from "./_shared/security";
@@ -22,9 +22,10 @@ const publicStatus = (status: CroSyncStatus, accepted = false) => {
     running: "يجري تحديث بيانات التقرير في الخلفية.",
     success: "تم تحديث بيانات التقرير.",
     error: "تعذر إكمال التحديث حاليًا. حاول لاحقًا.",
+    cancelled: "أوقف المشرف مهمة التحديث الحالية.",
   };
   return {
-    ok: state !== "error",
+    ok: state !== "error" && state !== "cancelled",
     accepted,
     state,
     updatedAt,
@@ -47,7 +48,7 @@ export default async (req: Request, context: Context) => {
     !automation.enabled
     || !automation.configured
     || !secret
-    || !validCroDateRange(automation.from, automation.to)
+    || !validCroSyncDateRange(automation.from, automation.to)
   ) {
     return json({
       ok: false,
@@ -60,8 +61,7 @@ export default async (req: Request, context: Context) => {
 
   const current = await getCroSyncStatus();
   if (req.method === "GET") {
-    const stale = (current.state === "queued" || current.state === "running") && !isActiveCroSync(current);
-    return json(stale ? publicStatus({ ...current, state: "error" }) : publicStatus(current));
+    return json(publicStatus(current));
   }
 
   if (isActiveCroSync(current)) return json(publicStatus(current), 202);

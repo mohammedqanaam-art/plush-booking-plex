@@ -1,6 +1,7 @@
 import { json, validateSession } from "./_shared/security";
 import { primaryCroFormHtml } from "./_shared/croForms";
 import { croEnvironmentValue } from "./_shared/croEnvironment";
+import { MAX_CRO_SYNC_DAYS, validCroSyncDateRange } from "./_shared/croSync";
 
 const DEFAULT_CRO_LOGIN_URL = "https://res.windsurfercrs.com/cromh/login/signin.aspx?croID=51";
 const DEFAULT_CRO_DASHBOARD_URL = "https://res.windsurfercrs.com/cromh/dashboards.aspx";
@@ -396,8 +397,8 @@ const exportWithSession = async (
   : exportViaDashboardFlow(requestConfig, cookie, body);
 
 export const downloadCroBookings = async (body: CroRequest) => {
-  if (!validIsoDate(body.from) || !validIsoDate(body.to) || (body.from && body.to && body.from > body.to)) {
-    throw new Error("نطاق التاريخ غير صالح. اختر تاريخ بداية ونهاية صحيحين.");
+  if (!validCroSyncDateRange(body.from, body.to)) {
+    throw new Error(`نطاق التصدير يجب ألا يتجاوز ${MAX_CRO_SYNC_DAYS} يومًا.`);
   }
 
   const requestConfig = requestConfigFor(body);
@@ -446,8 +447,13 @@ export default async (req: Request) => {
     body = {};
   }
 
-  if (!validIsoDate(body.from) || !validIsoDate(body.to) || (body.from && body.to && body.from > body.to)) {
-    return json({ error: "نطاق التاريخ غير صالح. اختر تاريخ بداية ونهاية صحيحين." }, 400);
+  if (
+    !validIsoDate(body.from)
+    || !validIsoDate(body.to)
+    || (body.from && body.to && body.from > body.to)
+    || (!body.dryRun && !validCroSyncDateRange(body.from, body.to))
+  ) {
+    return json({ error: `اختر فترة صحيحة لا تتجاوز ${MAX_CRO_SYNC_DAYS} يومًا.` }, 400);
   }
 
   const requestConfig = requestConfigFor(body);
