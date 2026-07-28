@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { enterpriseApi } from "@/lib/enterpriseApi";
+import { SlidersHorizontal } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 type EnterpriseConfig = {
   whatsappTemplate?: string;
@@ -27,8 +29,8 @@ const AdminEnterpriseControl = () => {
   if (!cfg) return <div className="p-4">Loading...</div>;
 
   return (
-    <div className="p-4 max-w-4xl mx-auto space-y-4">
-      <h2 className="text-2xl font-bold">Enterprise Control Center</h2>
+    <div className="page-wrap-narrow">
+      <PageHeader title="مركز التحكم المؤسسي" icon={SlidersHorizontal} />
       <div className="glass-card p-4 space-y-3">
         <textarea className="w-full rounded-lg bg-secondary border border-border p-3" rows={6} value={cfg.whatsappTemplate || ""} onChange={(e)=>setCfg({...cfg, whatsappTemplate:e.target.value})} />
         <textarea className="w-full rounded-lg bg-secondary border border-border p-3" rows={8} value={cfg.emailTemplate || ""} onChange={(e)=>setCfg({...cfg, emailTemplate:e.target.value})} />

@@ -15,7 +15,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        arabic: ['"IBM Plex Sans Arabic"', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Arabic"', '"Segoe UI"', 'sans-serif'],
+        arabic: ['-apple-system', 'BlinkMacSystemFont', '"SF Arabic"', '"Segoe UI"', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
