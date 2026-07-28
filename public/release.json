@@ -1,0 +1,9 @@
+{
+  "release": "2026-07-28-operations-control",
+  "features": [
+    "cro-control",
+    "avaya-date-range",
+    "uno-operations"
+  ],
+  "publishedAt": "2026-07-28T10:30:00Z"
+}
