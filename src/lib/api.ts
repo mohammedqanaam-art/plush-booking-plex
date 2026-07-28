@@ -56,14 +56,38 @@ export type PublicBookingSyncStatus = {
 };
 
 export type UnoConnectionStatus = {
+  configured: boolean;
   loginUrl: string;
-  apiConfigured: boolean;
-  testable: boolean;
-  authMode: "none" | "bearer" | "api-key" | "oauth-client";
-  reachable?: boolean;
-  connected?: boolean;
-  checkedAt?: string;
-  statusCode?: number | null;
+  phase: "idle" | "otp" | "connected";
+  connected: boolean;
+  pendingUntil?: string;
+  resendAt?: string;
+  expiresAt?: string;
+  accountName?: string;
+  propertyCount?: number;
+};
+
+export type UnoSearchField = "phone" | "pms" | "uno";
+
+export type UnoReservation = {
+  unoNumber: string;
+  pmsNumber: string;
+  phone: string;
+  guestName: string;
+  property: string;
+  status: string;
+  checkIn: string;
+  checkOut: string;
+  bookingDate: string;
+  channel: string;
+  amount: string;
+  currency: string;
+};
+
+export type UnoSearchResponse = {
+  reservations: UnoReservation[];
+  total: number;
+  searchedAt: string;
 };
 
 export type ContactRequest = {
@@ -275,6 +299,17 @@ const authHeaders = (): Record<string, string> => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+const unoAction = async <T>(payload: Record<string, unknown>): Promise<T> => {
+  const res = await fetch("/api/admin/uno", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({})) as T & { error?: string };
+  if (!res.ok) throw new Error(data.error || "تعذر تنفيذ طلب UNO");
+  return data;
+};
+
 export const api = {
   async login(username: string, password: string) {
     const res = await fetch(`${API_BASE}/auth`, {
@@ -453,18 +488,29 @@ export const api = {
 
   async getUnoConnection() {
     const res = await fetch("/api/admin/uno", { headers: authHeaders() });
-    if (!res.ok) throw new Error("تعذر تحميل حالة UNO");
-    return res.json() as Promise<UnoConnectionStatus>;
+    const data = await res.json().catch(() => ({})) as UnoConnectionStatus & { error?: string };
+    if (!res.ok) throw new Error(data.error || "تعذر تحميل حالة UNO");
+    return data;
   },
 
-  async probeUnoConnection() {
-    const res = await fetch("/api/admin/uno", {
-      method: "POST",
-      headers: authHeaders(),
-    });
-    const data = await res.json().catch(() => null) as UnoConnectionStatus | null;
-    if (!data) throw new Error("تعذر فحص اتصال UNO");
-    return data;
+  async connectUno() {
+    return unoAction<UnoConnectionStatus>({ action: "connect" });
+  },
+
+  async verifyUno(otp: string) {
+    return unoAction<UnoConnectionStatus>({ action: "verify", otp });
+  },
+
+  async resendUnoOtp() {
+    return unoAction<UnoConnectionStatus>({ action: "resend" });
+  },
+
+  async disconnectUno() {
+    return unoAction<UnoConnectionStatus>({ action: "disconnect" });
+  },
+
+  async searchUnoReservations(field: UnoSearchField, query: string) {
+    return unoAction<UnoSearchResponse>({ action: "search", field, query });
   },
 
   async createContactRequest(payload: { brand: string; branchName: string; guestName: string; guestPhone: string; reason: string }) {
