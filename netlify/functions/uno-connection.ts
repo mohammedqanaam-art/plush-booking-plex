@@ -1,4 +1,4 @@
-import { getDeployStore, getStore } from "@netlify/blobs";
+import { getStore } from "@netlify/blobs";
 import type { Config, Context } from "@netlify/functions";
 import {
   createCipheriv,
@@ -33,6 +33,7 @@ type PendingState = {
   expiresAt: number;
   resendAt: number;
   ipAddress: string;
+  attempts: number;
 };
 
 type ConnectedState = {
@@ -95,6 +96,18 @@ const asNumber = (value: unknown) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+const isExplicitFalse = (value: unknown) => (
+  value === false
+  || value === 0
+  || (typeof value === "string" && ["false", "0"].includes(value.trim().toLowerCase()))
+);
+
+const isTruthy = (value: unknown) => (
+  value === true
+  || value === 1
+  || (typeof value === "string" && ["true", "1"].includes(value.trim().toLowerCase()))
+);
 
 const firstValue = (record: JsonRecord, keys: string[]) => {
   for (const key of keys) {
@@ -210,11 +223,7 @@ const decryptSession = (value: EncryptedValue, password: string): UnoSession | n
   }
 };
 
-const sessionStore = () => (
-  Netlify.context?.deploy.context === "production"
-    ? getStore({ name: "uno-sessions", consistency: "strong" })
-    : getDeployStore("uno-sessions")
-);
+const sessionStore = () => getStore({ name: "uno-sessions", consistency: "strong" });
 
 const getState = async (key: string) => {
   const store = sessionStore();
@@ -280,8 +289,8 @@ const safeIpAddress = (context: Context) => {
 const authError = (payload: JsonRecord, verifying: boolean) => {
   const body = asRecord(payload.body);
   const userDetails = asRecord(body.userDetails);
-  if (userDetails.isLocked === true) return "حساب UNO مقفل مؤقتًا.";
-  if (userDetails.isPassWordInvalid === true) return "بيانات دخول UNO غير صحيحة.";
+  if (isTruthy(userDetails.isLocked)) return "حساب UNO مقفل مؤقتًا.";
+  if (isTruthy(userDetails.isPassWordInvalid)) return "بيانات دخول UNO غير صحيحة.";
   if (verifying) return "رمز التحقق غير صحيح أو منتهي.";
   return "تعذر تسجيل الدخول إلى UNO.";
 };
@@ -298,6 +307,7 @@ const postUnoAuth = async (
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
+      AppVersion: configuration.appVersion,
     },
     body: JSON.stringify({
       userEmail: configuration.username,
@@ -314,7 +324,13 @@ const postUnoAuth = async (
 };
 
 const propertyList = (userDetails: JsonRecord) => {
-  const properties = firstArray(userDetails, ["properties", "Properties"]);
+  const properties = firstArray(userDetails, [
+    "properties",
+    "Properties",
+    "propertyList",
+    "propertyDetails",
+    "assignedProperties",
+  ]);
   return properties
     .map((property) => {
       if (typeof property === "string" || typeof property === "number") {
@@ -350,8 +366,9 @@ const tokenExpiry = (token: string, body: JsonRecord) => {
 const sessionFromAuth = (payload: JsonRecord, fallbackIp: string) => {
   const body = asRecord(payload.body);
   const userDetails = asRecord(body.userDetails);
-  const token = firstValue(body, ["userToken", "token", "accessToken"]);
-  if (!token || body.isValidUser === false) return null;
+  const token = firstValue(body, ["userToken", "token", "accessToken"])
+    || firstValue(userDetails, ["userToken", "token", "accessToken"]);
+  if (!token || isExplicitFalse(body.isValidUser)) return null;
   const firstName = firstValue(userDetails, ["firstName", "FirstName"]);
   const lastName = firstValue(userDetails, ["lastName", "LastName"]);
   const accountName = [firstName, lastName].filter(Boolean).join(" ")
@@ -359,10 +376,16 @@ const sessionFromAuth = (payload: JsonRecord, fallbackIp: string) => {
 
   const session: UnoSession = {
     token,
-    userId: firstValue(userDetails, ["userID", "UserID", "userId"]),
-    sessionId: firstValue(userDetails, ["userSessionId", "UserSessionID", "sessionId"]),
-    ipAddress: firstValue(userDetails, ["ipAddress", "IPAddress"]) || fallbackIp,
-    chainId: firstValue(userDetails, ["chainId", "ChainID"]) || "1",
+    userId: firstValue(userDetails, ["userID", "UserID", "userId"])
+      || firstValue(body, ["userID", "UserID", "userId"]),
+    sessionId: firstValue(userDetails, ["userSessionId", "UserSessionID", "sessionId"])
+      || firstValue(body, ["userSessionId", "UserSessionID", "sessionId"]),
+    ipAddress: firstValue(userDetails, ["ipAddress", "IPAddress"])
+      || firstValue(body, ["ipAddress", "IPAddress"])
+      || fallbackIp,
+    chainId: firstValue(userDetails, ["chainId", "ChainID"])
+      || firstValue(body, ["chainId", "ChainID"])
+      || "1",
     accountName,
     properties: propertyList(userDetails),
   };
@@ -389,10 +412,15 @@ const saveConnectedState = async (
 
 const hasOtpChallenge = (payload: JsonRecord) => {
   const body = asRecord(payload.body);
-  return payload.status === true
-    && body.isValidUser !== false
+  const description = [
+    asString(payload.description),
+    asString(body.description),
+    asString(body.message),
+  ].join(" ").toUpperCase();
+  return (isTruthy(payload.status) || isTruthy(body.status))
+    && !isExplicitFalse(body.isValidUser)
     && !firstValue(body, ["userToken", "token", "accessToken"])
-    && asString(payload.description).toUpperCase() === "OTP";
+    && (description.includes("OTP") || isTruthy(body.isOtpRequired));
 };
 
 const connect = async (
@@ -417,6 +445,7 @@ const connect = async (
         expiresAt: now + OTP_TTL_MS,
         resendAt: now + OTP_RESEND_DELAY_MS,
         ipAddress,
+        attempts: 0,
       };
       await setState(key, state);
       return json(publicStatus(configuration, "otp", state));
@@ -444,6 +473,15 @@ const verifyOtp = async (
       const state = await saveConnectedState(key, configuration, connected.session, connected.body);
       return json(publicStatus(configuration, "connected", state, connected.session));
     }
+    const attempts = (active.state.attempts || 0) + 1;
+    if (attempts >= 5) {
+      await clearState(key);
+      return json({
+        error: "تم إيقاف المحاولة. ابدأ الاتصال من جديد.",
+        ...publicStatus(configuration, "idle"),
+      }, 429);
+    }
+    await setState(key, { ...active.state, attempts });
     return json({ error: authError(payload, true) }, 401);
   } catch {
     return json({ error: "تعذر التحقق من الرمز." }, 502);
@@ -475,6 +513,7 @@ const resendOtp = async (
       pendingAt: now,
       expiresAt: now + OTP_TTL_MS,
       resendAt: now + OTP_RESEND_DELAY_MS,
+      attempts: 0,
     };
     await setState(key, state);
     return json(publicStatus(configuration, "otp", state));
@@ -587,8 +626,8 @@ const matchesSearch = (reservation: NormalizedReservation, field: UnoSearchField
 
 export const createReservationSearchPayload = (
   session: Pick<UnoSession, "chainId" | "properties">,
-  field: UnoSearchField,
-  query: string,
+  field?: UnoSearchField,
+  query = "",
 ) => {
   const propertyId = session.properties.map((property) => property.id).join(",");
   const payload: JsonRecord = {
@@ -672,8 +711,8 @@ const enrichPhoneReservations = async (
 const fetchReservations = async (
   configuration: ReturnType<typeof readConfiguration>,
   session: UnoSession,
-  field: UnoSearchField,
-  query: string,
+  field?: UnoSearchField,
+  query = "",
 ) => {
   const searchPayload = createReservationSearchPayload(session, field, query);
   let unauthorized = false;
@@ -709,7 +748,16 @@ const fetchReservations = async (
       : candidates.slice(0, SEARCH_LIMIT);
     const reservations = searchableRecords
       .map(normalizeReservation)
-      .filter((reservation) => matchesSearch(reservation, field, query));
+      .filter((reservation) => (
+        field
+          ? matchesSearch(reservation, field, query)
+          : Boolean(
+            reservation.unoNumber
+            || reservation.pmsNumber
+            || reservation.phone
+            || reservation.guestName,
+          )
+      ));
     return { reservations, unauthorized: false, status: response.status };
   }
   return { reservations: [], unauthorized, status: lastStatus };
@@ -753,6 +801,32 @@ const searchReservations = async (
   }
 };
 
+const listReservations = async (
+  key: string,
+  configuration: ReturnType<typeof readConfiguration>,
+) => {
+  const active = await readActiveState(key, configuration);
+  if (active.phase !== "connected" || !active.session) {
+    return json({ error: "اتصل بـ UNO أولًا.", ...publicStatus(configuration, "idle") }, 409);
+  }
+
+  try {
+    const result = await fetchReservations(configuration, active.session);
+    if (result.unauthorized) {
+      await clearState(key);
+      return json({ error: "انتهت جلسة UNO.", ...publicStatus(configuration, "idle") }, 401);
+    }
+    if (result.status >= 500) return json({ error: "تعذر تحميل حجوزات UNO." }, 502);
+    return json({
+      reservations: result.reservations,
+      total: result.reservations.length,
+      searchedAt: new Date().toISOString(),
+    });
+  } catch {
+    return json({ error: "تعذر تحميل حجوزات UNO." }, 502);
+  }
+};
+
 export default async (req: Request, context: Context) => {
   const session = await validateSession(req);
   if (!session) return json({ error: "Unauthorized" }, 401);
@@ -780,6 +854,7 @@ export default async (req: Request, context: Context) => {
   if (action === "search") {
     return searchReservations(key, configuration, body.field, body.query);
   }
+  if (action === "list") return listReservations(key, configuration);
   return json({ error: "الإجراء غير صحيح." }, 400);
 };
 
