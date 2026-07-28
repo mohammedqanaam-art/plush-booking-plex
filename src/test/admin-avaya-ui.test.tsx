@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AdminAvayaReports from "@/pages/AdminAvayaReports";
 
@@ -17,6 +17,8 @@ describe("Avaya admin upload center", () => {
 
     expect(screen.getByRole("heading", { name: "تقارير Avaya" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "المزامنة التلقائية" })).toBeInTheDocument();
+    expect(screen.getByLabelText("من تاريخ التقرير")).toBeInTheDocument();
+    expect(screen.getByLabelText("إلى تاريخ التقرير")).toBeInTheDocument();
     expect(screen.getByText("User Inbound Summary")).toBeInTheDocument();
     expect(screen.getByText("Feature Trace")).toBeInTheDocument();
     expect(screen.getByText("Agent Time Card")).toBeInTheDocument();
@@ -29,6 +31,16 @@ describe("Avaya admin upload center", () => {
       ok: true,
       json: async () => ({
         sync: { configured: true, updatedAt: "2026-07-17T00:00:00.000Z" },
+        availableRanges: [{
+          reportId: "report-1",
+          from: "2026-07-16",
+          to: "2026-07-17",
+          rangeStart: "Start",
+          rangeEnd: "End",
+          syncedAt: "2026-07-17T00:00:00.000Z",
+          employeeCount: 1,
+        }],
+        selectedRange: { from: "2026-07-16", to: "2026-07-17" },
         report: {
           reportId: "report-1",
           syncedAt: "2026-07-17T00:00:00.000Z",
@@ -50,5 +62,30 @@ describe("Avaya admin upload center", () => {
 
     expect(await screen.findByText("مزامن تلقائياً")).toBeInTheDocument();
     expect(screen.getByText("Sample Agent")).toBeInTheDocument();
+  });
+
+  it("requests an archived report using the selected date range", async () => {
+    sessionStorage.setItem("admin_session", JSON.stringify({ username: "tester", role: "editor" }));
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        sync: { configured: true, updatedAt: null },
+        availableRanges: [],
+        selectedRange: null,
+        report: null,
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<MemoryRouter initialEntries={["/admin/avaya-reports"]}><AdminAvayaReports /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByLabelText("من تاريخ التقرير")).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText("من تاريخ التقرير"), { target: { value: "2026-07-27" } });
+    fireEvent.change(screen.getByLabelText("إلى تاريخ التقرير"), { target: { value: "2026-07-28" } });
+    fireEvent.click(screen.getByRole("button", { name: "عرض الفترة" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/avaya/sync?from=2026-07-27&to=2026-07-28",
+      expect.objectContaining({ cache: "no-store" }),
+    ));
   });
 });

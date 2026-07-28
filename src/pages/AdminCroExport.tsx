@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   Archive,
@@ -8,10 +8,14 @@ import {
   Download,
   ExternalLink,
   Loader2,
+  Power,
+  Save,
+  Settings2,
   RefreshCw,
   Wifi,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import { Switch } from "@/components/ui/switch";
 
 type CroExportStatus = {
   loginUrl: string;
@@ -43,9 +47,15 @@ type CroSyncResponse = {
   status: CroSyncStatus;
   automation: {
     configured: boolean;
+    enabled: boolean;
+    intervalMinutes: 30 | 60 | 120 | 360;
+    mode: "rolling-month" | "fixed";
     from: string;
     to: string;
     schedule: string;
+    nextRunAt?: string | null;
+    updatedAt?: string | null;
+    updatedBy?: string | null;
   };
 };
 
@@ -83,14 +93,10 @@ const formatTimestamp = (value?: string) => {
   }).format(date);
 };
 
-const nextHalfHour = () => {
-  const date = new Date();
-  date.setSeconds(0, 0);
-  if (date.getMinutes() < 30) date.setMinutes(30);
-  else {
-    date.setHours(date.getHours() + 1);
-    date.setMinutes(0);
-  }
+const formatTime = (value?: string | null) => {
+  if (!value) return "أقرب موعد";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "أقرب موعد";
   return new Intl.DateTimeFormat("ar-SA", {
     hour: "numeric",
     minute: "2-digit",
@@ -99,14 +105,20 @@ const nextHalfHour = () => {
 };
 
 const AdminCroExport = () => {
+  const automationHydrated = useRef(false);
   const [status, setStatus] = useState<CroExportStatus | null>(null);
   const [sync, setSync] = useState<CroSyncResponse | null>(null);
   const [from, setFrom] = useState(defaultFrom);
   const [to, setTo] = useState(defaultTo);
+  const [autoEnabled, setAutoEnabled] = useState(true);
+  const [autoInterval, setAutoInterval] = useState<30 | 60 | 120 | 360>(30);
+  const [autoMode, setAutoMode] = useState<"rolling-month" | "fixed">("rolling-month");
+  const [autoFrom, setAutoFrom] = useState(defaultFrom);
+  const [autoTo, setAutoTo] = useState(defaultTo);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState<"status" | "test" | "export" | "sync" | "archive" | "">("status");
+  const [loading, setLoading] = useState<"status" | "test" | "export" | "sync" | "archive" | "automation" | "">("status");
 
   const credentialsReady = Boolean(status?.configured || (username.trim() && password));
   const syncIsActive = sync?.status.state === "queued" || sync?.status.state === "running";
@@ -123,6 +135,14 @@ const AdminCroExport = () => {
     if (!response.ok) throw new Error(await readError(response, "تعذر تحميل حالة المزامنة"));
     const result = await response.json() as CroSyncResponse;
     setSync(result);
+    if (!automationHydrated.current) {
+      setAutoEnabled(result.automation.enabled !== false);
+      setAutoInterval(result.automation.intervalMinutes || 30);
+      setAutoMode(result.automation.mode || "rolling-month");
+      setAutoFrom(result.automation.from || defaultFrom);
+      setAutoTo(result.automation.to || defaultTo);
+      automationHydrated.current = true;
+    }
     return result;
   }, []);
 
@@ -199,6 +219,39 @@ const AdminCroExport = () => {
     }
   };
 
+  const saveAutomation = async () => {
+    setLoading("automation");
+    setMessage("");
+    try {
+      const response = await fetch(`${API_BASE}/cro-sync`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          enabled: autoEnabled,
+          intervalMinutes: autoInterval,
+          mode: autoMode,
+          from: autoFrom,
+          to: autoTo,
+        }),
+      });
+      const result = await response.json().catch(() => ({})) as CroSyncResponse & { error?: string };
+      if (!response.ok) throw new Error(result.error || "تعذر حفظ تحكم المزامنة.");
+      setSync(result);
+      setAutoEnabled(result.automation.enabled);
+      setAutoInterval(result.automation.intervalMinutes);
+      setAutoMode(result.automation.mode);
+      setAutoFrom(result.automation.from);
+      setAutoTo(result.automation.to);
+      setMessage(result.automation.enabled
+        ? `تم تشغيل مزامنة CRO كل ${result.automation.intervalMinutes} دقيقة.`
+        : "تم إيقاف مزامنة CRO التلقائية وزر التحديث العام.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر حفظ تحكم المزامنة.");
+    } finally {
+      setLoading("");
+    }
+  };
+
   const exportBookings = async () => {
     setLoading("export");
     setMessage("");
@@ -241,8 +294,18 @@ const AdminCroExport = () => {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-black">المزامنة التلقائية</h2>
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${sync?.automation.configured ? "bg-emerald-500/10 text-emerald-700" : "bg-amber-500/10 text-amber-700"}`}>
-                  {sync?.automation.configured ? "مفعّلة · كل 30 دقيقة" : "تحتاج إعداد"}
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                  sync?.automation.enabled && sync?.automation.configured
+                    ? "bg-emerald-500/10 text-emerald-700"
+                    : sync?.automation.configured
+                      ? "bg-slate-500/10 text-slate-600"
+                      : "bg-amber-500/10 text-amber-700"
+                }`}>
+                  {!sync?.automation.configured
+                    ? "تحتاج إعداد"
+                    : sync.automation.enabled
+                      ? `مفعّلة · كل ${sync.automation.intervalMinutes} دقيقة`
+                      : "متوقفة مؤقتًا"}
                 </span>
               </div>
             </div>
@@ -251,7 +314,7 @@ const AdminCroExport = () => {
             <div className="rounded-2xl border border-border/40 bg-background/70 p-3 text-center backdrop-blur">
               <Clock3 className="mx-auto h-4 w-4 text-primary" />
               <span className="mt-1 block text-[11px] text-muted-foreground">المزامنة القادمة</span>
-              <strong className="text-sm">{sync?.automation.configured ? nextHalfHour() : "—"}</strong>
+              <strong className="text-sm">{sync?.automation.enabled && sync?.automation.configured ? formatTime(sync.automation.nextRunAt) : "—"}</strong>
             </div>
             <div className="rounded-2xl border border-border/40 bg-background/70 p-3 text-center backdrop-blur">
               <Activity className="mx-auto h-4 w-4 text-primary" />
@@ -269,10 +332,83 @@ const AdminCroExport = () => {
         </div>
       </section>
 
+      <section className="page-surface space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className={`grid h-11 w-11 place-items-center rounded-xl ${autoEnabled ? "bg-emerald-500/12 text-emerald-700" : "bg-slate-500/10 text-slate-600"}`}>
+              <Power className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="section-title">تحكم CRO</h2>
+              <p className="mt-1 text-xs text-muted-foreground">الإيقاف يمنع الجدولة وزر التحديث العام، ويبقي التشغيل اليدوي للمشرف.</p>
+            </div>
+          </div>
+          <label className="inline-flex items-center gap-3 rounded-xl border border-border/50 bg-secondary/30 px-3 py-2 text-sm font-bold">
+            <span>{autoEnabled ? "تشغيل" : "إيقاف"}</span>
+            <Switch
+              checked={autoEnabled}
+              onCheckedChange={setAutoEnabled}
+              aria-label="تشغيل مزامنة CRO"
+              disabled={loading === "automation"}
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="text-xs">
+            <span className="mb-1.5 flex items-center gap-1 text-muted-foreground"><Clock3 className="h-3.5 w-3.5" /> تكرار المزامنة</span>
+            <select
+              className="h-11 w-full rounded-xl border bg-secondary/40 px-3 font-bold outline-none focus:border-primary"
+              value={autoInterval}
+              onChange={(event) => setAutoInterval(Number(event.target.value) as 30 | 60 | 120 | 360)}
+            >
+              <option value={30}>كل 30 دقيقة</option>
+              <option value={60}>كل ساعة</option>
+              <option value={120}>كل ساعتين</option>
+              <option value={360}>كل 6 ساعات</option>
+            </select>
+          </label>
+          <label className="text-xs">
+            <span className="mb-1.5 flex items-center gap-1 text-muted-foreground"><Settings2 className="h-3.5 w-3.5" /> نطاق التحديث</span>
+            <select
+              className="h-11 w-full rounded-xl border bg-secondary/40 px-3 font-bold outline-none focus:border-primary"
+              value={autoMode}
+              onChange={(event) => setAutoMode(event.target.value as "rolling-month" | "fixed")}
+            >
+              <option value="rolling-month">الشهر الحالي تلقائيًا</option>
+              <option value="fixed">فترة ثابتة</option>
+            </select>
+          </label>
+        </div>
+
+        {autoMode === "fixed" ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-xs">
+              <span className="mb-1.5 block text-muted-foreground">من تاريخ Check-Out</span>
+              <input type="date" className="h-11 w-full rounded-xl border bg-secondary/40 px-3" value={autoFrom} onChange={(event) => setAutoFrom(event.target.value)} />
+            </label>
+            <label className="text-xs">
+              <span className="mb-1.5 block text-muted-foreground">إلى تاريخ Check-Out</span>
+              <input type="date" className="h-11 w-full rounded-xl border bg-secondary/40 px-3" value={autoTo} onChange={(event) => setAutoTo(event.target.value)} />
+            </label>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-4 text-sm font-bold text-primary-foreground disabled:opacity-50"
+          onClick={() => void saveAutomation()}
+          disabled={loading === "automation" || (autoMode === "fixed" && (!autoFrom || !autoTo || autoFrom > autoTo))}
+        >
+          {loading === "automation" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          حفظ التحكم
+        </button>
+      </section>
+
       <section className="grid grid-cols-3 gap-3">
         <div className="compact-card"><p className="text-xs text-muted-foreground">بيانات الدخول</p><strong className={status?.configured ? "text-emerald-600" : "text-amber-700"}>{status?.configured ? "محفوظة بأمان" : "إدخال مؤقت"}</strong></div>
         <div className="compact-card"><p className="text-xs text-muted-foreground">تصدير CRO</p><strong className={status?.exportConfigured ? "text-emerald-600" : "text-amber-700"}>{status?.exportConfigured ? "جاهز" : "ينقصه ضبط"}</strong></div>
-        <div className="compact-card"><p className="text-xs text-muted-foreground">التكرار</p><strong>{sync?.automation.configured ? "كل 30 دقيقة" : "غير مفعّل"}</strong></div>
+        <div className="compact-card"><p className="text-xs text-muted-foreground">التكرار</p><strong>{sync?.automation.enabled && sync?.automation.configured ? `كل ${sync.automation.intervalMinutes} دقيقة` : "متوقف"}</strong></div>
       </section>
 
       {sync?.status.stats ? (

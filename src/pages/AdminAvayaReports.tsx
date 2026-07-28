@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import {
   AlertTriangle,
+  CalendarDays,
   CheckCircle2,
   Clock3,
   CloudDownload,
@@ -20,7 +21,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { getAdminSession, hasPermission } from "@/lib/adminAuth";
-import { api } from "@/lib/api";
+import { api, type AvayaSyncStatus } from "@/lib/api";
 import {
   analyzeAvayaFiles,
   approvedLoggedInDuration,
@@ -49,10 +50,12 @@ const STATUS_LABELS = {
 
 type Filter = "all" | keyof typeof STATUS_LABELS;
 type ReportOrigin = "automatic" | "manual" | null;
+type ReportRange = AvayaSyncStatus["availableRanges"][number];
 
 const AdminAvayaReports = () => {
   const session = getAdminSession();
   const inputs = useRef<Partial<Record<AvayaFileKind, HTMLInputElement | null>>>({});
+  const selectedRangeRef = useRef<{ from: string; to: string } | null>(null);
   const [files, setFiles] = useState<Partial<Record<AvayaFileKind, File>>>({});
   const [report, setReport] = useState<AvayaReportResult | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,17 +67,29 @@ const AdminAvayaReports = () => {
   const [syncError, setSyncError] = useState("");
   const [syncConfigured, setSyncConfigured] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [availableRanges, setAvailableRanges] = useState<ReportRange[]>([]);
+  const [reportFrom, setReportFrom] = useState("");
+  const [reportTo, setReportTo] = useState("");
 
-  const loadLatest = useCallback(async (silent = false) => {
+  const loadLatest = useCallback(async (silent = false, range?: { from: string; to: string }) => {
     if (!silent) setSyncLoading(true);
     if (!silent) setSyncError("");
     try {
-      const data = await api.getLatestAvayaReport();
+      const data = await api.getLatestAvayaReport(range);
       setSyncConfigured(data.sync.configured);
       setLastSyncedAt(data.sync.updatedAt);
+      setAvailableRanges(data.availableRanges || []);
       if (data.report) {
         setReport(data.report);
         setReportOrigin("automatic");
+        if (data.selectedRange) {
+          setReportFrom(data.selectedRange.from);
+          setReportTo(data.selectedRange.to);
+        }
+      } else if (range) {
+        setReport(null);
+        setReportOrigin(null);
+        setSyncError(`لا يوجد تقرير Avaya محفوظ للفترة من ${range.from} إلى ${range.to}.`);
       }
     } catch (cause) {
       if (!silent) setSyncError(cause instanceof Error ? cause.message : "تعذر تحميل آخر مزامنة من Avaya.");
@@ -86,7 +101,7 @@ const AdminAvayaReports = () => {
   useEffect(() => {
     void loadLatest();
     const refresh = () => {
-      if (document.visibilityState === "visible") void loadLatest(true);
+      if (document.visibilityState === "visible") void loadLatest(true, selectedRangeRef.current || undefined);
     };
     const interval = window.setInterval(refresh, 60_000);
     document.addEventListener("visibilitychange", refresh);
@@ -95,6 +110,29 @@ const AdminAvayaReports = () => {
       document.removeEventListener("visibilitychange", refresh);
     };
   }, [loadLatest]);
+
+  const loadSelectedRange = () => {
+    if (!reportFrom || !reportTo || reportFrom > reportTo) {
+      setSyncError("اختر تاريخ بداية ونهاية صحيحين.");
+      return;
+    }
+    const range = { from: reportFrom, to: reportTo };
+    selectedRangeRef.current = range;
+    void loadLatest(false, range);
+  };
+
+  const loadNewest = () => {
+    selectedRangeRef.current = null;
+    void loadLatest();
+  };
+
+  const chooseSavedRange = (range: ReportRange) => {
+    setReportFrom(range.from);
+    setReportTo(range.to);
+    const selection = { from: range.from, to: range.to };
+    selectedRangeRef.current = selection;
+    void loadLatest(false, selection);
+  };
 
   const visibleEmployees = useMemo(() => {
     if (!report) return [];
@@ -190,10 +228,46 @@ const AdminAvayaReports = () => {
               </p>
             </div>
           </div>
-          <button type="button" disabled={syncLoading} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/50 px-3 text-xs font-bold disabled:opacity-50" onClick={() => void loadLatest()}>
-            <RefreshCcw className={`h-4 w-4 ${syncLoading ? "animate-spin" : ""}`} /> تحديث
+          <button type="button" disabled={syncLoading} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/50 px-3 text-xs font-bold disabled:opacity-50" onClick={loadNewest}>
+            <RefreshCcw className={`h-4 w-4 ${syncLoading ? "animate-spin" : ""}`} /> أحدث تقرير
           </button>
         </div>
+
+        <div className="grid gap-2 border-t border-border/35 pt-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <label className="text-xs">
+            <span className="mb-1.5 flex items-center gap-1 text-muted-foreground"><CalendarDays className="h-3.5 w-3.5" /> من تاريخ التقرير</span>
+            <input type="date" className="h-11 w-full rounded-xl border bg-secondary/35 px-3" value={reportFrom} onChange={(event) => setReportFrom(event.target.value)} />
+          </label>
+          <label className="text-xs">
+            <span className="mb-1.5 flex items-center gap-1 text-muted-foreground"><CalendarDays className="h-3.5 w-3.5" /> إلى تاريخ التقرير</span>
+            <input type="date" className="h-11 w-full rounded-xl border bg-secondary/35 px-3" value={reportTo} onChange={(event) => setReportTo(event.target.value)} />
+          </label>
+          <button
+            type="button"
+            className="mt-auto inline-flex h-11 items-center justify-center gap-2 rounded-xl gold-gradient px-4 text-sm font-black text-primary-foreground disabled:opacity-50"
+            onClick={loadSelectedRange}
+            disabled={syncLoading || !reportFrom || !reportTo || reportFrom > reportTo}
+          >
+            {syncLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
+            عرض الفترة
+          </button>
+        </div>
+
+        {availableRanges.length ? (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+            <span className="shrink-0 text-[11px] font-bold text-muted-foreground">المحفوظة ({availableRanges.length.toLocaleString("ar-SA")}):</span>
+            {availableRanges.slice(0, 8).map((range) => (
+              <button
+                key={range.reportId}
+                type="button"
+                className="h-8 shrink-0 rounded-lg border border-border/45 bg-secondary/25 px-2.5 text-[11px] font-bold hover:border-primary/45"
+                onClick={() => chooseSavedRange(range)}
+              >
+                <span dir="ltr">{range.from} — {range.to}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         {syncError ? <div role="alert" className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/8 p-3 text-sm text-amber-800 dark:text-amber-300"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {syncError}</div> : null}
       </section>
 

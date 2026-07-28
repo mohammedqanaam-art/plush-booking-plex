@@ -4,15 +4,23 @@ import {
   automaticCroConfig,
   getCroSyncStatus,
   isActiveCroSync,
+  isCroAutomationDue,
+  markCroAutomationTriggered,
   setCroSyncStatus,
   validCroDateRange,
 } from "./_shared/croSync";
 import { croEnvironmentValue } from "./_shared/croEnvironment";
 
 export default async (req: Request, context: Context) => {
-  const automation = automaticCroConfig();
+  const automation = await automaticCroConfig();
   const secret = croEnvironmentValue("CRO_SYNC_SECRET");
-  if (!automation.configured || !secret || !validCroDateRange(automation.from, automation.to)) {
+  if (
+    !automation.enabled
+    || !isCroAutomationDue(automation)
+    || !automation.configured
+    || !secret
+    || !validCroDateRange(automation.from, automation.to)
+  ) {
     return new Response(null, { status: 204 });
   }
 
@@ -46,6 +54,7 @@ export default async (req: Request, context: Context) => {
       body: JSON.stringify({ attemptId, from: automation.from, to: automation.to }),
     });
     if (!triggered.ok) throw new Error(`Background trigger returned ${triggered.status}`);
+    await markCroAutomationTriggered();
   } catch {
     await setCroSyncStatus({
       ...queued,

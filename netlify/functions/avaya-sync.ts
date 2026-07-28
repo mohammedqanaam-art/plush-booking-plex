@@ -3,6 +3,7 @@ import { getDeployStore, getStore } from "@netlify/blobs";
 import { createHash, timingSafeEqual } from "node:crypto";
 import {
   analyzeAvayaWorkbookInputs,
+  avayaTimestamp,
   normalizeAvayaEmployeeResult,
   parseAvayaWorkbookBytes,
   type AvayaFileKind,
@@ -37,10 +38,22 @@ export type StoredAvayaReport = AvayaReportResult & {
   sources: SourceRecord[];
 };
 
+export type AvayaReportRange = {
+  reportId: string;
+  from: string;
+  to: string;
+  rangeStart: string;
+  rangeEnd: string;
+  syncedAt: string;
+  employeeCount: number;
+};
+
 const EXPECTED_KINDS: AvayaFileKind[] = ["inbound", "dnd", "timecard"];
 const MAX_FILE_BYTES = 3 * 1024 * 1024;
 const MAX_REQUEST_BYTES = 4_500_000;
+const MAX_REPORT_RANGES = 180;
 const STORE_NAME = "avaya_reports";
+const CATALOG_KEY = "catalog";
 
 function avayaStore(context: Context) {
   if (context.deploy.context === "production") {
@@ -82,21 +95,161 @@ function decodeBase64(value: unknown) {
   return bytes.length > 0 && bytes.length <= MAX_FILE_BYTES ? bytes : null;
 }
 
+const isoUtcDate = (timestamp: number) => new Date(timestamp).toISOString().slice(0, 10);
+
+export function normalizeAvayaDate(value: unknown): string | null {
+  const text = String(value || "").trim();
+  const iso = text.match(/^(\d{4}-\d{2}-\d{2})(?:[T\s]|$)/)?.[1];
+  if (iso) return iso;
+
+  const avaya = avayaTimestamp(text);
+  if (avaya !== null) return isoUtcDate(avaya);
+
+  const numeric = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s|$)/);
+  if (numeric) {
+    const month = Number(numeric[1]);
+    const day = Number(numeric[2]);
+    const year = Number(numeric[3]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+  }
+
+  const parsed = Date.parse(text);
+  return Number.isFinite(parsed) ? isoUtcDate(parsed) : null;
+}
+
+export function normalizeAvayaReportRange(
+  report: Pick<AvayaReportResult, "rangeStart" | "rangeEnd" | "employees">,
+) {
+  const employeeStarts = report.employees.flatMap((employee) => (
+    employee.shiftStartTimestamp === null || employee.shiftStartTimestamp === undefined
+      ? []
+      : [employee.shiftStartTimestamp]
+  ));
+  const employeeEnds = report.employees.flatMap((employee) => (
+    employee.shiftEndTimestamp === null || employee.shiftEndTimestamp === undefined
+      ? []
+      : [employee.shiftEndTimestamp]
+  ));
+  const from = normalizeAvayaDate(report.rangeStart)
+    || (employeeStarts.length ? isoUtcDate(Math.min(...employeeStarts)) : null);
+  const to = normalizeAvayaDate(report.rangeEnd)
+    || (employeeEnds.length ? isoUtcDate(Math.max(...employeeEnds)) : from);
+  return from && to && from <= to ? { from, to } : null;
+}
+
+const reportRange = (report: StoredAvayaReport): AvayaReportRange | null => {
+  const range = normalizeAvayaReportRange(report);
+  if (!range) return null;
+  return {
+    reportId: report.reportId,
+    ...range,
+    rangeStart: report.rangeStart,
+    rangeEnd: report.rangeEnd,
+    syncedAt: report.syncedAt,
+    employeeCount: report.employees.length,
+  };
+};
+
+const validRequestedRange = (from: string | null, to: string | null) => Boolean(
+  from
+  && to
+  && /^\d{4}-\d{2}-\d{2}$/.test(from)
+  && /^\d{4}-\d{2}-\d{2}$/.test(to)
+  && from <= to,
+);
+
+async function getCatalog(store: ReturnType<typeof avayaStore>) {
+  const saved = (await store.get(CATALOG_KEY, { type: "json" })) as AvayaReportRange[] | null;
+  if (Array.isArray(saved) && saved.length) return saved;
+
+  try {
+    const listed = await store.list({ prefix: "reports/" });
+    const reportKeys = listed.blobs
+      .map((blob) => blob.key)
+      .filter((key) => key.startsWith("reports/"))
+      .slice(0, MAX_REPORT_RANGES);
+    const discovered: AvayaReportRange[] = [];
+    for (let index = 0; index < reportKeys.length; index += 10) {
+      const batch = await Promise.all(reportKeys.slice(index, index + 10).map(async (key) => {
+        const report = (await store.get(key, { type: "json" })) as StoredAvayaReport | null;
+        return report ? reportRange(report) : null;
+      }));
+      discovered.push(...batch.filter((item): item is AvayaReportRange => Boolean(item)));
+    }
+    const catalog = discovered
+      .sort((left, right) => right.syncedAt.localeCompare(left.syncedAt))
+      .slice(0, MAX_REPORT_RANGES);
+    if (catalog.length) {
+      await Promise.all([
+        store.setJSON(CATALOG_KEY, catalog),
+        ...catalog.map((range) => store.setJSON(`ranges/${range.from}__${range.to}`, { reportId: range.reportId })),
+      ]);
+    }
+    return catalog;
+  } catch {
+    return [];
+  }
+}
+
+async function indexReport(store: ReturnType<typeof avayaStore>, report: StoredAvayaReport) {
+  const range = reportRange(report);
+  if (!range) return;
+  const catalog = await getCatalog(store);
+  const next = [
+    range,
+    ...catalog.filter((item) => item.reportId !== report.reportId && !(item.from === range.from && item.to === range.to)),
+  ]
+    .sort((left, right) => right.syncedAt.localeCompare(left.syncedAt))
+    .slice(0, MAX_REPORT_RANGES);
+  await Promise.all([
+    store.setJSON(CATALOG_KEY, next),
+    store.setJSON(`ranges/${range.from}__${range.to}`, { reportId: report.reportId }),
+  ]);
+}
+
 async function getLatest(req: Request, context: Context) {
   const session = await validateSession(req);
   if (!session) return json({ error: "Unauthorized" }, 401);
 
   const store = avayaStore(context);
-  const report = (await store.get("latest", { type: "json" })) as StoredAvayaReport | null;
+  const url = new URL(req.url);
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+  if ((from || to) && !validRequestedRange(from, to)) {
+    return json({ error: "اختر تاريخ بداية ونهاية صحيحين." }, 400);
+  }
+
+  const latest = (await store.get("latest", { type: "json" })) as StoredAvayaReport | null;
+  let report = latest;
+  if (from && to) {
+    const pointer = (await store.get(`ranges/${from}__${to}`, { type: "json" })) as { reportId?: string } | null;
+    report = pointer?.reportId
+      ? (await store.get(`reports/${pointer.reportId}`, { type: "json" })) as StoredAvayaReport | null
+      : null;
+    const latestRange = latest ? normalizeAvayaReportRange(latest) : null;
+    if (!report && latest && latestRange?.from === from && latestRange.to === to) report = latest;
+  }
+
   const normalizedReport = report ? {
     ...report,
     employees: report.employees.map(normalizeAvayaEmployeeResult),
   } : null;
+  const savedCatalog = await getCatalog(store);
+  const latestRange = latest ? reportRange(latest) : null;
+  const availableRanges = savedCatalog.length
+    ? savedCatalog
+    : latestRange
+      ? [latestRange]
+      : [];
   return json({
     report: normalizedReport,
+    availableRanges,
+    selectedRange: report ? normalizeAvayaReportRange(report) : from && to ? { from, to } : null,
     sync: {
       configured: Boolean(Netlify.env.get("AVAYA_SYNC_KEY")),
-      updatedAt: report?.syncedAt || null,
+      updatedAt: latest?.syncedAt || null,
     },
   });
 }
@@ -214,6 +367,7 @@ async function uploadWorkbook(req: Request, context: Context) {
 
     await store.setJSON(`reports/${reportId}`, stored);
     await store.setJSON("latest", stored);
+    await indexReport(store, stored);
     await Promise.all(sources.map((item) => store.setJSON(`processed/${item.sha256}`, { reportId, syncedAt: stored.syncedAt })));
     await Promise.all([
       ...EXPECTED_KINDS.map((kind) => store.delete(`staging/${periodKey}/${kind}.xlsx`)),
