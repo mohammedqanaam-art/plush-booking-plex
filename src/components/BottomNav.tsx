@@ -1,52 +1,33 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, MessageSquare, Search, Shield, Upload, Users, Settings, BadgeAlert } from "lucide-react";
+import { BarChart3, Building2, LayoutDashboard, PhoneCall, Search } from "lucide-react";
 
 const mainNavItems = [
-  { path: "/", label: "الرئيسية", icon: Home },
-  { path: "/complaints", label: "الشكاوى", icon: BadgeAlert },
-  { path: "/contacts", label: "طلبات التواصل", icon: MessageSquare },
-  { path: "/search", label: "البحث", icon: Search },
-  { path: "/admin", label: "الإدارة", icon: Shield },
-];
-
-const adminNavItems = [
-  { key: "upload", path: "/admin?tab=upload", label: "الرفع", icon: Upload },
-  { key: "users", path: "/admin?tab=users", label: "المستخدمين", icon: Users },
-  { key: "requests", path: "/admin?tab=requests", label: "الطلبات", icon: MessageSquare },
-  { key: "settings", path: "/admin?tab=settings", label: "الإعدادات", icon: Settings },
+  { path: "/", label: "الرئيسية", icon: LayoutDashboard },
+  { path: "/operations", label: "البحث", icon: Search },
+  { path: "/branches", label: "الفروع", icon: Building2 },
+  { path: "/booking-reports", label: "التقارير", icon: BarChart3 },
+  { path: "/contact-requests", label: "التواصل", icon: PhoneCall },
 ];
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isAdminArea = location.pathname === "/admin";
-  const activeAdminTab = new URLSearchParams(location.search).get("tab") || "upload";
-  const items = isAdminArea ? adminNavItems : mainNavItems;
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/85 backdrop-blur-xl safe-area-bottom">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
-        {items.map((item) => {
-          const isActive = isAdminArea
-            ? item.key === activeAdminTab
-            : location.pathname === item.path;
-
+    <nav className="mobile-tab-bar relative z-50 shrink-0 safe-area-bottom md:hidden">
+      <div className="mx-auto flex h-[58px] max-w-xl items-center justify-around gap-1 px-2">
+        {mainNavItems.map((item) => {
+          const isActive = location.pathname === item.path;
           return (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`relative flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-all duration-200 ${
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+              className={`relative touch-target min-w-0 flex-1 flex flex-col items-center justify-center gap-1 px-1 py-1 interactive ${
+                isActive ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              <item.icon className={`w-5 h-5 ${isActive ? "drop-shadow-[0_0_6px_hsl(42,90%,55%)]" : ""}`} />
-              <span className="text-[10px] sm:text-[11px] font-medium">{item.label}</span>
-              {isActive && (
-                <span className="absolute bottom-0 w-8 h-0.5 gold-gradient rounded-full" />
-              )}
+              <item.icon className="h-[21px] w-[21px]" strokeWidth={isActive ? 2.1 : 1.7} />
+              <span className="text-[10px] font-semibold leading-none">{item.label}</span>
             </button>
           );
         })}

@@ -8,6 +8,10 @@ export type AgentStats = {
   cancelRate: number
 }
 
+type ProcessBookingsOptions = {
+  confirmedStatuses?: string[]
+}
+
 const normalizeKey = (value: string) =>
   value
     .replace(/^\uFEFF/, "")
@@ -42,14 +46,36 @@ function getAnyValue(record: BookingRow, keys: string[]): string {
   return ""
 }
 
-export function classifyBookingStatus(status: string): "confirmed" | "cancelled" {
+const CONFIRMED_STATUSES = new Set(["M", "O", "N", "I"])
+const CANCELLED_STATUSES = new Set(["C", "NS"])
+
+export function classifyBookingStatus(status: string): "confirmed" | "cancelled" | "ignored" {
   const s = String(status || "").trim().toUpperCase()
-  if (s === "C" || s === "NS") return "cancelled"
-  return "confirmed"
+  if (CANCELLED_STATUSES.has(s)) return "cancelled"
+  if (CONFIRMED_STATUSES.has(s)) return "confirmed"
+  return "ignored"
 }
 
-export function processBookings(rows: BookingRow[]): AgentStats[] {
+const getBookingStatusValue = (row: BookingRow) =>
+  getAnyValue(row, [
+    "All stute",
+    "All Stute",
+    "all stute",
+    "Status",
+    "status",
+    "Booking Status",
+    "BookingStatus",
+    "حالة الحجز",
+    "الحالة",
+  ])
+
+export function processBookings(rows: BookingRow[], options?: ProcessBookingsOptions): AgentStats[] {
   const map = new Map<string, AgentStats>()
+  const normalizedConfirmedStatuses = new Set(
+    (options?.confirmedStatuses || [])
+      .map((item) => String(item || "").trim().toUpperCase())
+      .filter(Boolean),
+  )
 
   rows.forEach((row) => {
     const agent = getAnyValue(row, [
@@ -68,19 +94,17 @@ export function processBookings(rows: BookingRow[]): AgentStats[] {
 
     if (!agent) return
 
-    const statusRaw = getAnyValue(row, [
-      "All stute",
-      "All Stute",
-      "all stute",
-      "Status",
-      "status",
-      "Booking Status",
-      "BookingStatus",
-      "حالة الحجز",
-      "الحالة",
-    ])
+    const statusRaw = getBookingStatusValue(row)
+    const normalizedStatus = String(statusRaw || "").trim().toUpperCase()
 
     const status = classifyBookingStatus(statusRaw)
+    const includeAsConfirmed = normalizedConfirmedStatuses.size
+      ? normalizedConfirmedStatuses.has(normalizedStatus)
+      : status === "confirmed"
+
+    if (status === "ignored") return
+    if (status !== "cancelled" && !includeAsConfirmed) return
+
     const current = map.get(agent) || {
       agent,
       confirmed: 0,
@@ -101,7 +125,7 @@ export function processBookings(rows: BookingRow[]): AgentStats[] {
       ...item,
       cancelRate: item.total ? Number(((item.cancelled / item.total) * 100).toFixed(1)) : 0,
     }))
-    .sort((a, b) => b.total - a.total)
+    .sort((a, b) => b.confirmed - a.confirmed || b.total - a.total)
 }
 
 export function summarizeBookings(rows: BookingRow[]) {
@@ -109,24 +133,14 @@ export function summarizeBookings(rows: BookingRow[]) {
   let cancelled = 0
 
   rows.forEach((row) => {
-    const statusRaw = getAnyValue(row, [
-      "All stute",
-      "All Stute",
-      "all stute",
-      "Status",
-      "status",
-      "Booking Status",
-      "BookingStatus",
-      "حالة الحجز",
-      "الحالة",
-    ])
+    const statusRaw = getBookingStatusValue(row)
 
     const status = classifyBookingStatus(statusRaw)
     if (status === "cancelled") cancelled += 1
-    else confirmed += 1
+    else if (status === "confirmed") confirmed += 1
   })
 
-  const total = rows.length
+  const total = confirmed + cancelled
 
   return {
     confirmed,

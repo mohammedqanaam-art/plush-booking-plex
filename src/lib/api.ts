@@ -1,20 +1,79 @@
+import type { AvayaFileKind, AvayaReportResult } from "@/lib/avayaReportProcessor";
+
+export type EmployeeAdjustment = {
+  confirmedAdjustment?: number;
+  cancelledAdjustment?: number;
+  adjustmentReason?: string;
+  notes?: string;
+  updatedBy?: string;
+  updatedAt?: string;
+};
+
 export type AppSettings = {
   siteTitle?: string;
   bannerText?: string;
   reportMonth?: string;
   reportYear?: string;
   hiddenEmployees?: string[];
+  employeeDisplayNames?: Record<string, string>;
   complaintEmail?: string;
   complaintEmailWebhook?: string;
   complaintWhatsappNumber?: string;
+  themePreset?: string;
+  employeeAdjustments?: Record<string, EmployeeAdjustment>;
+};
+
+export type PublicBookingReport = {
+  generatedAt: string;
+  updatedAt: string | null;
+  period: { month: string; year: string; label: string };
+  summary: {
+    uploadedRecords: number;
+    classifiedTotal: number;
+    confirmed: number;
+    cancelled: number;
+    ignored: number;
+    employeeCount: number;
+    confirmationRate: number;
+    cancelRate: number;
+  };
+  employees: Array<{
+    id: string;
+    name: string;
+    confirmed: number;
+    cancelled: number;
+    total: number;
+    confirmationRate: number;
+  }>;
+};
+
+export type PublicBookingSyncStatus = {
+  ok: boolean;
+  accepted: boolean;
+  state: "idle" | "queued" | "running" | "success" | "fresh" | "error" | "unavailable";
+  updatedAt: string | null;
+  message: string;
+};
+
+export type UnoConnectionStatus = {
+  loginUrl: string;
+  apiConfigured: boolean;
+  testable: boolean;
+  authMode: "none" | "bearer" | "api-key" | "oauth-client";
+  reachable?: boolean;
+  connected?: boolean;
+  checkedAt?: string;
+  statusCode?: number | null;
 };
 
 export type ContactRequest = {
   id: string;
+  requestNo: string;
+  brand: string;
   branchName: string;
-  customerName: string;
-  phone: string;
-  note: string;
+  guestName: string;
+  guestPhone: string;
+  reason: string;
   status: "new" | "done";
   createdAt: string;
 };
@@ -50,7 +109,164 @@ export type ComplaintRecord = {
   createdAt: string;
 };
 
+export type AnalyticsSummary = {
+  rangeDays: number;
+  generatedAt: string;
+  totalViews: number;
+  uniqueVisitors: number;
+  sessions: number;
+  onlineCount: number;
+  todayViews: number;
+  todayVisitors: number;
+  devices: Record<string, number>;
+  browsers: Record<string, number>;
+  operatingSystems: Record<string, number>;
+  pages: Record<string, number>;
+  referrers: Record<string, number>;
+  trend: Array<{ date: string; views: number; visitors: number }>;
+  online: Array<{
+    visitorId: string;
+    device: string;
+    browser: string;
+    os: string;
+    country: string;
+    city: string;
+    path: string;
+    lastSeen: string;
+    ipMasked?: string;
+    browserVersion?: string;
+    osVersion?: string;
+    region?: string;
+    language?: string;
+    screen?: string;
+    timezone?: string;
+    connection?: string;
+  }>;
+};
+
+export type GhostVisitor = {
+  visitorId: string;
+  views: number;
+  sessionCount: number;
+  pages: Record<string, number>;
+  device: string;
+  browser: string;
+  browserVersion: string;
+  os: string;
+  osVersion: string;
+  ipMasked: string;
+  country: string;
+  city: string;
+  region: string;
+  geoTimezone: string;
+  referrer: string;
+  firstSeen: string;
+  lastSeen: string;
+  language?: string;
+  languages?: string[];
+  screen?: string;
+  viewport?: string;
+  timezone?: string;
+  platform?: string;
+  connection?: string;
+  downlink?: number;
+  saveData?: boolean;
+  memory?: number;
+  cpuCores?: number;
+  touchPoints?: number;
+  isPwa?: boolean;
+};
+
+export type GhostAnalyticsSummary = AnalyticsSummary & {
+  recentVisitors: GhostVisitor[];
+  privacy: { ipMode: "masked"; preciseLocation: false; fingerprinting: false };
+};
+
+export type CroExportStatus = {
+  loginUrl: string;
+  dashboardUrl?: string;
+  configured: boolean;
+  exportConfigured: boolean;
+  requiredEnv: string[];
+  optionalEnv?: string[];
+};
+
+export type BookingPhoneArchiveStatus = {
+  configured: boolean;
+  searchAvailable: boolean;
+  periodCount: number;
+  indexedReservations: number;
+  indexedMobiles: number;
+  earliestFrom: string | null;
+  latestTo: string | null;
+  updatedAt: string | null;
+  latestPeriodPhoneColumnCount: number;
+};
+
+export type OperaSearchStatus = {
+  source: "cro-archive";
+  linkedSystem: "OPERA";
+  readOnly: true;
+  archive: BookingPhoneArchiveStatus;
+};
+
+export type OperaReservationSummary = {
+  confirmationNumber: string;
+  reservationId: string;
+  guestName: string;
+  status: string;
+  bookedDate: string;
+  arrivalDate: string;
+  departureDate: string;
+  hotelId: string;
+  hotelName: string;
+  roomType: string;
+  roomNumber: string;
+  numberOfRooms: number | null;
+  archivedFrom: string;
+  archivedTo: string;
+};
+
+export type OperaSearchRequest = {
+  mobile: string;
+};
+
+export type OperaSearchResponse = {
+  source: "cro-archive";
+  linkedSystem: "OPERA";
+  reservations: OperaReservationSummary[];
+  totalResults: number;
+  requestId: string;
+  searchedAt: string;
+  readOnly: true;
+  archive: BookingPhoneArchiveStatus;
+};
+
+export type SyncedAvayaReport = AvayaReportResult & {
+  reportId: string;
+  syncedAt: string;
+  sources: Array<{
+    kind: AvayaFileKind;
+    fileName: string;
+    sha256: string;
+    size: number;
+    uploadedAt: string;
+  }>;
+};
+
+export type AvayaSyncStatus = {
+  report: SyncedAvayaReport | null;
+  sync: {
+    configured: boolean;
+    updatedAt: string | null;
+  };
+};
+
 const API_BASE = "/.netlify/functions";
+const OPERA_SEARCH_API = "/api/admin/opera-search";
+const AVAYA_SYNC_API = "/api/avaya/sync";
+const PUBLIC_REPORT_SYNC_API = "/api/reports/sync";
+const publicReportSyncHeaders = { "X-Report-Sync": "booking-reports" };
 
 const getToken = (): string | null => (typeof window === "undefined" ? null : sessionStorage.getItem("admin_token"));
 
@@ -103,6 +319,16 @@ export const api = {
     return res.json();
   },
 
+  async changePassword(currentPassword: string, newPassword: string) {
+    const res = await fetch(`${API_BASE}/users`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "تعذر تغيير كلمة المرور");
+    return res.json();
+  },
+
   async deleteUser(username: string) {
     const res = await fetch(`${API_BASE}/users`, {
       method: "DELETE",
@@ -111,6 +337,70 @@ export const api = {
     });
     if (!res.ok) throw new Error("تعذر حذف المستخدم");
     return res.json();
+  },
+
+  async getAnalytics(days: 7 | 30 | 90 = 30) {
+    const res = await fetch(`${API_BASE}/analytics?days=${days}`, { headers: authHeaders() });
+    if (!res.ok) throw new Error("تعذر تحميل إحصائيات الموقع");
+    return res.json() as Promise<AnalyticsSummary>;
+  },
+
+  async getGhostAnalytics(days: 7 | 30 | 90 = 30) {
+    const res = await fetch(`${API_BASE}/analytics?days=${days}&detail=ghost`, { headers: authHeaders() });
+    if (!res.ok) throw new Error("تعذر تحميل سجل الزوار المحمي");
+    return res.json() as Promise<GhostAnalyticsSummary>;
+  },
+
+  async getCroExportStatus() {
+    const res = await fetch(`${API_BASE}/cro-export`, { headers: authHeaders() });
+    if (!res.ok) throw new Error("تعذر تحميل حالة ربط CRO");
+    return res.json() as Promise<CroExportStatus>;
+  },
+
+  async testCroLogin() {
+    const res = await fetch(`${API_BASE}/cro-export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ dryRun: true }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "تعذر اختبار تسجيل الدخول في CRO");
+    return data as Promise<{ ok: boolean; message: string; exportReady: boolean; dashboardChecked?: boolean }>;
+  },
+
+  async exportCroBookings(from: string, to: string) {
+    const res = await fetch(`${API_BASE}/cro-export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ from, to }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "تعذر تصدير الحجوزات من CRO");
+    return res.blob();
+  },
+
+  async getOperaSearchStatus() {
+    const res = await fetch(OPERA_SEARCH_API, { headers: authHeaders() });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "تعذر تحميل حالة أرشيف الحجوزات");
+    return data as OperaSearchStatus;
+  },
+
+  async getLatestAvayaReport() {
+    const res = await fetch(AVAYA_SYNC_API, { headers: authHeaders(), cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "تعذر تحميل آخر مزامنة من Avaya");
+    return data as AvayaSyncStatus;
+  },
+
+  async searchOperaReservations(payload: OperaSearchRequest) {
+    const res = await fetch(OPERA_SEARCH_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "تعذر البحث في الحجوزات");
+    return data as OperaSearchResponse;
   },
 
   async uploadBookings(csvText: string) {
@@ -130,12 +420,54 @@ export const api = {
   },
 
   async getBookings() {
-    const res = await fetch(`${API_BASE}/bookings`);
+    const res = await fetch(`${API_BASE}/bookings`, { headers: authHeaders() });
     if (!res.ok) throw new Error("تعذر تحميل البيانات");
     return res.json();
   },
 
-  async createContactRequest(payload: { branchName: string; customerName: string; phone: string; note?: string }) {
+  async getPublicBookingReport() {
+    const res = await fetch(`${API_BASE}/bookings?view=summary`, { cache: "no-store" });
+    if (!res.ok) throw new Error("تعذر تحميل التقرير");
+    return res.json() as Promise<PublicBookingReport>;
+  },
+
+  async getPublicBookingSyncStatus() {
+    const res = await fetch(PUBLIC_REPORT_SYNC_API, {
+      headers: publicReportSyncHeaders,
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({})) as Partial<PublicBookingSyncStatus> & { error?: string };
+    if (!res.ok) throw new Error(data.error || "تعذر التحقق من حالة التحديث");
+    return data as PublicBookingSyncStatus;
+  },
+
+  async requestPublicBookingSync() {
+    const res = await fetch(PUBLIC_REPORT_SYNC_API, {
+      method: "POST",
+      headers: publicReportSyncHeaders,
+    });
+    const data = await res.json().catch(() => ({})) as Partial<PublicBookingSyncStatus> & { error?: string };
+    if (!res.ok) throw new Error(data.error || "تعذر بدء تحديث التقرير");
+    return data as PublicBookingSyncStatus;
+  },
+
+  async getUnoConnection() {
+    const res = await fetch("/api/admin/uno", { headers: authHeaders() });
+    if (!res.ok) throw new Error("تعذر تحميل حالة UNO");
+    return res.json() as Promise<UnoConnectionStatus>;
+  },
+
+  async probeUnoConnection() {
+    const res = await fetch("/api/admin/uno", {
+      method: "POST",
+      headers: authHeaders(),
+    });
+    const data = await res.json().catch(() => null) as UnoConnectionStatus | null;
+    if (!data) throw new Error("تعذر فحص اتصال UNO");
+    return data;
+  },
+
+  async createContactRequest(payload: { brand: string; branchName: string; guestName: string; guestPhone: string; reason: string }) {
     const res = await fetch(`${API_BASE}/contacts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -162,8 +494,8 @@ export const api = {
   },
 
   async getSettings(): Promise<AppSettings> {
-    const res = await fetch(`${API_BASE}/settings`).catch(() => null);
-    if (!res || !res.ok) return { siteTitle: "Worm-AI", bannerText: "" };
+    const res = await fetch(`${API_BASE}/settings`, { headers: authHeaders() }).catch(() => null);
+    if (!res || !res.ok) return { siteTitle: "Res", bannerText: "" };
     return res.json();
   },
 
@@ -246,7 +578,7 @@ export const api = {
   ): Promise<{ reply: string; sessionId?: string }> {
     const res = await fetch(`${API_BASE}/ai-chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ message, sessionId, history }),
     });
     if (!res.ok) throw new Error("تعذر الوصول إلى المساعد الذكي");

@@ -1,136 +1,84 @@
-import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, TrendingDown, TrendingUp, UserRound, Users } from "lucide-react";
-import { api } from "@/lib/api";
-import { processBookings, summarizeBookings } from "@/lib/bookingProcessor";
+import { ArrowLeft, BarChart3, BookOpenCheck, Building2, MapPin, OctagonAlert, PhoneCall, Search, type LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
+import PageHeader from "@/components/PageHeader";
+import { branches } from "@/data/branches";
 
-type BookingRecord = Record<string, string | number | undefined>;
-const DATE_KEYS = ["Date booking", "Date Booking", "Booking Date", "Date", "تاريخ الحجز"];
+type ServiceTone = "blue" | "green" | "violet" | "orange" | "teal" | "red";
+type PublicEntry = { to: string; label: string; icon: LucideIcon; tone: ServiceTone };
 
-const norm = (v: string) =>
-  v
-    .replace(/[\u064B-\u0652]/g, "")
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
+const publicEntries: PublicEntry[] = [
+  {
+    to: "/operations",
+    label: "البحث",
+    icon: Search,
+    tone: "blue",
+  },
+  {
+    to: "/branches",
+    label: "الفروع",
+    icon: Building2,
+    tone: "green",
+  },
+  {
+    to: "/booking-reports",
+    label: "تقارير الحجوزات",
+    icon: BarChart3,
+    tone: "violet",
+  },
+  {
+    to: "/contact-requests",
+    label: "طلب تواصل",
+    icon: PhoneCall,
+    tone: "orange",
+  },
+  {
+    to: "/knowledge-bank",
+    label: "المعلومات",
+    icon: BookOpenCheck,
+    tone: "teal",
+  },
+  {
+    to: "/complaints",
+    label: "تسجيل شكوى",
+    icon: OctagonAlert,
+    tone: "red",
+  },
+];
 
-const anyVal = (r: BookingRecord, keys: string[]) => {
-  for (const k of keys) if (r[k] !== undefined && String(r[k]).trim()) return String(r[k]);
-  const entries = Object.entries(r);
-  const kn = keys.map(norm);
-  for (const [k, v] of entries) if (String(v || "").trim() && kn.some((kk) => norm(k).includes(kk))) return String(v);
-  return "";
-};
+const cityCount = new Set(branches.map((branch) => branch.city)).size;
 
-const Dashboard = () => {
-  const [bookings, setBookings] = useState<BookingRecord[]>([]);
-  const [hidden, setHidden] = useState<string[]>([]);
-  const [monthFilter, setMonthFilter] = useState("");
-  const [yearFilter, setYearFilter] = useState("");
+const Dashboard = () => (
+  <div className="page-wrap public-home">
+    <PageHeader
+      title="إدارة الحجز المركزي"
+      showBack={false}
+    />
 
-  useEffect(() => {
-    Promise.all([api.getBookings(), api.getSettings()])
-      .then(([b, s]) => {
-        setBookings(Array.isArray(b.bookings) ? b.bookings : []);
-        setHidden(s.hiddenEmployees || []);
-        setMonthFilter(s.reportMonth || "");
-        setYearFilter(s.reportYear || "");
-      })
-      .catch(() => setBookings([]));
-  }, []);
-
-  const bookingSummary = useMemo(() => summarizeBookings(bookings), [bookings]);
-  const agentStats = useMemo(() => processBookings(bookings), [bookings]);
-
-  const visibleAgents = useMemo(() => {
-    const hiddenNormalized = new Set(hidden.map(norm));
-    return agentStats.filter((agent) => !hiddenNormalized.has(norm(agent.agent))).slice(0, 25);
-  }, [agentStats, hidden]);
-
-  const topAgents = useMemo(() => agentStats.slice(0, 8), [agentStats]);
-
-  const monthly = useMemo(() => {
-    const map = new Map<string, number>();
-    bookings.forEach((r) => {
-      const raw = anyVal(r, DATE_KEYS);
-      const d = new Date(raw);
-      if (Number.isNaN(d.getTime())) return;
-      const label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      map.set(label, (map.get(label) || 0) + 1);
-    });
-    return Array.from(map.entries())
-      .map(([month, total]) => ({ month, total }))
-      .filter((r) => (!monthFilter || r.month.includes(monthFilter)) && (!yearFilter || r.month.includes(yearFilter)))
-      .sort((a, b) => b.month.localeCompare(a.month));
-  }, [bookings, monthFilter, yearFilter]);
-
-  return <div className="p-4 max-w-6xl mx-auto space-y-6">
-    <div className="flex items-center justify-between gap-3 flex-wrap">
-      <div>
-        <h2 className="text-2xl font-bold">لوحة المتابعة</h2>
-        <p className="text-xs text-muted-foreground">إحصائيات الحجوزات وحالة الأداء الحالية</p>
+    <section className="home-overview" aria-label="ملخص دليل الفروع">
+      <span className="home-overview__icon"><Building2 className="h-6 w-6" strokeWidth={1.7} /></span>
+      <div className="min-w-0 flex-1">
+        <p>دليل الفروع</p>
+        <strong>{branches.length} فرعًا محدثًا</strong>
       </div>
-    </div>
-
-    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <div className="glass-card p-4">
-        <p className="text-xs text-muted-foreground">إجمالي الحجوزات</p>
-        <p className="text-3xl font-bold text-primary">{bookingSummary.total}</p>
-      </div>
-      <div className="glass-card p-4">
-        <p className="text-xs text-muted-foreground">الحجوزات المؤكدة</p>
-        <p className="text-3xl font-bold text-green-600 flex items-center gap-1"><TrendingUp className="w-4 h-4" />{bookingSummary.confirmed}</p>
-      </div>
-      <div className="glass-card p-4">
-        <p className="text-xs text-muted-foreground">الحجوزات الملغية</p>
-        <p className="text-3xl font-bold text-red-600 flex items-center gap-1"><TrendingDown className="w-4 h-4" />{bookingSummary.cancelled}</p>
-      </div>
-      <div className="glass-card p-4">
-        <p className="text-xs text-muted-foreground">نسبة الإلغاء</p>
-        <p className="text-3xl font-bold text-amber-600">{bookingSummary.cancelRate}%</p>
-      </div>
+      <span className="home-overview__meta"><MapPin className="h-4 w-4" /> {cityCount} مدن</span>
     </section>
 
-    <section className="glass-card p-4 space-y-4">
-      <h3 className="font-semibold text-lg flex items-center gap-2"><Users className="w-4 h-4" /> أفضل الموظفين</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-right">
-          <thead>
-            <tr className="border-b">
-              <th className="py-2 px-2">الموظف</th>
-              <th className="py-2 px-2 text-green-600">المؤكد</th>
-              <th className="py-2 px-2 text-red-600">الملغي</th>
-              <th className="py-2 px-2">الإجمالي</th>
-              <th className="py-2 px-2 text-amber-600">نسبة الإلغاء</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topAgents.map((agent) => (
-              <tr key={agent.agent} className="border-b last:border-b-0">
-                <td className="py-2 px-2 whitespace-nowrap">{agent.agent}</td>
-                <td className="py-2 px-2 text-green-600 font-semibold">{agent.confirmed}</td>
-                <td className="py-2 px-2 text-red-600 font-semibold">{agent.cancelled}</td>
-                <td className="py-2 px-2">{agent.total}</td>
-                <td className="py-2 px-2 text-amber-600 font-semibold">{agent.cancelRate}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <section className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+      {publicEntries.map((item) => (
+        <Link
+          key={item.to}
+          to={item.to}
+          className="service-card group"
+        >
+          <span className={`service-icon service-icon--${item.tone}`}><item.icon className="h-5 w-5" strokeWidth={1.8} /></span>
+          <div className="min-w-0 flex-1">
+            <h2>{item.label}</h2>
+          </div>
+          <ArrowLeft className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-x-0.5" strokeWidth={1.8} />
+        </Link>
+      ))}
     </section>
-
-    <div className="glass-card p-4">
-      <h3 className="font-semibold flex items-center gap-2"><CalendarDays className="w-4 h-4" />التجميع الشهري</h3>
-      <div className="flex gap-2 flex-wrap mt-2">{monthly.map((m) => <span key={m.month} className="text-xs px-2 py-1 rounded bg-secondary">{m.month}: {m.total}</span>)}</div>
-    </div>
-
-    <div className="glass-card p-4 space-y-2">
-      <p className="text-sm font-semibold">الموظفون الظاهرون ({visibleAgents.length}/25)</p>
-      {visibleAgents.map((e) => <div key={e.agent} className="flex justify-between items-center border-b pb-2"><div className="flex items-center gap-2"><UserRound className="w-4 h-4" />{e.agent}</div><div className="text-xs"><span className="text-success font-semibold">مؤكد: {e.confirmed}</span> | <span className="text-destructive">ملغي: {e.cancelled}</span> | إجمالي: {e.total}</div></div>)}
-    </div>
-  </div>;
-};
+  </div>
+);
 
 export default Dashboard;

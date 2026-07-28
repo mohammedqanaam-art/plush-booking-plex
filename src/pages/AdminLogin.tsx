@@ -3,6 +3,7 @@ import { Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getAdminSession } from "@/lib/adminAuth";
 import { api } from "@/lib/api";
+import PageHeader from "@/components/PageHeader";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -32,13 +33,8 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="p-4 max-w-4xl mx-auto space-y-6">
-      <div className="space-y-1">
-        <h2 className="text-2xl font-bold">تسجيل دخول المسؤول</h2>
-        <p className="text-muted-foreground text-sm">
-          يرجى تسجيل الدخول للوصول إلى لوحة الإدارة.
-        </p>
-      </div>
+    <div className="page-wrap-narrow">
+      <PageHeader title="دخول المشرف" icon={Lock} />
 
       <div className="glass-card p-8 text-center space-y-4">
         <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">

@@ -1,35 +1,16 @@
 import { getStore } from "@netlify/blobs";
-
-type Session = { username: string; role: string };
+import { json, validateSession } from "./_shared/security";
 type ContactRequest = {
   id: string;
+  requestNo: string;
+  brand: string;
   branchName: string;
-  customerName: string;
-  phone: string;
-  note: string;
+  guestName: string;
+  guestPhone: string;
+  reason: string;
   status: "new" | "done";
   createdAt: string;
 };
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-async function validateSession(req: Request): Promise<Session | null> {
-  const authHeader = req.headers.get("Authorization");
-  const token = authHeader?.replace("Bearer ", "").trim();
-  if (!token) return null;
-
-  const sessionStore = getStore({ name: "sessions", consistency: "strong" });
-  try {
-    return (await sessionStore.get(`sess_${token}`, { type: "json" })) as Session | null;
-  } catch {
-    return null;
-  }
-}
 
 async function getRequests(store: ReturnType<typeof getStore>): Promise<ContactRequest[]> {
   try {
@@ -37,6 +18,15 @@ async function getRequests(store: ReturnType<typeof getStore>): Promise<ContactR
   } catch {
     return [];
   }
+}
+
+async function nextRequestNo() {
+  const counterStore = getStore("contacts_counter");
+  const key = "contact_counter";
+  const current = ((await counterStore.get(key, { type: "json" })) as number | null) || 0;
+  const next = current + 1;
+  await counterStore.setJSON(key, next);
+  return `CR-${String(next).padStart(6, "0")}`;
 }
 
 export default async (req: Request) => {
@@ -51,21 +41,24 @@ export default async (req: Request) => {
       return json({ error: "Invalid request" }, 400);
     }
 
-    const branchName = String(body.branchName || "").trim();
-    const customerName = String(body.customerName || "").trim();
-    const phone = String(body.phone || "").trim();
-    const note = String(body.note || "").trim();
+    const brand = String(body.brand || "").trim().slice(0, 30);
+    const branchName = String(body.branchName || "").trim().slice(0, 150);
+    const guestName = String(body.guestName || "").trim().slice(0, 120);
+    const guestPhone = String(body.guestPhone || "").trim().slice(0, 30);
+    const reason = String(body.reason || "").trim().slice(0, 1000);
 
-    if (!branchName || !customerName || !phone) {
-      return json({ error: "branchName, customerName and phone are required" }, 400);
+    if (!brand || !branchName || !guestName || !guestPhone || !reason) {
+      return json({ error: "brand, branchName, guestName, guestPhone and reason are required" }, 400);
     }
 
     const item: ContactRequest = {
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      requestNo: await nextRequestNo(),
+      brand,
       branchName,
-      customerName,
-      phone,
-      note,
+      guestName,
+      guestPhone,
+      reason,
       status: "new",
       createdAt: new Date().toISOString(),
     };
