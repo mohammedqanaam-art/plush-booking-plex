@@ -53,7 +53,14 @@ export function classifyBookingStatus(status: string): "confirmed" | "cancelled"
   const s = String(status || "").trim().toUpperCase()
   if (CANCELLED_STATUSES.has(s)) return "cancelled"
   if (CONFIRMED_STATUSES.has(s)) return "confirmed"
+  if (/^CONFIRMED?$/i.test(String(status || "").trim()) || /^مؤكد$/i.test(String(status || "").trim())) return "confirmed"
+  if (/CANCEL|NO[\s-]?SHOW|ملغي|ملغى|إلغاء|الغاء/i.test(String(status || ""))) return "cancelled"
   return "ignored"
+}
+
+const isSystemAgent = (value: string) => {
+  const normalized = value.toLocaleLowerCase("en").replace(/[\s_\-/]+/g, "")
+  return normalized === "unovoice" || normalized === "systemuno"
 }
 
 const getBookingStatusValue = (row: BookingRow) =>
@@ -92,7 +99,7 @@ export function processBookings(rows: BookingRow[], options?: ProcessBookingsOpt
       "المندوب",
     ]).replace(/\s+/g, " ").trim()
 
-    if (!agent) return
+    if (!agent || isSystemAgent(agent)) return
 
     const statusRaw = getBookingStatusValue(row)
     const normalizedStatus = String(statusRaw || "").trim().toUpperCase()

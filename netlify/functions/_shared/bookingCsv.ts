@@ -2,6 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { updateBookingPhoneArchive, type PhoneArchiveStatus } from "./bookingPhoneArchive";
 
 export type BookingRecord = Record<string, string>;
+export type BookingSourceFormat = "csv" | "uno-spreadsheetml";
 
 export type BookingStats = {
   total: number;
@@ -10,8 +11,34 @@ export type BookingStats = {
   cancelRate: number;
   updatedAt: string;
 };
-export type BookingSaveResult = BookingStats & { archive?: PhoneArchiveStatus };
+
+export type BookingReportQuality = {
+  sourceFormat: BookingSourceFormat;
+  sourceLabel: string;
+  sourceFileName: string;
+  sourceRows: number;
+  classifiedTotal: number;
+  ignored: number;
+  attributedRecords: number;
+  unattributedRecords: number;
+  employeeCount: number;
+  uniqueReservations: number;
+  duplicateReservations: number;
+  dateFrom: string | null;
+  dateTo: string | null;
+  systemAccounts: Array<{ name: string; records: number }>;
+};
+
+export type BookingReportStats = BookingStats & BookingReportQuality;
+export type BookingSaveResult = BookingReportStats & { archive?: PhoneArchiveStatus };
 export type BookingSaveOptions = { updateCurrent?: boolean; archivePeriod?: { from: string; to: string } };
+export type ParsedBookingReport = {
+  bookings: BookingRecord[];
+  sourceFormat: BookingSourceFormat;
+  sourceFileName: string;
+  sourceRows: number;
+  duplicateReservations: number;
+};
 
 export class BookingCsvError extends Error {
   status: number;
@@ -23,8 +50,9 @@ export class BookingCsvError extends Error {
   }
 }
 
-const MAX_CSV_BYTES = 5 * 1024 * 1024;
-const MAX_CSV_ROWS = 50_000;
+const MAX_REPORT_BYTES = 5 * 1024 * 1024;
+const MAX_REPORT_ROWS = 50_000;
+const SYSTEM_AGENT_IDS = new Set(["unovoice", "systemuno"]);
 
 const normalizeKey = (value: string) =>
   value
@@ -34,8 +62,12 @@ const normalizeKey = (value: string) =>
     .replace(/[أإآ]/g, "ا")
     .replace(/ة/g, "ه")
     .replace(/ى/g, "ي")
-    .replace(/[\s_\-/]+/g, "")
+    .replace(/[\s_/.-]+/g, "")
     .trim();
+
+const normalizeAgentId = (value: string) => normalizeKey(value);
+
+export const isSystemBookingAgent = (value: string) => SYSTEM_AGENT_IDS.has(normalizeAgentId(value));
 
 const parseRow = (line: string): string[] => {
   const fields: string[] = [];
@@ -78,6 +110,73 @@ export const parseBookingCsv = (text: string): BookingRecord[] => {
   });
 };
 
+const safeCodePoint = (code: string, radix: number) => {
+  const number = Number.parseInt(code, radix);
+  return Number.isInteger(number) && number >= 0 && number <= 0x10FFFF ? String.fromCodePoint(number) : "";
+};
+
+const decodeXmlText = (value: string) => value
+  .replace(/<[^>]*>/g, " ")
+  .replace(/&#x([0-9a-f]+);/gi, (_match, code: string) => safeCodePoint(code, 16))
+  .replace(/&#(\d+);/g, (_match, code: string) => safeCodePoint(code, 10))
+  .replace(/&quot;/gi, '"')
+  .replace(/&apos;/gi, "'")
+  .replace(/&lt;/gi, "<")
+  .replace(/&gt;/gi, ">")
+  .replace(/&amp;/gi, "&")
+  .replace(/\s+/g, " ")
+  .trim();
+
+const spreadsheetRows = (text: string): string[][] => {
+  if (/<!DOCTYPE|<!ENTITY/i.test(text)) {
+    throw new BookingCsvError("ملف Excel XML يحتوي تعريفات غير مسموح بها.", 400);
+  }
+
+  const rows: string[][] = [];
+  const rowPattern = /<(?:[a-z][\w-]*:)?Row\b[^>]*>([\s\S]*?)<\/(?:[a-z][\w-]*:)?Row>/gi;
+  for (const rowMatch of text.matchAll(rowPattern)) {
+    const values: string[] = [];
+    const cellPattern = /<(?:[a-z][\w-]*:)?Cell\b([^>]*)>([\s\S]*?)<\/(?:[a-z][\w-]*:)?Cell>|<(?:[a-z][\w-]*:)?Cell\b([^>]*)\/>/gi;
+    for (const cellMatch of rowMatch[1].matchAll(cellPattern)) {
+      const attributes = cellMatch[1] || cellMatch[3] || "";
+      const indexMatch = attributes.match(/(?:ss:)?Index\s*=\s*["'](\d+)["']/i);
+      const oneBasedIndex = indexMatch ? Number.parseInt(indexMatch[1], 10) : values.length + 1;
+      while (values.length < Math.max(0, oneBasedIndex - 1)) values.push("");
+      const content = cellMatch[2] || "";
+      const dataMatch = content.match(/<(?:[a-z][\w-]*:)?Data\b[^>]*>([\s\S]*?)<\/(?:[a-z][\w-]*:)?Data>/i);
+      values.push(decodeXmlText(dataMatch?.[1] || ""));
+    }
+    if (values.some(Boolean)) rows.push(values);
+    if (rows.length > MAX_REPORT_ROWS + 1) {
+      throw new BookingCsvError("عدد سجلات الحجوزات يتجاوز 50,000 سجل.", 413);
+    }
+  }
+  return rows;
+};
+
+export const parseUnoSpreadsheetXml = (text: string): BookingRecord[] => {
+  if (!/<(?:[a-z][\w-]*:)?Workbook\b/i.test(text) || !/urn:schemas-microsoft-com:office:spreadsheet/i.test(text)) {
+    throw new BookingCsvError("الملف ليس تقرير Excel XML صالحًا من UNO.", 400);
+  }
+
+  const rows = spreadsheetRows(text);
+  if (rows.length < 2) return [];
+  const headers = rows[0].map((header) => header.replace(/^\uFEFF/, "").trim());
+  const normalizedHeaders = new Set(headers.map(normalizeKey));
+  const requiredHeaders = ["agentname", "resvno", "bookingstatus"];
+  if (!requiredHeaders.every((header) => normalizedHeaders.has(header))) {
+    throw new BookingCsvError("لم يتم التعرف على أعمدة تقرير UNO المطلوبة: Agent Name وResv. no. وBooking Status.", 400);
+  }
+
+  return rows.slice(1).map((values) => {
+    const record: BookingRecord = {};
+    headers.forEach((header, index) => {
+      record[header] = values[index] || "";
+    });
+    return record;
+  });
+};
+
 const getRecordValue = (record: BookingRecord, keys: string[]): string => {
   for (const key of keys) {
     if (record[key] && String(record[key]).trim()) return String(record[key]);
@@ -111,12 +210,32 @@ const bookingStatus = (record: BookingRecord) => getRecordValue(record, [
   "الحالة",
 ]);
 
-const classifyStatus = (status: string): "confirmed" | "cancelled" | "ignored" => {
+const bookingAgent = (record: BookingRecord) => getRecordValue(record, [
+  "Agent name",
+  "Agent Name",
+  "Agent",
+  "Employee",
+  "Employee Name",
+  "User Name",
+  "اسم الموظف",
+  "الموظف",
+]);
+
+const reservationNumber = (record: BookingRecord) => getRecordValue(record, [
+  "Resv. no.",
+  "Resv no",
+  "Reservation No",
+  "Reservation Number",
+  "Resv ID",
+  "رقم الحجز",
+]);
+
+export const classifyImportedBookingStatus = (status: string): "confirmed" | "cancelled" | "ignored" => {
   const normalized = status.trim().toUpperCase();
   if (["M", "O", "N", "I"].includes(normalized)) return "confirmed";
   if (["C", "NS"].includes(normalized)) return "cancelled";
-  if (/CONFIRMED?|مؤكد/i.test(status)) return "confirmed";
-  if (/CANCEL|NO[\s-]?SHOW|ملغي|إلغاء|الغاء/i.test(status)) return "cancelled";
+  if (/^CONFIRMED?$/i.test(status.trim()) || /^مؤكد$/i.test(status.trim())) return "confirmed";
+  if (/CANCEL|NO[\s-]?SHOW|ملغي|ملغى|إلغاء|الغاء/i.test(status)) return "cancelled";
   return "ignored";
 };
 
@@ -125,7 +244,7 @@ export const calculateBookingStats = (bookings: BookingRecord[]) => {
   let cancelled = 0;
 
   for (const booking of bookings) {
-    const category = classifyStatus(bookingStatus(booking));
+    const category = classifyImportedBookingStatus(bookingStatus(booking));
     if (category === "confirmed") confirmed += 1;
     if (category === "cancelled") cancelled += 1;
   }
@@ -138,25 +257,201 @@ export const calculateBookingStats = (bookings: BookingRecord[]) => {
   };
 };
 
-export const saveBookingCsv = async (csvText: string, options: BookingSaveOptions = {}): Promise<BookingSaveResult> => {
-  if (!csvText.trim()) throw new BookingCsvError("ملف الحجوزات فارغ.", 400);
-  if (new TextEncoder().encode(csvText).byteLength > MAX_CSV_BYTES) {
+const safeSourceName = (value: string) => {
+  let decoded = value;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    // Keep the original header value when it is not URI encoded.
+  }
+  return decoded.split(/[\\/]/).pop()?.replace(/\p{Cc}/gu, "").slice(0, 160) || "report";
+};
+
+const looksLikeUnoSpreadsheetXml = (text: string) => (
+  /<(?:[a-z][\w-]*:)?Workbook\b/i.test(text)
+  && /urn:schemas-microsoft-com:office:spreadsheet/i.test(text)
+);
+
+const deduplicateUnoRecords = (bookings: BookingRecord[]) => {
+  const seen = new Set<string>();
+  const unique: BookingRecord[] = [];
+  let duplicates = 0;
+  for (const booking of bookings) {
+    const reservation = reservationNumber(booking).trim().toLocaleLowerCase("en");
+    if (reservation && seen.has(reservation)) {
+      duplicates += 1;
+      continue;
+    }
+    if (reservation) seen.add(reservation);
+    unique.push(booking);
+  }
+  return { bookings: unique, duplicates };
+};
+
+export const parseBookingReportText = (text: string, fileName = "report.csv"): ParsedBookingReport => {
+  if (!text.trim()) throw new BookingCsvError("ملف الحجوزات فارغ.", 400);
+  if (new TextEncoder().encode(text).byteLength > MAX_REPORT_BYTES) {
     throw new BookingCsvError("حجم ملف الحجوزات يتجاوز 5 MB.", 413);
   }
 
-  const bookings = parseBookingCsv(csvText);
-  if (!bookings.length) throw new BookingCsvError("لم يتم العثور على بيانات صالحة في ملف الحجوزات.", 400);
-  if (bookings.length > MAX_CSV_ROWS) {
+  const sourceFileName = safeSourceName(fileName);
+  if (looksLikeUnoSpreadsheetXml(text)) {
+    const sourceBookings = parseUnoSpreadsheetXml(text);
+    const deduplicated = deduplicateUnoRecords(sourceBookings);
+    return {
+      bookings: deduplicated.bookings,
+      sourceFormat: "uno-spreadsheetml",
+      sourceFileName,
+      sourceRows: sourceBookings.length,
+      duplicateReservations: deduplicated.duplicates,
+    };
+  }
+
+  if (/^\s*<\?xml|^\s*<(?:[a-z][\w-]*:)?Workbook\b/i.test(text)) {
+    throw new BookingCsvError("صيغة XML المرفوعة ليست تقرير UNO المدعوم.", 400);
+  }
+
+  const bookings = parseBookingCsv(text);
+  return {
+    bookings,
+    sourceFormat: "csv",
+    sourceFileName,
+    sourceRows: bookings.length,
+    duplicateReservations: 0,
+  };
+};
+
+const MONTHS: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+const parseDatedValue = (value: string, fallbackYear?: number): Date | null => {
+  const normalized = value.replace(/,/g, " ").replace(/\s+/g, " ").trim();
+  const match = normalized.match(/^(\d{1,2})\s+([A-Za-z]{3})(?:\s+(\d{2,4}))?(?:\s+(\d{1,2}):(\d{2}))?$/);
+  if (!match) return null;
+  const month = MONTHS[match[2].toLowerCase()];
+  if (month === undefined) return null;
+  const rawYear = match[3] ? Number.parseInt(match[3], 10) : fallbackYear;
+  if (!rawYear) return null;
+  const year = rawYear < 100 ? 2000 + rawYear : rawYear;
+  const date = new Date(Date.UTC(year, month, Number.parseInt(match[1], 10), Number.parseInt(match[4] || "0", 10), Number.parseInt(match[5] || "0", 10)));
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const reportDateRange = (bookings: BookingRecord[]) => {
+  const dates: Date[] = [];
+  for (const booking of bookings) {
+    const checkIn = parseDatedValue(getRecordValue(booking, ["Check-in", "Check in", "Arrival", "Arrival Date", "تاريخ الوصول"]));
+    const bookingDateValue = getRecordValue(booking, ["Booking time", "Booking Date", "Booked Date", "تاريخ الحجز"]);
+    let bookingDate = parseDatedValue(bookingDateValue, checkIn?.getUTCFullYear());
+    if (bookingDate && checkIn && bookingDate.getTime() > checkIn.getTime() + 120 * 24 * 60 * 60 * 1000) {
+      bookingDate = new Date(Date.UTC(
+        bookingDate.getUTCFullYear() - 1,
+        bookingDate.getUTCMonth(),
+        bookingDate.getUTCDate(),
+        bookingDate.getUTCHours(),
+        bookingDate.getUTCMinutes(),
+      ));
+    }
+    if (bookingDate) dates.push(bookingDate);
+  }
+  if (!dates.length) return { dateFrom: null, dateTo: null };
+  const timestamps = dates.map((date) => date.getTime());
+  return {
+    dateFrom: new Date(Math.min(...timestamps)).toISOString().slice(0, 10),
+    dateTo: new Date(Math.max(...timestamps)).toISOString().slice(0, 10),
+  };
+};
+
+export const inspectParsedBookingReport = (parsed: ParsedBookingReport): BookingReportStats => {
+  if (!parsed.bookings.length) throw new BookingCsvError("لم يتم العثور على بيانات صالحة في ملف الحجوزات.", 400);
+  if (parsed.bookings.length > MAX_REPORT_ROWS) {
     throw new BookingCsvError("عدد سجلات الحجوزات يتجاوز 50,000 سجل.", 413);
   }
 
-  const stats: BookingStats = {
-    ...calculateBookingStats(bookings),
+  const basic = calculateBookingStats(parsed.bookings);
+  const classifiedTotal = basic.confirmed + basic.cancelled;
+  if (!classifiedTotal) {
+    throw new BookingCsvError("لم يتم التعرف على حالات حجوزات مؤكدة أو ملغاة في الملف.", 400);
+  }
+
+  const employees = new Set<string>();
+  const reservations = new Set<string>();
+  const systemAccounts = new Map<string, number>();
+  let attributedRecords = 0;
+  let unattributedRecords = 0;
+
+  for (const booking of parsed.bookings) {
+    const reservation = reservationNumber(booking).trim();
+    if (reservation) reservations.add(reservation.toLocaleLowerCase("en"));
+    if (classifyImportedBookingStatus(bookingStatus(booking)) === "ignored") continue;
+    const agent = bookingAgent(booking).replace(/\s+/g, " ").trim();
+    if (!agent || isSystemBookingAgent(agent)) {
+      unattributedRecords += 1;
+      if (agent) systemAccounts.set(agent, (systemAccounts.get(agent) || 0) + 1);
+      continue;
+    }
+    attributedRecords += 1;
+    employees.add(normalizeAgentId(agent));
+  }
+
+  return {
+    ...basic,
     updatedAt: new Date().toISOString(),
+    sourceFormat: parsed.sourceFormat,
+    sourceLabel: parsed.sourceFormat === "uno-spreadsheetml" ? "UNO Excel XML (.xls)" : "CSV",
+    sourceFileName: parsed.sourceFileName,
+    sourceRows: parsed.sourceRows,
+    classifiedTotal,
+    ignored: basic.total - classifiedTotal,
+    attributedRecords,
+    unattributedRecords,
+    employeeCount: employees.size,
+    uniqueReservations: reservations.size,
+    duplicateReservations: parsed.duplicateReservations,
+    ...reportDateRange(parsed.bookings),
+    systemAccounts: Array.from(systemAccounts.entries())
+      .map(([name, records]) => ({ name, records }))
+      .sort((left, right) => right.records - left.records),
   };
-  const archive = options.archivePeriod ? await updateBookingPhoneArchive(bookings, options.archivePeriod.from, options.archivePeriod.to) : undefined;
+};
+
+export const inspectBookingReportText = (text: string, fileName = "report.csv") => {
+  const parsed = parseBookingReportText(text, fileName);
+  return { bookings: parsed.bookings, stats: inspectParsedBookingReport(parsed) };
+};
+
+const saveParsedBookingReport = async (parsed: ParsedBookingReport, options: BookingSaveOptions = {}): Promise<BookingSaveResult> => {
+  const stats = inspectParsedBookingReport(parsed);
+  const archive = options.archivePeriod
+    ? await updateBookingPhoneArchive(parsed.bookings, options.archivePeriod.from, options.archivePeriod.to)
+    : undefined;
   if (options.updateCurrent !== false) {
-    const store = getStore("bookings"); await store.setJSON("data", bookings); await store.setJSON("stats", stats);
+    const store = getStore("bookings");
+    await store.setJSON("data", parsed.bookings);
+    await store.setJSON("stats", stats);
   }
   return { ...stats, ...(archive ? { archive } : {}) };
+};
+
+export const saveBookingReportText = async (
+  text: string,
+  fileName = "report.csv",
+  options: BookingSaveOptions = {},
+): Promise<BookingSaveResult> => saveParsedBookingReport(parseBookingReportText(text, fileName), options);
+
+export const saveBookingCsv = async (csvText: string, options: BookingSaveOptions = {}): Promise<BookingSaveResult> => {
+  if (!csvText.trim()) throw new BookingCsvError("ملف الحجوزات فارغ.", 400);
+  if (new TextEncoder().encode(csvText).byteLength > MAX_REPORT_BYTES) {
+    throw new BookingCsvError("حجم ملف الحجوزات يتجاوز 5 MB.", 413);
+  }
+  const bookings = parseBookingCsv(csvText);
+  return saveParsedBookingReport({
+    bookings,
+    sourceFormat: "csv",
+    sourceFileName: "cro-export.csv",
+    sourceRows: bookings.length,
+    duplicateReservations: 0,
+  }, options);
 };

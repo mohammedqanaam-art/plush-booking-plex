@@ -27,7 +27,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { api, type ContactRequest, type EmployeeAdjustment, type PublicBookingReport } from "@/lib/api";
+import { api, type BookingReportStats, type ContactRequest, type EmployeeAdjustment, type PublicBookingReport } from "@/lib/api";
 import { isEmployeeHidden, normalizeEmployeeName, normalizeHiddenEmployees } from "@/lib/employeeVisibility";
 import { clearAdminSession, getAdminSession, hasPermission, type PermissionAction, type UserRole } from "@/lib/adminAuth";
 import { processBookings } from "@/lib/bookingProcessor";
@@ -36,6 +36,12 @@ import AdminAnalytics from "@/components/admin/AdminAnalytics";
 
 type UserRecord = { username: string; role: UserRole };
 type AdminTab = "overview" | "analytics" | "bookings" | "employees" | "requests" | "users" | "settings" | "profile";
+type PendingBookingReport = { file: File; stats: BookingReportStats };
+
+const reportRangeDays = (stats: BookingReportStats) => {
+  if (!stats.dateFrom || !stats.dateTo) return 0;
+  return Math.floor((new Date(`${stats.dateTo}T00:00:00Z`).getTime() - new Date(`${stats.dateFrom}T00:00:00Z`).getTime()) / 86_400_000) + 1;
+};
 
 const ROLE_LABELS: Record<UserRole, string> = {
   superadmin: "مدير النظام",
@@ -72,6 +78,9 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [requests, setRequests] = useState<ContactRequest[]>([]);
   const [bookings, setBookings] = useState<Record<string, string | number | undefined>[]>([]);
+  const [bookingStats, setBookingStats] = useState<BookingReportStats | null>(null);
+  const [pendingBookingReport, setPendingBookingReport] = useState<PendingBookingReport | null>(null);
+  const [bookingUploadBusy, setBookingUploadBusy] = useState(false);
   const [publicReport, setPublicReport] = useState<PublicBookingReport | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [hiddenEmployees, setHiddenEmployees] = useState<string[]>([]);
@@ -108,8 +117,10 @@ const AdminDashboard = () => {
     try {
       const data = await api.getBookings();
       setBookings(Array.isArray(data.bookings) ? data.bookings : []);
+      setBookingStats(data.stats && typeof data.stats === "object" ? data.stats as BookingReportStats : null);
     } catch {
       setBookings([]);
+      setBookingStats(null);
     }
   };
 
@@ -178,18 +189,39 @@ const AdminDashboard = () => {
 
   const handleUpload = async (file?: File) => {
     if (!file) return;
+    setBookingUploadBusy(true);
+    setPendingBookingReport(null);
+    setMessage("جاري فحص بنية التقرير دون استبدال البيانات الحالية…");
     try {
-      const data = await api.uploadBookings(await file.text());
-      setMessage(`تم رفع ${Number(data.stats?.total || 0).toLocaleString("ar-SA")} سجل.`);
-      await Promise.all([loadBookings(), loadPublicReport()]);
+      const data = await api.inspectBookingReport(file);
+      setPendingBookingReport({ file, stats: data.stats });
+      setMessage(null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "فشل رفع الملف.");
     } finally {
+      setBookingUploadBusy(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
+  const confirmBookingReport = async () => {
+    if (!pendingBookingReport) return;
+    setBookingUploadBusy(true);
+    setMessage("جاري اعتماد التقرير…");
+    try {
+      const data = await api.uploadBookingReport(pendingBookingReport.file);
+      setPendingBookingReport(null);
+      setMessage(`تم اعتماد ${data.stats.total.toLocaleString("ar-SA")} سجل من ${data.stats.sourceLabel}.`);
+      await Promise.all([loadBookings(), loadPublicReport()]);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر اعتماد التقرير.");
+    } finally {
+      setBookingUploadBusy(false);
+    }
+  };
+
   const report = publicReport?.summary;
+  const pendingBookingRangeDays = pendingBookingReport ? reportRangeDays(pendingBookingReport.stats) : 0;
 
   return (
     <div className="page-wrap">
@@ -258,27 +290,106 @@ const AdminDashboard = () => {
 
       {activeTab === "bookings" ? (
         <div className="space-y-4">
-          <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {[
               ["السجلات المصنفة", report?.classifiedTotal || 0],
               ["المؤكدة", report?.confirmed || 0],
               ["الملغاة", report?.cancelled || 0],
+              ["غير المنسوبة", report?.unattributed || 0],
               ["غير المعروفة", report?.ignored || 0],
             ].map(([label, value]) => <div key={label as string} className="compact-card"><p className="text-xs text-muted-foreground">{label as string}</p><p className="mt-2 text-2xl font-black">{Number(value).toLocaleString("ar-SA")}</p></div>)}
           </section>
           <section className="page-surface space-y-4">
-            <h2 className="section-title">تحديث بيانات الحجوزات</h2>
-            <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => void handleUpload(event.target.files?.[0])} />
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h2 className="section-title">استيراد تقرير حجوزات الموظفين</h2>
+                <p className="mt-1 text-xs text-muted-foreground">يدعم تقرير UNO بصيغة Excel XML ‏(.xls) وتقارير CSV، ويعرض نتيجة الفحص قبل استبدال البيانات.</p>
+              </div>
+              {bookingStats?.sourceLabel ? (
+                <span className="rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-xs font-bold text-primary">المصدر الحالي: {bookingStats.sourceLabel}</span>
+              ) : null}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xls,.xml,.csv,application/vnd.ms-excel,application/xml,text/xml,text/csv"
+              className="hidden"
+              onChange={(event) => void handleUpload(event.target.files?.[0])}
+            />
             <div className="flex flex-wrap gap-2">
-              <button className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-4 font-bold text-primary-foreground" onClick={() => fileInputRef.current?.click()}><Upload className="h-4 w-4" /> اختيار ملف CSV</button>
+              <button
+                className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-4 font-bold text-primary-foreground disabled:cursor-wait disabled:opacity-60"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={bookingUploadBusy}
+              ><Upload className="h-4 w-4" /> {bookingUploadBusy ? "جاري الفحص" : "اختيار تقرير UNO أو CSV"}</button>
               {session?.role === "admin" || session?.role === "superadmin" ? (
-                <button className="h-11 rounded-xl border border-destructive/35 px-4 text-destructive" onClick={async () => {
+                <button className="h-11 rounded-xl border border-destructive/35 px-4 text-destructive disabled:opacity-50" disabled={bookingUploadBusy} onClick={async () => {
                   if (!window.confirm("سيتم حذف جميع بيانات الحجوزات الحالية. هل تريد المتابعة؟")) return;
                   try { await api.resetBookings(); await Promise.all([loadBookings(), loadPublicReport()]); setMessage("تم حذف بيانات الحجوزات."); } catch { setMessage("تعذر حذف البيانات."); }
                 }}>حذف جميع البيانات</button>
               ) : null}
             </div>
           </section>
+
+          {pendingBookingReport ? (
+            <section className="page-surface space-y-4 border-primary/30" aria-label="معاينة تقرير الحجوزات قبل الاعتماد">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="section-title">معاينة قبل الاعتماد</h2>
+                  <p className="mt-1 break-all text-xs text-muted-foreground" dir="ltr">{pendingBookingReport.stats.sourceFileName}</p>
+                </div>
+                <span className="rounded-full bg-emerald-500/12 px-3 py-1 text-xs font-bold text-emerald-700">تم التعرف: {pendingBookingReport.stats.sourceLabel}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+                {[
+                  ["السجلات", pendingBookingReport.stats.total],
+                  ["المؤكدة", pendingBookingReport.stats.confirmed],
+                  ["الملغاة", pendingBookingReport.stats.cancelled],
+                  ["الموظفون", pendingBookingReport.stats.employeeCount],
+                  ["منسوبة لموظف", pendingBookingReport.stats.attributedRecords],
+                  ["غير منسوبة", pendingBookingReport.stats.unattributedRecords],
+                ].map(([label, value]) => (
+                  <div key={label as string} className="compact-card">
+                    <p className="text-xs text-muted-foreground">{label as string}</p>
+                    <p className="mt-2 text-xl font-black">{Number(value).toLocaleString("ar-SA")}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-2 text-xs sm:grid-cols-3">
+                <div className="rounded-xl bg-secondary/40 px-3 py-2"><span className="text-muted-foreground">فترة إنشاء الحجوزات</span><strong className="mt-1 block" dir="ltr">{pendingBookingReport.stats.dateFrom && pendingBookingReport.stats.dateTo ? `${pendingBookingReport.stats.dateFrom} — ${pendingBookingReport.stats.dateTo}` : "غير متاحة"}</strong></div>
+                <div className="rounded-xl bg-secondary/40 px-3 py-2"><span className="text-muted-foreground">أرقام الحجوزات الفريدة</span><strong className="mt-1 block">{pendingBookingReport.stats.uniqueReservations.toLocaleString("ar-SA")}</strong></div>
+                <div className="rounded-xl bg-secondary/40 px-3 py-2"><span className="text-muted-foreground">التكرارات المستبعدة</span><strong className="mt-1 block">{pendingBookingReport.stats.duplicateReservations.toLocaleString("ar-SA")}</strong></div>
+              </div>
+
+              {pendingBookingReport.stats.unattributedRecords > 0 ? (
+                <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 p-3 text-sm text-amber-800 dark:text-amber-200">
+                  <strong>تنبيه جودة:</strong> يوجد {pendingBookingReport.stats.unattributedRecords.toLocaleString("ar-SA")} حجزًا باسم حسابات تقنية أو دون موظف. ستدخل ضمن الإجمالي، ولن تُنسب إلى موظف أو تؤثر في ترتيبه.
+                  {pendingBookingReport.stats.systemAccounts.length ? <span className="mt-1 block text-xs">{pendingBookingReport.stats.systemAccounts.map((item) => `${item.name}: ${item.records.toLocaleString("ar-SA")}`).join(" · ")}</span> : null}
+                </div>
+              ) : null}
+
+              {pendingBookingRangeDays > 31 ? (
+                <div className="rounded-xl border border-sky-500/25 bg-sky-500/8 p-3 text-sm text-sky-800 dark:text-sky-200">
+                  <strong>تنبيه الفترة:</strong> التقرير يغطي {pendingBookingRangeDays.toLocaleString("ar-SA")} يومًا، وسيتم جمعها في نتيجة واحدة. استخدم تقريرًا شهريًا مستقلًا إذا كان الهدف قياس أداء شهر محدد.
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-4 font-bold text-primary-foreground disabled:cursor-wait disabled:opacity-60"
+                  onClick={() => void confirmBookingReport()}
+                  disabled={bookingUploadBusy}
+                ><Save className="h-4 w-4" /> {bookingUploadBusy ? "جاري الاعتماد" : "اعتماد واستبدال البيانات الحالية"}</button>
+                <button
+                  className="h-11 rounded-xl border border-border px-4 text-sm font-bold disabled:opacity-50"
+                  onClick={() => setPendingBookingReport(null)}
+                  disabled={bookingUploadBusy}
+                >إلغاء</button>
+              </div>
+            </section>
+          ) : null}
         </div>
       ) : null}
 

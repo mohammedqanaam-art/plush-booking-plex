@@ -14,6 +14,7 @@ const report: PublicBookingReport = {
     confirmed: 8,
     cancelled: 2,
     ignored: 2,
+    unattributed: 0,
     employeeCount: 1,
     confirmationRate: 80,
     cancelRate: 20,

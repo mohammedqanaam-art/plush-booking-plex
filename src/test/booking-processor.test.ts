@@ -47,4 +47,17 @@ describe("processBookings", () => {
     expect(result.find((row) => row.agent === "Agent A")).toMatchObject({ confirmed: 1, cancelled: 1, total: 2 });
     expect(result.find((row) => row.agent === "Agent B")).toMatchObject({ confirmed: 1, cancelled: 0, total: 1 });
   });
+
+  it("recognizes UNO text statuses and excludes technical accounts from employee rankings", () => {
+    const rows = [
+      { "Agent Name": "Hani Alotaibi", "Booking Status": "Confirmed" },
+      { "Agent Name": "Hani Alotaibi", "Booking Status": "Cancelled" },
+      { "Agent Name": "UNO-Voice", "Booking Status": "Confirmed" },
+      { "Agent Name": "System-Uno", "Booking Status": "Cancelled" },
+    ];
+
+    expect(processBookings(rows)).toEqual([
+      expect.objectContaining({ agent: "Hani Alotaibi", confirmed: 1, cancelled: 1, total: 2 }),
+    ]);
+  });
 });
