@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
 import { json, validateSession } from "./_shared/security";
 import { buildPublicBookingReport } from "./_shared/bookingReport";
-import { BookingCsvError, saveBookingCsv } from "./_shared/bookingCsv";
+import { BookingCsvError, inspectBookingReportText, saveBookingReportText } from "./_shared/bookingCsv";
 
 export default async (req: Request) => {
   const method = req.method;
@@ -21,7 +21,15 @@ export default async (req: Request) => {
       if (requestUrl.searchParams.get("view") === "summary") {
         const settingsStore = getStore("settings");
         const settings = ((await settingsStore.get("site", { type: "json" })) as Record<string, unknown> | null) || {};
-        return json(buildPublicBookingReport(bookings, settings, typeof stats.updatedAt === "string" ? stats.updatedAt : null));
+        return json(buildPublicBookingReport(
+          bookings,
+          settings,
+          typeof stats.updatedAt === "string" ? stats.updatedAt : null,
+          {
+            dateFrom: typeof stats.dateFrom === "string" ? stats.dateFrom : null,
+            dateTo: typeof stats.dateTo === "string" ? stats.dateTo : null,
+          },
+        ));
       }
 
       const session = await validateSession(req);
@@ -52,23 +60,29 @@ export default async (req: Request) => {
       return json({ error: "Permission Denied" }, 403);
     }
 
-    let csvText: string;
+    let reportText: string;
     try {
-      csvText = await req.text();
+      reportText = await req.text();
     } catch {
       return json({ error: "Failed to read request body" }, 400);
     }
 
-    if (!csvText.trim()) {
-      return json({ error: "Empty CSV" }, 400);
+    if (!reportText.trim()) {
+      return json({ error: "ملف الحجوزات فارغ." }, 400);
     }
-    if (new TextEncoder().encode(csvText).byteLength > 5 * 1024 * 1024) {
-      return json({ error: "CSV exceeds the 5 MB limit" }, 413);
+    if (new TextEncoder().encode(reportText).byteLength > 5 * 1024 * 1024) {
+      return json({ error: "حجم ملف الحجوزات يتجاوز 5 MB." }, 413);
     }
 
     try {
-      const stats = await saveBookingCsv(csvText);
-      return json({ ok: true, stats });
+      const fileName = req.headers.get("x-report-filename") || "report.csv";
+      const preview = new URL(req.url).searchParams.get("preview") === "1";
+      if (preview) {
+        const { stats } = inspectBookingReportText(reportText, fileName);
+        return json({ ok: true, preview: true, stats });
+      }
+      const stats = await saveBookingReportText(reportText, fileName);
+      return json({ ok: true, preview: false, stats });
     } catch (error) {
       if (error instanceof BookingCsvError) return json({ error: error.message }, error.status);
       return json({ error: "Unable to save booking data" }, 500);

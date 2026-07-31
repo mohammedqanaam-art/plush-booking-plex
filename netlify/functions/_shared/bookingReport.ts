@@ -30,11 +30,17 @@ export type PublicBookingReport = {
     confirmed: number;
     cancelled: number;
     ignored: number;
+    unattributed: number;
     employeeCount: number;
     confirmationRate: number;
     cancelRate: number;
   };
   employees: PublicEmployeeReport[];
+};
+
+export type BookingReportMetadata = {
+  dateFrom?: string | null;
+  dateTo?: string | null;
 };
 
 const normalizeKey = (value: string) =>
@@ -50,6 +56,11 @@ const normalizeKey = (value: string) =>
 
 export const normalizeEmployeeId = (value: string) =>
   value.replace(/\s+/g, " ").trim().toLocaleLowerCase("en");
+
+const isSystemEmployee = (value: string) => {
+  const normalized = normalizeEmployeeId(value).replace(/[\s_-]+/g, "");
+  return normalized === "unovoice" || normalized === "systemuno";
+};
 
 const getValue = (record: BookingRecord, keys: string[]): string => {
   for (const key of keys) {
@@ -100,6 +111,8 @@ const getStatus = (record: BookingRecord) =>
 const classifyStatus = (status: string): "confirmed" | "cancelled" | "ignored" => {
   if (["M", "O", "N", "I"].includes(status)) return "confirmed";
   if (["C", "NS"].includes(status)) return "cancelled";
+  if (/^CONFIRMED?$/i.test(status) || /^مؤكد$/i.test(status)) return "confirmed";
+  if (/CANCEL|NO[\s-]?SHOW|ملغي|ملغى|إلغاء|الغاء/i.test(status)) return "cancelled";
   return "ignored";
 };
 
@@ -115,11 +128,13 @@ export const buildPublicBookingReport = (
   bookings: BookingRecord[],
   settings: EmployeeReportSettings = {},
   updatedAt: string | null = null,
+  metadata: BookingReportMetadata = {},
 ): PublicBookingReport => {
   const employeeMap = new Map<string, { sourceName: string; confirmed: number; cancelled: number }>();
   let confirmed = 0;
   let cancelled = 0;
   let ignored = 0;
+  let unattributed = 0;
 
   for (const booking of bookings) {
     const status = classifyStatus(getStatus(booking));
@@ -132,7 +147,10 @@ export const buildPublicBookingReport = (
     else cancelled += 1;
 
     const sourceName = getEmployeeName(booking);
-    if (!sourceName) continue;
+    if (!sourceName || isSystemEmployee(sourceName)) {
+      unattributed += 1;
+      continue;
+    }
     const id = normalizeEmployeeId(sourceName);
     const current = employeeMap.get(id) || { sourceName, confirmed: 0, cancelled: 0 };
     if (status === "confirmed") current.confirmed += 1;
@@ -165,7 +183,10 @@ export const buildPublicBookingReport = (
   const classifiedTotal = confirmed + cancelled;
   const month = String(settings.reportMonth || "").trim();
   const year = String(settings.reportYear || "").trim();
-  const periodLabel = [month, year].filter(Boolean).join(" / ") || "جميع البيانات المتاحة";
+  const sourceFrom = String(metadata.dateFrom || "").trim();
+  const sourceTo = String(metadata.dateTo || "").trim();
+  const detectedPeriod = sourceFrom && sourceTo ? (sourceFrom === sourceTo ? sourceFrom : `${sourceFrom} — ${sourceTo}`) : "";
+  const periodLabel = detectedPeriod || [month, year].filter(Boolean).join(" / ") || "جميع البيانات المتاحة";
 
   return {
     generatedAt: new Date().toISOString(),
@@ -177,6 +198,7 @@ export const buildPublicBookingReport = (
       confirmed,
       cancelled,
       ignored,
+      unattributed,
       employeeCount: employees.length,
       confirmationRate: percentage(confirmed, classifiedTotal),
       cancelRate: percentage(cancelled, classifiedTotal),

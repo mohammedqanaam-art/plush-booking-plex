@@ -175,7 +175,7 @@ const BookingReports = () => {
                 <BarChart3 className="h-5 w-5" strokeWidth={1.7} />
                 <div><p>آخر تحديث</p><strong>{formatDate(report.updatedAt)}</strong></div>
               </div>
-              <p className="data-footnote">تم تصنيف {report.summary.classifiedTotal.toLocaleString("ar-SA")} من أصل {report.summary.uploadedRecords.toLocaleString("ar-SA")} سجل. غير المصنف: {report.summary.ignored.toLocaleString("ar-SA")}.</p>
+              <p className="data-footnote">تم تصنيف {report.summary.classifiedTotal.toLocaleString("ar-SA")} من أصل {report.summary.uploadedRecords.toLocaleString("ar-SA")} سجل. غير المنسوب لموظف: {report.summary.unattributed.toLocaleString("ar-SA")} · غير المصنف: {report.summary.ignored.toLocaleString("ar-SA")}.</p>
             </article>
           </section>
         </div>

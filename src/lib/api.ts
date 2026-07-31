@@ -33,6 +33,7 @@ export type PublicBookingReport = {
     confirmed: number;
     cancelled: number;
     ignored: number;
+    unattributed: number;
     employeeCount: number;
     confirmationRate: number;
     cancelRate: number;
@@ -45,6 +46,34 @@ export type PublicBookingReport = {
     total: number;
     confirmationRate: number;
   }>;
+};
+
+export type BookingReportStats = {
+  total: number;
+  confirmed: number;
+  cancelled: number;
+  cancelRate: number;
+  updatedAt: string;
+  sourceFormat: "csv" | "uno-spreadsheetml";
+  sourceLabel: string;
+  sourceFileName: string;
+  sourceRows: number;
+  classifiedTotal: number;
+  ignored: number;
+  attributedRecords: number;
+  unattributedRecords: number;
+  employeeCount: number;
+  uniqueReservations: number;
+  duplicateReservations: number;
+  dateFrom: string | null;
+  dateTo: string | null;
+  systemAccounts: Array<{ name: string; records: number }>;
+};
+
+export type BookingUploadResponse = {
+  ok: boolean;
+  preview: boolean;
+  stats: BookingReportStats;
 };
 
 export type PublicBookingSyncStatus = {
@@ -457,6 +486,36 @@ export const api = {
     });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "فشل رفع الملف");
     return res.json();
+  },
+
+  async inspectBookingReport(file: File) {
+    const res = await fetch(`${API_BASE}/bookings?preview=1`, {
+      method: "POST",
+      headers: {
+        "Content-Type": file.name.toLocaleLowerCase("en").endsWith(".csv") ? "text/csv; charset=utf-8" : "application/xml; charset=utf-8",
+        "X-Report-Filename": encodeURIComponent(file.name),
+        ...authHeaders(),
+      },
+      body: await file.text(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "تعذر فحص تقرير الحجوزات");
+    return data as BookingUploadResponse;
+  },
+
+  async uploadBookingReport(file: File) {
+    const res = await fetch(`${API_BASE}/bookings`, {
+      method: "POST",
+      headers: {
+        "Content-Type": file.name.toLocaleLowerCase("en").endsWith(".csv") ? "text/csv; charset=utf-8" : "application/xml; charset=utf-8",
+        "X-Report-Filename": encodeURIComponent(file.name),
+        ...authHeaders(),
+      },
+      body: await file.text(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "فشل رفع تقرير الحجوزات");
+    return data as BookingUploadResponse;
   },
 
   async resetBookings() {
