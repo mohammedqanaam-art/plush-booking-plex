@@ -43,10 +43,11 @@ describe("UNO integration boundary", () => {
     expect(page).toContain("api.listUnoReservations()");
     expect(page).toContain('autoComplete="one-time-code"');
     expect(page).toContain("الملغاة / NS");
-    expect(fn).toContain('const DEFAULT_UNO_BOOKING_URL = "https://unolive-voice.rategain.com/create-booking"');
-    expect(fn).toContain('trimmedEnv("UNO_BOOKING_URL")');
+    expect(fn).toContain('const DEFAULT_UNO_RESERVATIONS_URL = "https://unolive-voice.rategain.com/view-reservations?brandId=3868248c-c053-43f2-b9c8-3188c74dfeb5&chainId=cdcc2737-a6b9-45bc-9d91-b1a760fb8026"');
+    expect(fn).toContain('trimmedEnv("UNO_RESERVATIONS_URL")');
+    expect(fn).not.toContain('trimmedEnv("UNO_BOOKING_URL")');
     expect(fn).not.toContain('trimmedEnv("UNO_LOGIN_URL")');
-    expect(page).toContain("عرض وتأكيد الحجوزات");
+    expect(page).toContain("فتح حجوزات Voice");
     expect(page).toContain("navigator.clipboard.writeText");
     expect(page).toContain("فلترة النتائج: اسم، جوال، UNO أو PMS");
   });

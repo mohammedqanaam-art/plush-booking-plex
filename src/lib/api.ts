@@ -76,14 +76,6 @@ export type BookingUploadResponse = {
   stats: BookingReportStats;
 };
 
-export type PublicBookingSyncStatus = {
-  ok: boolean;
-  accepted: boolean;
-  state: "idle" | "queued" | "running" | "success" | "fresh" | "error" | "cancelled" | "unavailable";
-  updatedAt: string | null;
-  message: string;
-};
-
 export type UnoConnectionStatus = {
   configured: boolean;
   loginUrl: string;
@@ -265,15 +257,6 @@ export type GhostAnalyticsSummary = AnalyticsSummary & {
   privacy: { ipMode: "masked"; preciseLocation: false; fingerprinting: false };
 };
 
-export type CroExportStatus = {
-  loginUrl: string;
-  dashboardUrl?: string;
-  configured: boolean;
-  exportConfigured: boolean;
-  requiredEnv: string[];
-  optionalEnv?: string[];
-};
-
 export type BookingPhoneArchiveStatus = {
   configured: boolean;
   searchAvailable: boolean;
@@ -358,8 +341,6 @@ export type AvayaSyncStatus = {
 const API_BASE = "/.netlify/functions";
 const OPERA_SEARCH_API = "/api/admin/opera-search";
 const AVAYA_SYNC_API = "/api/avaya/sync";
-const PUBLIC_REPORT_SYNC_API = "/api/reports/sync";
-const publicReportSyncHeaders = { "X-Report-Sync": "booking-reports" };
 
 const getToken = (): string | null => (typeof window === "undefined" ? null : sessionStorage.getItem("admin_token"));
 
@@ -455,33 +436,6 @@ export const api = {
     return res.json() as Promise<GhostAnalyticsSummary>;
   },
 
-  async getCroExportStatus() {
-    const res = await fetch(`${API_BASE}/cro-export`, { headers: authHeaders() });
-    if (!res.ok) throw new Error("تعذر تحميل حالة ربط CRO");
-    return res.json() as Promise<CroExportStatus>;
-  },
-
-  async testCroLogin() {
-    const res = await fetch(`${API_BASE}/cro-export`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ dryRun: true }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "تعذر اختبار تسجيل الدخول في CRO");
-    return data as Promise<{ ok: boolean; message: string; exportReady: boolean; dashboardChecked?: boolean }>;
-  },
-
-  async exportCroBookings(from: string, to: string) {
-    const res = await fetch(`${API_BASE}/cro-export`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ from, to }),
-    });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "تعذر تصدير الحجوزات من CRO");
-    return res.blob();
-  },
-
   async getOperaSearchStatus() {
     const res = await fetch(OPERA_SEARCH_API, { headers: authHeaders() });
     const data = await res.json().catch(() => ({}));
@@ -564,26 +518,6 @@ export const api = {
     const res = await fetch(`${API_BASE}/bookings?view=summary`, { cache: "no-store" });
     if (!res.ok) throw new Error("تعذر تحميل التقرير");
     return res.json() as Promise<PublicBookingReport>;
-  },
-
-  async getPublicBookingSyncStatus() {
-    const res = await fetch(PUBLIC_REPORT_SYNC_API, {
-      headers: publicReportSyncHeaders,
-      cache: "no-store",
-    });
-    const data = await res.json().catch(() => ({})) as Partial<PublicBookingSyncStatus> & { error?: string };
-    if (!res.ok) throw new Error(data.error || "تعذر التحقق من حالة التحديث");
-    return data as PublicBookingSyncStatus;
-  },
-
-  async requestPublicBookingSync() {
-    const res = await fetch(PUBLIC_REPORT_SYNC_API, {
-      method: "POST",
-      headers: publicReportSyncHeaders,
-    });
-    const data = await res.json().catch(() => ({})) as Partial<PublicBookingSyncStatus> & { error?: string };
-    if (!res.ok) throw new Error(data.error || "تعذر بدء تحديث التقرير");
-    return data as PublicBookingSyncStatus;
   },
 
   async getUnoConnection() {

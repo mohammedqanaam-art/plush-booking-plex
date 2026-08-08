@@ -25,70 +25,38 @@ const BookingReports = () => {
 
   const section: ReportSection = searchParams.get("section") === "employees" ? "employees" : "summary";
 
-  const loadReport = useCallback((silent = false) => {
+  const loadReport = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
-    return api.getPublicBookingReport()
-      .then((data) => {
-        setReport(data);
-        setError("");
-      })
-      .catch(() => setError("تعذر تحميل التقرير حاليًا."))
-      .finally(() => {
-        if (!silent) setLoading(false);
-      });
+    try {
+      const data = await api.getPublicBookingReport();
+      setReport(data);
+      setError("");
+      return true;
+    } catch {
+      setError("تعذر تحميل التقرير حاليًا.");
+      return false;
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     void loadReport();
   }, [loadReport]);
 
-  useEffect(() => {
-    if (!syncing) return undefined;
-
-    let stopped = false;
-    const finish = async (message: string, failed = false) => {
-      if (stopped) return;
-      stopped = true;
-      setSyncing(false);
-      setSyncError(failed);
-      setSyncMessage(message);
-      if (!failed) await loadReport(true);
-    };
-    const poll = async () => {
-      try {
-        const status = await api.getPublicBookingSyncStatus();
-        if (status.state === "success" || status.state === "fresh") {
-          await finish("تم تحديث بيانات التقرير.");
-        } else if (status.state === "error" || status.state === "cancelled" || status.state === "unavailable") {
-          await finish("تعذر إكمال التحديث حاليًا. حاول لاحقًا.", true);
-        }
-      } catch {
-        // A temporary status check failure must not interrupt the server-side job.
-      }
-    };
-
-    const interval = window.setInterval(() => void poll(), 4_000);
-    return () => {
-      stopped = true;
-      window.clearInterval(interval);
-    };
-  }, [loadReport, syncing]);
-
   const startSync = async () => {
     setSyncing(true);
     setSyncError(false);
-    setSyncMessage("جاري تحديث بيانات التقرير في الخلفية…");
+    setSyncMessage("جاري تحميل أحدث تقرير محفوظ من UNO…");
     try {
-      const status = await api.requestPublicBookingSync();
-      setSyncMessage(status.message);
-      if (status.state === "success" || status.state === "fresh") {
-        setSyncing(false);
-        await loadReport(true);
-      }
+      const refreshed = await loadReport(true);
+      if (!refreshed) throw new Error("refresh failed");
+      setSyncMessage("تم تحميل أحدث تقرير UNO محفوظ.");
     } catch {
-      setSyncing(false);
       setSyncError(true);
-      setSyncMessage("تعذر بدء التحديث حاليًا. حاول لاحقًا.");
+      setSyncMessage("تعذر تحميل أحدث تقرير UNO حاليًا.");
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -117,7 +85,7 @@ const BookingReports = () => {
       </div>
 
       <section className="page-surface flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" aria-label="تحديث تقرير الحجوزات">
-        <h2 className="section-title">تحديث البيانات</h2>
+        <h2 className="section-title">أحدث تقرير UNO</h2>
         <button
           type="button"
           className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/8 px-4 text-sm font-bold text-primary disabled:cursor-wait disabled:opacity-60"
@@ -125,7 +93,7 @@ const BookingReports = () => {
           disabled={syncing}
         >
           <RefreshCw className={`h-[18px] w-[18px] ${syncing ? "animate-spin" : ""}`} strokeWidth={1.9} />
-          {syncing ? "جاري التحديث" : "مزامنة الحجوزات"}
+          {syncing ? "جاري التحديث" : "تحديث العرض"}
         </button>
         {syncMessage ? <p role="status" className={`text-xs font-semibold sm:order-3 sm:w-full ${syncError ? "text-destructive" : "text-primary"}`}>{syncMessage}</p> : null}
       </section>
