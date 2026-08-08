@@ -117,6 +117,36 @@ export type UnoSearchResponse = {
   reservations: UnoReservation[];
   total: number;
   searchedAt: string;
+  syncedAt?: string;
+};
+
+export type UnoSnapshotQuery = {
+  q?: string;
+  field?: "all" | "phone" | "pms" | "uno" | "guest";
+  property?: string;
+  status?: "all" | "confirmed" | "cancelled" | "other";
+  dateField?: "booking" | "checkin" | "checkout";
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type UnoSnapshotResponse = {
+  reservations: UnoReservation[];
+  total: number;
+  offset: number;
+  limit: number;
+  syncedAt: string | null;
+  source: "automatic" | "manual" | null;
+  sessionExpiresAt: string | null;
+  properties: string[];
+  summary: {
+    total: number;
+    confirmed: number;
+    cancelled: number;
+    other: number;
+  };
 };
 
 export type ContactRequest = {
@@ -585,6 +615,28 @@ export const api = {
 
   async listUnoReservations() {
     return unoAction<UnoSearchResponse>({ action: "list" });
+  },
+
+  async getUnoSnapshot(query: UnoSnapshotQuery = {}) {
+    const params = new URLSearchParams();
+    if (query.q) params.set("q", query.q);
+    if (query.field) params.set("field", query.field);
+    if (query.property) params.set("property", query.property);
+    if (query.status) params.set("status", query.status);
+    if (query.dateField) params.set("dateField", query.dateField);
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
+    if (query.limit) params.set("limit", String(query.limit));
+    if (typeof query.offset === "number") params.set("offset", String(query.offset));
+
+    const suffix = params.toString();
+    const res = await fetch(`/api/admin/uno-reservations${suffix ? `?${suffix}` : ""}`, {
+      headers: authHeaders(),
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({})) as UnoSnapshotResponse & { error?: string };
+    if (!res.ok) throw new Error(data.error || "تعذر تحميل سجل UNO المتزامن");
+    return data;
   },
 
   async createContactRequest(payload: { brand: string; branchName: string; guestName: string; guestPhone: string; reason: string }) {
