@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, Building2, LayoutDashboard, LockKeyhole, PhoneCall, Search } from "lucide-react";
+import { BarChart3, Building2, LayoutDashboard, PhoneCall, Search } from "lucide-react";
 import BottomNav from "./BottomNav";
 import RiyadhClock from "./RiyadhClock";
 import ViewerPreferences from "./ViewerPreferences";
@@ -54,12 +54,6 @@ const Layout = () => {
               <RiyadhClock />
             </div>
             <div className="hidden md:block"><ViewerPreferences /></div>
-            {!isAdminArea ? (
-              <NavLink to="/admin/login" className="admin-entry-link" aria-label="دخول الإدارة" title="دخول الإدارة">
-                <LockKeyhole className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                <span className="hidden xl:inline">الإدارة</span>
-              </NavLink>
-            ) : null}
           </div>
         </div>
       </header>
