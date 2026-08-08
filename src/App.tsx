@@ -23,7 +23,6 @@ const AdminWarnings = lazy(() => import("./pages/AdminWarnings"));
 const AdminAvayaReports = lazy(() => import("./pages/AdminAvayaReports"));
 const AdminShiftStartTools = lazy(() => import("./pages/AdminShiftStartTools"));
 const AdminGhost = lazy(() => import("./pages/AdminGhost"));
-const AdminCroExport = lazy(() => import("./pages/AdminCroExport"));
 const AdminUno = lazy(() => import("./pages/AdminUno"));
 const AdminOperaSearch = lazy(() => import("./pages/AdminOperaSearch"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -55,7 +54,7 @@ const App = () => (
             <Route path="/admin/warnings" element={<ProtectedRoute><AdminWarnings /></ProtectedRoute>} />
             <Route path="/admin/avaya-reports" element={<ProtectedRoute><AdminAvayaReports /></ProtectedRoute>} />
             <Route path="/admin/shift-start" element={<ProtectedRoute><AdminShiftStartTools /></ProtectedRoute>} />
-            <Route path="/admin/cro-export" element={<ProtectedRoute><AdminCroExport /></ProtectedRoute>} />
+            <Route path="/admin/cro-export" element={<ProtectedRoute><Navigate to="/admin/uno" replace /></ProtectedRoute>} />
             <Route path="/admin/uno" element={<ProtectedRoute><AdminUno /></ProtectedRoute>} />
             <Route path="/admin/opera-search" element={<ProtectedRoute><AdminOperaSearch /></ProtectedRoute>} />
             <Route path="/admin/ghost" element={<ProtectedRoute><AdminGhost /></ProtectedRoute>} />

@@ -49,7 +49,8 @@ describe("historical booking search UI", () => {
 
     render(<MemoryRouter><AdminOperaSearch /></MemoryRouter>);
 
-    await waitFor(() => expect(screen.getByText(/لا توجد فترة مؤرشفة بعد/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/لا توجد فترة تاريخية مؤرشفة/)).toBeInTheDocument());
+    expect(screen.getByText(/تمت إزالة مزامنة CRO/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "بحث في كامل الأرشيف" })).toBeDisabled();
   });
 });

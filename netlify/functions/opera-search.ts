@@ -56,7 +56,7 @@ export default async (req: Request) => {
     }
     if (!result.status.periodCount) {
       return json({
-        error: "لم تُؤرشف أي فترة بعد. افتح مزامنة CRO واختر «أرشفة فترة سابقة» أولًا.",
+        error: "لا توجد بيانات تاريخية مؤرشفة للبحث. تمت إزالة مزامنة CRO.",
         code: "ARCHIVE_EMPTY",
         requestId,
       }, 409);

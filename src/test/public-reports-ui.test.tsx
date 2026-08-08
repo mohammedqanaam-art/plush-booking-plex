@@ -47,21 +47,15 @@ describe("public read-only reports", () => {
     expect(screen.queryByText(/عرض فقط دون بيانات الضيوف/)).toBeNull();
   });
 
-  it("runs a viewer-requested refresh in place without exposing internal settings", async () => {
-    vi.spyOn(api, "getPublicBookingReport").mockResolvedValue(report);
-    vi.spyOn(api, "requestPublicBookingSync").mockResolvedValue({
-      ok: true,
-      accepted: false,
-      state: "fresh",
-      updatedAt: report.updatedAt,
-      message: "بيانات التقرير محدثة بالفعل.",
-    });
+  it("reloads the latest saved report without triggering the retired CRO synchronization", async () => {
+    const reportRequest = vi.spyOn(api, "getPublicBookingReport").mockResolvedValue(report);
     render(<MemoryRouter><BookingReports /></MemoryRouter>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "مزامنة الحجوزات" }));
+    await screen.findByText("حالة الحجوزات");
+    fireEvent.click(await screen.findByRole("button", { name: "تحديث العرض" }));
 
-    await waitFor(() => expect(api.requestPublicBookingSync).toHaveBeenCalledTimes(1));
-    expect(screen.getByText("بيانات التقرير محدثة بالفعل.")).toBeDefined();
+    await waitFor(() => expect(reportRequest).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("تم تحميل أحدث تقرير UNO محفوظ.")).toBeDefined();
     expect(screen.queryByText(/M\.ALDOSARI|CRO_PASSWORD|CRO_USERNAME/)).toBeNull();
   });
 });

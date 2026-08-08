@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Archive,
   CalendarRange,
   Database,
   ExternalLink,
@@ -10,7 +9,7 @@ import {
   Search,
   ShieldCheck,
 } from "lucide-react";
-import { Link, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
 import { api, type OperaReservationSummary, type OperaSearchStatus } from "@/lib/api";
 import { getAdminSession } from "@/lib/adminAuth";
@@ -96,12 +95,9 @@ const AdminOperaSearch = () => {
             </div>
             <h2 className="text-xl font-black tracking-tight sm:text-2xl">أرشيف حجوزات موحّد</h2>
           </div>
-          <Link
-            to="/admin/cro-export"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-background/80 px-4 text-sm font-bold shadow-sm interactive"
-          >
-            <Archive className="h-4 w-4 text-primary" /> أرشفة فترة سابقة
-          </Link>
+          <span className="inline-flex h-12 items-center justify-center rounded-2xl border border-primary/20 bg-background/80 px-4 text-sm font-bold text-muted-foreground shadow-sm">
+            أرشيف تاريخي · بدون مزامنة CRO
+          </span>
         </div>
       </section>
 
@@ -126,12 +122,12 @@ const AdminOperaSearch = () => {
 
       {!loadingStatus && !archive?.configured ? (
         <div className="rounded-2xl border border-amber-500/25 bg-amber-500/8 p-4 text-sm leading-7 text-amber-800">
-          مفتاح الأرشيف الآمن غير مهيأ على السيرفر. يلزم تفعيل سر مزامنة CRO قبل استخدام البحث.
+          مفتاح الأرشيف التاريخي غير مهيأ على السيرفر، لذلك البحث في البيانات القديمة غير متاح حاليًا.
         </div>
       ) : null}
       {!loadingStatus && archive?.configured && !archive.periodCount ? (
         <div className="rounded-2xl border border-amber-500/25 bg-amber-500/8 p-4 text-sm leading-7 text-amber-800">
-          لا توجد فترة مؤرشفة بعد. انتقل إلى مزامنة CRO واختر فترة سابقة ثم اضغط «أرشفة فترة سابقة».
+          لا توجد فترة تاريخية مؤرشفة. تمت إزالة مزامنة CRO، ولن تُنشأ فترات جديدة منه.
         </div>
       ) : null}
       {!loadingStatus && archive?.periodCount > 0 && archive.latestPeriodPhoneColumnCount === 0 ? (

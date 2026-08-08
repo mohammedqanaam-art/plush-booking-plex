@@ -9,7 +9,6 @@ import {
   ExternalLink,
   FileSpreadsheet,
   Filter,
-  GitMerge,
   Loader2,
   LogOut,
   RefreshCw,
@@ -362,7 +361,7 @@ const AdminUno = () => {
   return (
     <div className="page-wrap-narrow">
       <PageHeader
-        title="UNO"
+        title="UNO Voice"
         icon={Cable}
         actions={(
           <span className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold ${
@@ -402,10 +401,10 @@ const AdminUno = () => {
             target="_blank"
             rel="noreferrer noopener"
           >
-            <ExternalLink className="h-4 w-4" /> عرض وتأكيد الحجوزات
+            <ExternalLink className="h-4 w-4" /> فتح حجوزات Voice
           </a>
           <Link className="inline-flex h-11 items-center gap-2 rounded-xl border border-primary/25 bg-primary/5 px-4 text-sm font-bold text-primary" to="/admin?tab=bookings">
-            <GitMerge className="h-4 w-4" /> دمج تقارير UNO + CRO
+            <FileSpreadsheet className="h-4 w-4" /> استيراد ملفات التقارير
           </Link>
           {!status.configured ? (
             <span className="ms-3 text-xs font-bold text-destructive">إعدادات UNO غير مكتملة.</span>
@@ -459,7 +458,7 @@ const AdminUno = () => {
                   <strong className="block truncate">{phase === "connected" ? (status.accountName || "UNO") : "سجل UNO المتزامن"}</strong>
                   <span className="text-xs text-muted-foreground">
                     {phase === "connected"
-                      ? `${(status.propertyCount || 0).toLocaleString("ar-SA")} منشأة · تنتهي الجلسة ${displayTimestamp(status.expiresAt)}`
+                      ? `${(status.propertyCount || 0).toLocaleString("ar-SA")} منشأة · مزامنة تلقائية كل 30 دقيقة · تنتهي الجلسة ${displayTimestamp(status.expiresAt)}`
                       : `آخر مزامنة ${displayTimestamp(snapshotSyncedAt || undefined)}`}
                   </span>
                 </div>
@@ -471,13 +470,13 @@ const AdminUno = () => {
                   target="_blank"
                   rel="noreferrer noopener"
                 >
-                  <ExternalLink className="h-4 w-4" /> عرض وتأكيد الحجوزات
+                  <ExternalLink className="h-4 w-4" /> فتح حجوزات Voice
                 </a>
                 <Link
                   className="inline-flex h-10 items-center gap-2 rounded-xl border border-primary/25 bg-background/70 px-3 text-xs font-bold text-primary"
                   to="/admin?tab=bookings"
                 >
-                  <GitMerge className="h-4 w-4" /> دمج UNO + CRO
+                  <FileSpreadsheet className="h-4 w-4" /> استيراد ملفات التقارير
                 </Link>
                 {phase === "connected" ? (
                   <button

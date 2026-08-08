@@ -3,7 +3,6 @@ import {
   BarChart3,
   BookOpenCheck,
   Building2,
-  Cable,
   CalendarSearch,
   Download,
   Eye,
@@ -272,12 +271,11 @@ const AdminDashboard = () => {
           <section className="page-surface space-y-3">
               <h2 className="section-title">اختصارات الإدارة</h2>
               <div className="grid gap-2 sm:grid-cols-2">
-                {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => setTab("bookings")}><Upload className="h-5 w-5 text-primary" /><strong>دمج تقارير UNO + CRO</strong></button> : null}
+                {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => setTab("bookings")}><Upload className="h-5 w-5 text-primary" /><strong>استيراد ملفات التقارير</strong></button> : null}
                 {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/shift-start")}><MoonStar className="h-5 w-5 text-primary" /><strong>أدوات بداية الشفت</strong></button> : null}
-                {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/cro-export")}><RefreshCw className="h-5 w-5 text-primary" /><strong>تحكم مزامنة CRO</strong></button> : null}
                 {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/avaya-reports")}><FileSpreadsheet className="h-5 w-5 text-primary" /><strong>تقارير Avaya</strong></button> : null}
                 {session?.role === "admin" || session?.role === "superadmin" ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/opera-search")}><CalendarSearch className="h-5 w-5 text-primary" /><strong>البحث برقم الجوال</strong></button> : null}
-                {session?.role === "admin" || session?.role === "superadmin" ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/uno")}><Cable className="h-5 w-5 text-primary" /><strong>ربط UNO</strong></button> : null}
+                {session?.role === "admin" || session?.role === "superadmin" ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/uno")}><RefreshCw className="h-5 w-5 text-primary" /><strong>مزامنة وتقارير UNO</strong></button> : null}
                 {can("manage_employees") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => setTab("employees")}><UsersRound className="h-5 w-5 text-primary" /><strong>إدارة الموظفين</strong></button> : null}
                 {can("manage_employees") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/warnings")}><FileWarning className="h-5 w-5 text-primary" /><strong>إنذارات الموظفين</strong></button> : null}
                 {can("manage_knowledge") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/branches")}><Building2 className="h-5 w-5 text-primary" /><strong>إدارة الفروع</strong></button> : null}
