@@ -26,10 +26,14 @@ describe("app shell and web app metadata", () => {
     expect(css).toContain(".safe-area-bottom");
   });
 
-  it("keeps a visible administration login entry in the public shell", () => {
+  it("keeps administration out of the public shell and gates admin routes", () => {
     const layout = fs.readFileSync(path.join(process.cwd(), "src/components/Layout.tsx"), "utf8");
-    expect(layout).toContain('to="/admin/login"');
-    expect(layout).toContain('aria-label="دخول الإدارة"');
+    const app = fs.readFileSync(path.join(process.cwd(), "src/App.tsx"), "utf8");
+
+    expect(layout).not.toContain('to="/admin/login"');
+    expect(layout).not.toContain('aria-label="دخول الإدارة"');
+    expect(app).toContain('path="/admin" element={<ProtectedRoute>');
+    expect(app).toContain('path="/admin/uno" element={<ProtectedRoute>');
     expect(layout).not.toContain("bannerText");
     expect(layout).not.toContain("آخر تحديث اليوم");
   });
