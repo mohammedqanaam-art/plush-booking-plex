@@ -189,6 +189,21 @@ const ReservationReportMerge = ({ onApplied }: ReservationReportMergeProps) => {
               {result.stats.withoutReservationNumber ? <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-amber-700">بلا رقم حجز: {result.stats.withoutReservationNumber.toLocaleString("ar-SA")}</span> : null}
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2">
-              {result.files.map((file) => (
-                <div key={`${file.fileName}:${file.source}`} className="flex items-center justify-between gap-3 rounded-xl border border-border/25 bg-background/45 px-3 py-2 text-[11px]">
+            <div className="flex flex-wrap gap-2 border-t border-border/25 pt-3">
+              <button type="button" className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-primary-foreground disabled:opacity-50" disabled={applying} onClick={() => void applyMergedReport()}>
+                {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                {applying ? "جاري الاعتماد…" : "اعتماد التقرير المدمج"}
+              </button>
+              <button type="button" className="inline-flex h-11 items-center gap-2 rounded-xl border border-primary/20 px-4 text-sm font-bold" onClick={downloadMergedReport}>
+                <Download className="h-4 w-4" /> تنزيل CSV المدمج
+              </button>
+            </div>
+            <p className="text-[10px] leading-5 text-muted-foreground">التصنيف المعتمد: M / O / N / I مؤكد، و C / NS ملغي. عند تكرار رقم الحجز تُدمج مصادره بدل احتسابه مرتين.</p>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+};
+
+export default ReservationReportMerge;
