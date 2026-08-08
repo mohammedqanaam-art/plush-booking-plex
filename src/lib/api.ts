@@ -341,6 +341,39 @@ export type AvayaSyncStatus = {
 const API_BASE = "/.netlify/functions";
 const OPERA_SEARCH_API = "/api/admin/opera-search";
 const AVAYA_SYNC_API = "/api/avaya/sync";
+const PUBLIC_REPORT_MEMORY_TTL_MS = 30_000;
+
+let publicReportMemory: { report: PublicBookingReport; expiresAt: number } | null = null;
+let publicReportRequest: Promise<PublicBookingReport> | null = null;
+
+const clearPublicReportMemory = () => {
+  publicReportMemory = null;
+  publicReportRequest = null;
+};
+
+const fetchPublicBookingReport = async (fresh = false): Promise<PublicBookingReport> => {
+  if (!fresh && publicReportMemory && publicReportMemory.expiresAt > Date.now()) {
+    return publicReportMemory.report;
+  }
+  if (!fresh && publicReportRequest) return publicReportRequest;
+
+  const request = (async () => {
+    const suffix = fresh ? "&fresh=1" : "";
+    const res = await fetch(`${API_BASE}/bookings?view=summary${suffix}`, fresh ? { cache: "no-store" } : undefined);
+    if (!res.ok) throw new Error("تعذر تحميل التقرير");
+    const report = await res.json() as PublicBookingReport;
+    publicReportMemory = { report, expiresAt: Date.now() + PUBLIC_REPORT_MEMORY_TTL_MS };
+    return report;
+  })();
+
+  if (fresh) return request;
+  publicReportRequest = request;
+  try {
+    return await request;
+  } finally {
+    publicReportRequest = null;
+  }
+};
 
 const getToken = (): string | null => (typeof window === "undefined" ? null : sessionStorage.getItem("admin_token"));
 
@@ -469,7 +502,9 @@ export const api = {
       body: csvText,
     });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "فشل رفع الملف");
-    return res.json();
+    const data = await res.json();
+    clearPublicReportMemory();
+    return data;
   },
 
   async inspectBookingReport(file: File) {
@@ -499,13 +534,16 @@ export const api = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "فشل رفع تقرير الحجوزات");
+    clearPublicReportMemory();
     return data as BookingUploadResponse;
   },
 
   async resetBookings() {
     const res = await fetch(`${API_BASE}/bookings`, { method: "DELETE", headers: authHeaders() });
     if (!res.ok) throw new Error("تعذر تصفير البيانات");
-    return res.json();
+    const data = await res.json();
+    clearPublicReportMemory();
+    return data;
   },
 
   async getBookings() {
@@ -514,10 +552,8 @@ export const api = {
     return res.json();
   },
 
-  async getPublicBookingReport() {
-    const res = await fetch(`${API_BASE}/bookings?view=summary`, { cache: "no-store" });
-    if (!res.ok) throw new Error("تعذر تحميل التقرير");
-    return res.json() as Promise<PublicBookingReport>;
+  async getPublicBookingReport(options: { fresh?: boolean } = {}) {
+    return fetchPublicBookingReport(Boolean(options.fresh));
   },
 
   async getUnoConnection() {
@@ -612,7 +648,9 @@ export const api = {
       body: JSON.stringify(settings),
     });
     if (!res.ok) throw new Error("تعذر حفظ الإعدادات");
-    return res.json();
+    const data = await res.json();
+    clearPublicReportMemory();
+    return data;
   },
 
   async submitComplaint(payload: Record<string, unknown>) {

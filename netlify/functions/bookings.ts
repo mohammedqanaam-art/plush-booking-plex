@@ -2,6 +2,7 @@ import { getStore } from "@netlify/blobs";
 import { json, validateSession } from "./_shared/security";
 import { buildPublicBookingReport } from "./_shared/bookingReport";
 import { BookingCsvError, inspectBookingReportText, saveBookingReportText } from "./_shared/bookingCsv";
+import { publicCachedJson } from "./_shared/publicCache";
 
 export default async (req: Request) => {
   const method = req.method;
@@ -21,7 +22,7 @@ export default async (req: Request) => {
       if (requestUrl.searchParams.get("view") === "summary") {
         const settingsStore = getStore("settings");
         const settings = ((await settingsStore.get("site", { type: "json" })) as Record<string, unknown> | null) || {};
-        return json(buildPublicBookingReport(
+        const report = buildPublicBookingReport(
           bookings,
           settings,
           typeof stats.updatedAt === "string" ? stats.updatedAt : null,
@@ -29,7 +30,8 @@ export default async (req: Request) => {
             dateFrom: typeof stats.dateFrom === "string" ? stats.dateFrom : null,
             dateTo: typeof stats.dateTo === "string" ? stats.dateTo : null,
           },
-        ));
+        );
+        return publicCachedJson(report, requestUrl.searchParams.get("fresh") === "1");
       }
 
       const session = await validateSession(req);

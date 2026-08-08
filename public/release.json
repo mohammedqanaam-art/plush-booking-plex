@@ -1,10 +1,11 @@
 {
-  "release": "2026-07-28-operations-control",
+  "release": "2026-08-08-uno-cache",
   "features": [
-    "cro-control",
+    "uno-voice-reports",
+    "public-report-cache",
     "avaya-date-range",
-    "uno-operations"
+    "opera-search"
   ],
-  "configuration": "uno-secrets",
-  "publishedAt": "2026-07-28T10:37:36Z"
+  "configuration": "uno-secrets+netlify-cache",
+  "publishedAt": "2026-08-08T00:00:00Z"
 }
