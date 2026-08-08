@@ -14,6 +14,7 @@
     "check:netlify-toml": "node -e \"const fs=require('fs');const {parse}=require('@iarna/toml');parse(fs.readFileSync('netlify.toml','utf8'));console.log('netlify.toml OK');\""
   },
   "dependencies": {
+    "@e965/xlsx": "^0.20.3",
     "@hookform/resolvers": "^3.10.0",
     "@netlify/blobs": "^8.2.0",
     "@netlify/functions": "^5.3.0",
@@ -52,6 +53,7 @@
     "exceljs": "^4.4.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "5.4.624",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",

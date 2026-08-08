@@ -8,11 +8,13 @@ import {
   ExternalLink,
   FileSpreadsheet,
   Filter,
+  GitMerge,
   Loader2,
   LogOut,
   RefreshCw,
   Search,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
 import {
   api,
@@ -347,6 +349,9 @@ const AdminUno = () => {
           >
             <ExternalLink className="h-4 w-4" /> عرض وتأكيد الحجوزات
           </a>
+          <Link className="inline-flex h-11 items-center gap-2 rounded-xl border border-primary/25 bg-primary/5 px-4 text-sm font-bold text-primary" to="/admin?tab=bookings">
+            <GitMerge className="h-4 w-4" /> دمج تقارير UNO + CRO
+          </Link>
           {!status.configured ? (
             <span className="ms-3 text-xs font-bold text-destructive">إعدادات UNO غير مكتملة.</span>
           ) : null}
@@ -411,6 +416,12 @@ const AdminUno = () => {
                 >
                   <ExternalLink className="h-4 w-4" /> عرض وتأكيد الحجوزات
                 </a>
+                <Link
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-primary/25 bg-background/70 px-3 text-xs font-bold text-primary"
+                  to="/admin?tab=bookings"
+                >
+                  <GitMerge className="h-4 w-4" /> دمج UNO + CRO
+                </Link>
                 <button
                   type="button"
                   className="inline-flex h-10 items-center gap-2 rounded-xl border border-destructive/25 bg-background/70 px-3 text-xs font-bold text-destructive disabled:opacity-50"

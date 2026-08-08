@@ -249,11 +249,13 @@ export const calculateBookingStats = (bookings: BookingRecord[]) => {
     if (category === "cancelled") cancelled += 1;
   }
 
+  const total = confirmed + cancelled;
+
   return {
-    total: bookings.length,
+    total,
     confirmed,
     cancelled,
-    cancelRate: bookings.length ? Number(((cancelled / bookings.length) * 100).toFixed(1)) : 0,
+    cancelRate: total ? Number(((cancelled / total) * 100).toFixed(1)) : 0,
   };
 };
 
@@ -404,7 +406,7 @@ export const inspectParsedBookingReport = (parsed: ParsedBookingReport): Booking
     sourceFileName: parsed.sourceFileName,
     sourceRows: parsed.sourceRows,
     classifiedTotal,
-    ignored: basic.total - classifiedTotal,
+    ignored: parsed.bookings.length - classifiedTotal,
     attributedRecords,
     unattributedRecords,
     employeeCount: employees.size,

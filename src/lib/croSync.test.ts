@@ -36,10 +36,10 @@ describe("CRO report synchronization", () => {
     const bookings = parseBookingCsv(csv);
     expect(bookings).toHaveLength(7);
     expect(calculateBookingStats(bookings)).toEqual({
-      total: 7,
+      total: 6,
       confirmed: 4,
       cancelled: 2,
-      cancelRate: 28.6,
+      cancelRate: 33.3,
     });
   });
 

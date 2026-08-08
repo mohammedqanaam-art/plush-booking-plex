@@ -241,6 +241,14 @@ const parseAvayaFile = async (file: File): Promise<ParsedAvayaSource> => {
   throw new Error(`الملف ${file.name} غير مدعوم. استخدم PDF أو XLSX.`);
 };
 
+export const analyzeAvayaTimecardFile = async (file: File) => {
+  const source = await parseAvayaFile(file);
+  if (source.kind !== "timecard") {
+    throw new Error("الملف المختار ليس تقرير Agent Time Card من Avaya.");
+  }
+  return source;
+};
+
 const parseInbound = (workbook: ExcelJS.Workbook) => {
   const worksheet = workbook.worksheets.find((sheet) => normalizeText(sheet.getCell(3, 1).text) === "User");
   if (!worksheet) throw new Error("تعذر العثور على جدول User Inbound Summary.");
@@ -510,9 +518,3 @@ export const exportAvayaReport = async (report: AvayaReportResult) => {
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `Central_Reservation_Call_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-  anchor.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-};

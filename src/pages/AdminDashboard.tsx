@@ -14,6 +14,7 @@ import {
   Gauge,
   LogOut,
   MessageSquareMore,
+  MoonStar,
   RefreshCw,
   Save,
   Search,
@@ -33,6 +34,7 @@ import { clearAdminSession, getAdminSession, hasPermission, type PermissionActio
 import { processBookings } from "@/lib/bookingProcessor";
 import PageHeader from "@/components/PageHeader";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
+import ReservationReportMerge from "@/components/admin/ReservationReportMerge";
 
 type UserRecord = { username: string; role: UserRole };
 type AdminTab = "overview" | "analytics" | "bookings" | "employees" | "requests" | "users" | "settings" | "profile";
@@ -270,7 +272,8 @@ const AdminDashboard = () => {
           <section className="page-surface space-y-3">
               <h2 className="section-title">اختصارات الإدارة</h2>
               <div className="grid gap-2 sm:grid-cols-2">
-                {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => setTab("bookings")}><Upload className="h-5 w-5 text-primary" /><strong>بيانات الحجوزات</strong></button> : null}
+                {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => setTab("bookings")}><Upload className="h-5 w-5 text-primary" /><strong>دمج تقارير UNO + CRO</strong></button> : null}
+                {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/shift-start")}><MoonStar className="h-5 w-5 text-primary" /><strong>أدوات بداية الشفت</strong></button> : null}
                 {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/cro-export")}><RefreshCw className="h-5 w-5 text-primary" /><strong>تحكم مزامنة CRO</strong></button> : null}
                 {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/avaya-reports")}><FileSpreadsheet className="h-5 w-5 text-primary" /><strong>تقارير Avaya</strong></button> : null}
                 {session?.role === "admin" || session?.role === "superadmin" ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/opera-search")}><CalendarSearch className="h-5 w-5 text-primary" /><strong>البحث برقم الجوال</strong></button> : null}
@@ -299,6 +302,7 @@ const AdminDashboard = () => {
               ["غير المعروفة", report?.ignored || 0],
             ].map(([label, value]) => <div key={label as string} className="compact-card"><p className="text-xs text-muted-foreground">{label as string}</p><p className="mt-2 text-2xl font-black">{Number(value).toLocaleString("ar-SA")}</p></div>)}
           </section>
+          <ReservationReportMerge onApplied={async () => { await Promise.all([loadBookings(), loadPublicReport()]); }} />
           <section className="page-surface space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
