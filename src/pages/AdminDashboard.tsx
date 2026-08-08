@@ -106,9 +106,9 @@ const AdminDashboard = () => {
     [employeeStats, employeeSearch],
   );
 
-  const loadPublicReport = async () => {
+  const loadPublicReport = async (fresh = false) => {
     try {
-      setPublicReport(await api.getPublicBookingReport());
+      setPublicReport(await api.getPublicBookingReport({ fresh }));
     } catch {
       setPublicReport(null);
     }
@@ -181,7 +181,7 @@ const AdminDashboard = () => {
   const saveEmployeeSettings = async () => {
     try {
       await api.updateSettings({ hiddenEmployees: normalizeHiddenEmployees(hiddenEmployees), employeeDisplayNames, employeeAdjustments });
-      await loadPublicReport();
+      await loadPublicReport(true);
       setMessage("تم حفظ عرض الموظفين والتعديلات.");
     } catch {
       setMessage("تعذر حفظ إعدادات الموظفين.");
@@ -213,7 +213,7 @@ const AdminDashboard = () => {
       const data = await api.uploadBookingReport(pendingBookingReport.file);
       setPendingBookingReport(null);
       setMessage(`تم اعتماد ${data.stats.total.toLocaleString("ar-SA")} سجل من ${data.stats.sourceLabel}.`);
-      await Promise.all([loadBookings(), loadPublicReport()]);
+      await Promise.all([loadBookings(), loadPublicReport(true)]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "تعذر اعتماد التقرير.");
     } finally {
@@ -300,7 +300,7 @@ const AdminDashboard = () => {
               ["غير المعروفة", report?.ignored || 0],
             ].map(([label, value]) => <div key={label as string} className="compact-card"><p className="text-xs text-muted-foreground">{label as string}</p><p className="mt-2 text-2xl font-black">{Number(value).toLocaleString("ar-SA")}</p></div>)}
           </section>
-          <ReservationReportMerge onApplied={async () => { await Promise.all([loadBookings(), loadPublicReport()]); }} />
+          <ReservationReportMerge onApplied={async () => { await Promise.all([loadBookings(), loadPublicReport(true)]); }} />
           <section className="page-surface space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
@@ -327,7 +327,7 @@ const AdminDashboard = () => {
               {session?.role === "admin" || session?.role === "superadmin" ? (
                 <button className="h-11 rounded-xl border border-destructive/35 px-4 text-destructive disabled:opacity-50" disabled={bookingUploadBusy} onClick={async () => {
                   if (!window.confirm("سيتم حذف جميع بيانات الحجوزات الحالية. هل تريد المتابعة؟")) return;
-                  try { await api.resetBookings(); await Promise.all([loadBookings(), loadPublicReport()]); setMessage("تم حذف بيانات الحجوزات."); } catch { setMessage("تعذر حذف البيانات."); }
+                  try { await api.resetBookings(); await Promise.all([loadBookings(), loadPublicReport(true)]); setMessage("تم حذف بيانات الحجوزات."); } catch { setMessage("تعذر حذف البيانات."); }
                 }}>حذف جميع البيانات</button>
               ) : null}
             </div>
@@ -474,7 +474,7 @@ const AdminDashboard = () => {
             <label className="text-xs"><span className="mb-1 block text-muted-foreground">رقم واتساب</span><input className="h-11 w-full rounded-xl border bg-secondary/65 px-3" dir="ltr" value={complaintWhatsappNumber} onChange={(event) => setComplaintWhatsappNumber(event.target.value)} /></label>
             <label className="text-xs md:col-span-2"><span className="mb-1 block text-muted-foreground">رابط تنبيهات الشكاوى</span><input className="h-11 w-full rounded-xl border bg-secondary/65 px-3" dir="ltr" value={complaintEmailWebhook} onChange={(event) => setComplaintEmailWebhook(event.target.value)} /></label>
           </div>
-          <button className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-4 font-bold text-primary-foreground" onClick={async () => { try { await api.updateSettings({ reportMonth, reportYear, complaintEmail, complaintEmailWebhook, complaintWhatsappNumber }); await loadPublicReport(); setMessage("تم حفظ الإعدادات."); } catch { setMessage("تعذر حفظ الإعدادات."); } }}><Download className="h-4 w-4" /> حفظ الإعدادات</button>
+          <button className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-4 font-bold text-primary-foreground" onClick={async () => { try { await api.updateSettings({ reportMonth, reportYear, complaintEmail, complaintEmailWebhook, complaintWhatsappNumber }); await loadPublicReport(true); setMessage("تم حفظ الإعدادات."); } catch { setMessage("تعذر حفظ الإعدادات."); } }}><Download className="h-4 w-4" /> حفظ الإعدادات</button>
         </section>
       ) : null}
 

@@ -25,10 +25,10 @@ const BookingReports = () => {
 
   const section: ReportSection = searchParams.get("section") === "employees" ? "employees" : "summary";
 
-  const loadReport = useCallback(async (silent = false) => {
+  const loadReport = useCallback(async (silent = false, fresh = false) => {
     if (!silent) setLoading(true);
     try {
-      const data = await api.getPublicBookingReport();
+      const data = await api.getPublicBookingReport({ fresh });
       setReport(data);
       setError("");
       return true;
@@ -49,7 +49,7 @@ const BookingReports = () => {
     setSyncError(false);
     setSyncMessage("جاري تحميل أحدث تقرير محفوظ من UNO…");
     try {
-      const refreshed = await loadReport(true);
+      const refreshed = await loadReport(true, true);
       if (!refreshed) throw new Error("refresh failed");
       setSyncMessage("تم تحميل أحدث تقرير UNO محفوظ.");
     } catch {

@@ -55,6 +55,7 @@ describe("public read-only reports", () => {
     fireEvent.click(await screen.findByRole("button", { name: "تحديث العرض" }));
 
     await waitFor(() => expect(reportRequest).toHaveBeenCalledTimes(2));
+    expect(reportRequest).toHaveBeenLastCalledWith({ fresh: true });
     expect(screen.getByText("تم تحميل أحدث تقرير UNO محفوظ.")).toBeDefined();
     expect(screen.queryByText(/M\.ALDOSARI|CRO_PASSWORD|CRO_USERNAME/)).toBeNull();
   });
