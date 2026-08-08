@@ -5,6 +5,7 @@ import {
   createDecipheriv,
   createHash,
   randomBytes,
+  timingSafeEqual,
 } from "node:crypto";
 import { getBearerToken, json, validateSession } from "./_shared/security";
 
@@ -16,6 +17,8 @@ const UNO_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RESEND_DELAY_MS = 40 * 1000;
 const SEARCH_LIMIT = 200;
+const UNO_SNAPSHOT_LIMIT = 5_000;
+const SYSTEM_STATE_KEY = "system";
 
 type JsonRecord = Record<string, unknown>;
 type UnoPhase = "idle" | "otp" | "connected";
@@ -229,6 +232,12 @@ const sessionStore = () => (
     : getDeployStore("uno-sessions")
 );
 
+const snapshotStore = () => (
+  Netlify.context?.deploy.context === "production"
+    ? getStore({ name: "uno-reservations", consistency: "strong" })
+    : getDeployStore("uno-reservations")
+);
+
 const getState = async (key: string) => {
   const store = sessionStore();
   try {
@@ -246,6 +255,15 @@ const setState = async (key: string, state: StoredState) => {
 const clearState = async (key: string) => {
   const store = sessionStore();
   await store.delete(key).catch(() => undefined);
+};
+
+const isInternalSyncRequest = (req: Request) => {
+  const expected = rawEnv("UNO_SYNC_SECRET");
+  const provided = req.headers.get("x-uno-sync-secret") || "";
+  if (!expected || !provided) return false;
+  const expectedHash = createHash("sha256").update(expected).digest();
+  const providedHash = createHash("sha256").update(provided).digest();
+  return timingSafeEqual(expectedHash, providedHash);
 };
 
 const publicStatus = (
@@ -411,6 +429,7 @@ const saveConnectedState = async (
     encrypted: encryptSession(session, configuration.password),
   };
   await setState(key, state);
+  if (key !== SYSTEM_STATE_KEY) await setState(SYSTEM_STATE_KEY, state);
   return state;
 };
 
@@ -727,7 +746,7 @@ const fetchReservations = async (
     endpoint.search = new URLSearchParams({
       isforPageSize: "false",
       page: "1",
-      pageSize: String(SEARCH_LIMIT),
+      pageSize: String(field ? SEARCH_LIMIT : UNO_SNAPSHOT_LIMIT),
       isBookingDateUsed: "false",
       ServerSidePagination: "false",
     }).toString();
@@ -749,7 +768,7 @@ const fetchReservations = async (
       .sort((left, right) => right.length - left.length)[0] || [];
     const searchableRecords = field === "phone"
       ? await enrichPhoneReservations(configuration, session, candidates)
-      : candidates.slice(0, SEARCH_LIMIT);
+      : candidates.slice(0, field ? SEARCH_LIMIT : UNO_SNAPSHOT_LIMIT);
     const reservations = searchableRecords
       .map(normalizeReservation)
       .filter((reservation) => (
@@ -765,6 +784,72 @@ const fetchReservations = async (
     return { reservations, unauthorized: false, status: response.status };
   }
   return { reservations: [], unauthorized, status: lastStatus };
+};
+
+const saveReservationSnapshot = async (
+  reservations: NormalizedReservation[],
+  source: "automatic" | "manual",
+  sessionExpiresAt?: string,
+) => {
+  const deduplicated = new Map<string, NormalizedReservation>();
+  reservations.forEach((reservation, index) => {
+    const key = [
+      reservation.unoNumber,
+      reservation.pmsNumber,
+    ].filter(Boolean).join("|") || [
+      reservation.phone,
+      reservation.guestName,
+      reservation.property,
+      reservation.checkIn,
+      index,
+    ].join("|");
+    deduplicated.set(key, reservation);
+  });
+  const normalizedReservations = Array.from(deduplicated.values()).slice(0, UNO_SNAPSHOT_LIMIT);
+  const snapshot = {
+    reservations: normalizedReservations,
+    total: normalizedReservations.length,
+    syncedAt: new Date().toISOString(),
+    source,
+    sessionExpiresAt: sessionExpiresAt || null,
+  };
+  await snapshotStore().setJSON("latest", snapshot);
+  return snapshot;
+};
+
+const syncSystemSnapshot = async (
+  configuration: ReturnType<typeof readConfiguration>,
+) => {
+  const active = await readActiveState(SYSTEM_STATE_KEY, configuration);
+  if (active.phase !== "connected" || !active.session || active.state?.phase !== "connected") {
+    return json({
+      error: "UNO verification required",
+      requiresOtp: true,
+      staleDataPreserved: true,
+    }, 409);
+  }
+
+  try {
+    const result = await fetchReservations(configuration, active.session);
+    if (result.unauthorized) {
+      await clearState(SYSTEM_STATE_KEY);
+      return json({
+        error: "UNO session expired",
+        requiresOtp: true,
+        staleDataPreserved: true,
+      }, 409);
+    }
+    if (result.status >= 500) return json({ error: "UNO sync unavailable" }, 502);
+
+    const snapshot = await saveReservationSnapshot(
+      result.reservations,
+      "automatic",
+      new Date(active.state.expiresAt).toISOString(),
+    );
+    return json({ ok: true, total: snapshot.total, syncedAt: snapshot.syncedAt });
+  } catch {
+    return json({ error: "UNO sync unavailable" }, 502);
+  }
 };
 
 const searchReservations = async (
@@ -821,10 +906,16 @@ const listReservations = async (
       return json({ error: "انتهت جلسة UNO.", ...publicStatus(configuration, "idle") }, 401);
     }
     if (result.status >= 500) return json({ error: "تعذر تحميل حجوزات UNO." }, 502);
+    const snapshot = await saveReservationSnapshot(
+      result.reservations,
+      "manual",
+      active.state?.phase === "connected" ? new Date(active.state.expiresAt).toISOString() : undefined,
+    );
     return json({
       reservations: result.reservations,
       total: result.reservations.length,
-      searchedAt: new Date().toISOString(),
+      searchedAt: snapshot.syncedAt,
+      syncedAt: snapshot.syncedAt,
     });
   } catch {
     return json({ error: "تعذر تحميل حجوزات UNO." }, 502);
@@ -832,13 +923,20 @@ const listReservations = async (
 };
 
 export default async (req: Request, context: Context) => {
+  const configuration = readConfiguration();
+
+  if (req.method === "POST" && isInternalSyncRequest(req)) {
+    const body = asRecord(await req.json().catch(() => ({})));
+    if (asString(body.action) !== "sync-system") return json({ error: "Permission Denied" }, 403);
+    return syncSystemSnapshot(configuration);
+  }
+
   const session = await validateSession(req);
   if (!session) return json({ error: "Unauthorized" }, 401);
   if (!["superadmin", "admin"].includes(session.role)) return json({ error: "Permission Denied" }, 403);
 
   const key = stateKey(req);
   if (!key) return json({ error: "Unauthorized" }, 401);
-  const configuration = readConfiguration();
 
   if (req.method === "GET") {
     const active = await readActiveState(key, configuration);
@@ -852,7 +950,7 @@ export default async (req: Request, context: Context) => {
   if (action === "verify") return verifyOtp(key, configuration, asString(body.otp));
   if (action === "resend") return resendOtp(key, configuration);
   if (action === "disconnect") {
-    await clearState(key);
+    await Promise.all([clearState(key), clearState(SYSTEM_STATE_KEY)]);
     return json(publicStatus(configuration, "idle"));
   }
   if (action === "search") {
