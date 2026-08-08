@@ -518,3 +518,9 @@ export const exportAvayaReport = async (report: AvayaReportResult) => {
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `Central_Reservation_Call_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
