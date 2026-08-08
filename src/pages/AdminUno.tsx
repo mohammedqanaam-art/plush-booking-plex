@@ -5,6 +5,7 @@ import {
   CalendarClock,
   CheckCircle2,
   Copy,
+  Database,
   ExternalLink,
   FileSpreadsheet,
   Filter,
@@ -88,9 +89,13 @@ const AdminUno = () => {
   const [field, setField] = useState<UnoSearchField>("phone");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UnoReservation[] | null>(null);
+  const [snapshotSyncedAt, setSnapshotSyncedAt] = useState<string | null>(null);
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
   const [resultQuery, setResultQuery] = useState("");
   const [propertyFilter, setPropertyFilter] = useState("all");
+  const [dateField, setDateField] = useState<"booking" | "checkin" | "checkout">("booking");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
   const [now, setNow] = useState(Date.now());
 
@@ -101,6 +106,10 @@ const AdminUno = () => {
         setFailed(true);
         setMessage(error.message);
       });
+
+    api.getUnoSnapshot({ limit: 1 })
+      .then((snapshot) => setSnapshotSyncedAt(snapshot.syncedAt))
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -146,6 +155,15 @@ const AdminUno = () => {
     void runStatusAction("verify", () => api.verifyUno(otp.trim()), "تم الاتصال بـ UNO.");
   };
 
+  const resetResultFilters = () => {
+    setResultFilter("all");
+    setResultQuery("");
+    setPropertyFilter("all");
+    setDateField("booking");
+    setFromDate("");
+    setToDate("");
+  };
+
   const submitSearch = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!query.trim()) return;
@@ -153,11 +171,22 @@ const AdminUno = () => {
     setFailed(false);
     setMessage("");
     try {
+      const snapshot = await api.getUnoSnapshot({
+        q: query.trim(),
+        field,
+        limit: 5_000,
+      });
+      setSnapshotSyncedAt(snapshot.syncedAt);
+      resetResultFilters();
+
+      if (snapshot.reservations.length || status?.phase !== "connected") {
+        setResults(snapshot.reservations);
+        setMessage(snapshot.total ? "" : "لا توجد حجوزات مطابقة في آخر مزامنة.");
+        return;
+      }
+
       const response = await api.searchUnoReservations(field, query.trim());
       setResults(response.reservations);
-      setResultFilter("all");
-      setResultQuery("");
-      setPropertyFilter("all");
       setMessage(response.total ? "" : "لا توجد حجوزات مطابقة.");
     } catch (error) {
       setFailed(true);
@@ -172,15 +201,32 @@ const AdminUno = () => {
     setFailed(false);
     setMessage("");
     try {
-      const response = await api.listUnoReservations();
-      setResults(response.reservations);
-      setResultFilter("all");
-      setResultQuery("");
-      setPropertyFilter("all");
-      setMessage(response.total ? "" : "لا توجد حجوزات متاحة.");
+      const snapshot = await api.getUnoSnapshot({ limit: 5_000 });
+      setResults(snapshot.reservations);
+      setSnapshotSyncedAt(snapshot.syncedAt);
+      resetResultFilters();
+      setMessage(snapshot.total ? "" : "لا توجد بيانات UNO متزامنة حتى الآن.");
     } catch (error) {
       setFailed(true);
-      setMessage(error instanceof Error ? error.message : "تعذر عرض حجوزات UNO.");
+      setMessage(error instanceof Error ? error.message : "تعذر عرض سجل UNO المتزامن.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const refreshReservations = async () => {
+    setBusy("refresh");
+    setFailed(false);
+    setMessage("");
+    try {
+      const response = await api.listUnoReservations();
+      setResults(response.reservations);
+      setSnapshotSyncedAt(response.syncedAt || response.searchedAt);
+      resetResultFilters();
+      setMessage(response.total ? "تم تحديث سجل UNO." : "لا توجد حجوزات متاحة.");
+    } catch (error) {
+      setFailed(true);
+      setMessage(error instanceof Error ? error.message : "تعذر تحديث حجوزات UNO.");
     } finally {
       setBusy("");
     }
@@ -212,6 +258,15 @@ const AdminUno = () => {
       if (resultFilter === "cancelled" && reservationState(reservation.status) !== "cancelled") return false;
       if (resultFilter === "arrivals" && dateKey(reservation.checkIn) !== today) return false;
       if (resultFilter === "departures" && dateKey(reservation.checkOut) !== today) return false;
+      const filterDate = dateKey(
+        dateField === "checkin"
+          ? reservation.checkIn
+          : dateField === "checkout"
+            ? reservation.checkOut
+            : reservation.bookingDate,
+      );
+      if (fromDate && (!filterDate || filterDate < fromDate)) return false;
+      if (toDate && (!filterDate || filterDate > toDate)) return false;
       if (!searchText) return true;
       return [
         reservation.unoNumber,
@@ -222,7 +277,7 @@ const AdminUno = () => {
         reservation.status,
       ].some((value) => value.toLocaleLowerCase("ar").includes(searchText));
     });
-  }, [propertyFilter, resultFilter, resultQuery, results]);
+  }, [dateField, fromDate, propertyFilter, resultFilter, resultQuery, results, toDate]);
 
   const copyReservation = async (reservation: UnoReservation) => {
     const text = [
@@ -392,18 +447,20 @@ const AdminUno = () => {
         </form>
       ) : null}
 
-      {status && phase === "connected" ? (
+      {status && (phase === "connected" || Boolean(snapshotSyncedAt)) ? (
         <>
-          <section className="overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-l from-emerald-500/10 via-background to-primary/8 p-4 shadow-sm">
+          <section className={`overflow-hidden rounded-2xl border p-4 shadow-sm ${phase === "connected" ? "border-emerald-500/20 bg-gradient-to-l from-emerald-500/10 via-background to-primary/8" : "border-primary/15 bg-secondary/25"}`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500/12 text-emerald-700">
-                  <CheckCircle2 className="h-6 w-6" />
+                <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${phase === "connected" ? "bg-emerald-500/12 text-emerald-700" : "bg-primary/10 text-primary"}`}>
+                  {phase === "connected" ? <CheckCircle2 className="h-6 w-6" /> : <Database className="h-6 w-6" />}
                 </span>
                 <div className="min-w-0">
-                  <strong className="block truncate">{status.accountName || "UNO"}</strong>
+                  <strong className="block truncate">{phase === "connected" ? (status.accountName || "UNO") : "سجل UNO المتزامن"}</strong>
                   <span className="text-xs text-muted-foreground">
-                    {(status.propertyCount || 0).toLocaleString("ar-SA")} منشأة · تنتهي الجلسة {displayTimestamp(status.expiresAt)}
+                    {phase === "connected"
+                      ? `${(status.propertyCount || 0).toLocaleString("ar-SA")} منشأة · تنتهي الجلسة ${displayTimestamp(status.expiresAt)}`
+                      : `آخر مزامنة ${displayTimestamp(snapshotSyncedAt || undefined)}`}
                   </span>
                 </div>
               </div>
@@ -422,15 +479,17 @@ const AdminUno = () => {
                 >
                   <GitMerge className="h-4 w-4" /> دمج UNO + CRO
                 </Link>
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-destructive/25 bg-background/70 px-3 text-xs font-bold text-destructive disabled:opacity-50"
-                  onClick={() => void runStatusAction("disconnect", () => api.disconnectUno())}
-                  disabled={isBusy}
-                >
-                  {busy === "disconnect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-                  فصل
-                </button>
+                {phase === "connected" ? (
+                  <button
+                    type="button"
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-destructive/25 bg-background/70 px-3 text-xs font-bold text-destructive disabled:opacity-50"
+                    onClick={() => void runStatusAction("disconnect", () => api.disconnectUno())}
+                    disabled={isBusy}
+                  >
+                    {busy === "disconnect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                    فصل
+                  </button>
+                ) : null}
               </div>
             </div>
           </section>
@@ -478,9 +537,20 @@ const AdminUno = () => {
                 onClick={() => void loadReservations()}
                 disabled={isBusy}
               >
-                {busy === "list" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                عرض
+                {busy === "list" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                السجل
               </button>
+              {phase === "connected" ? (
+                <button
+                  type="button"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-500/30 px-4 text-sm font-bold text-emerald-700 disabled:opacity-50"
+                  onClick={() => void refreshReservations()}
+                  disabled={isBusy}
+                >
+                  {busy === "refresh" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  تحديث الآن
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-primary/25 px-4 text-sm font-bold disabled:opacity-50"
@@ -522,24 +592,20 @@ const AdminUno = () => {
                   <div>
                     <h2 className="section-title">نتائج UNO</h2>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      عرض {visibleResults.length.toLocaleString("ar-SA")} من {(results || []).length.toLocaleString("ar-SA")}
+                      عرض {visibleResults.length.toLocaleString("ar-SA")} من {(results || []).length.toLocaleString("ar-SA")} · آخر مزامنة {displayTimestamp(snapshotSyncedAt || undefined)}
                     </p>
                   </div>
                   <button
                     type="button"
                     className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/50 px-3 text-xs font-bold"
-                    onClick={() => {
-                      setResultFilter("all");
-                      setResultQuery("");
-                      setPropertyFilter("all");
-                    }}
+                    onClick={resetResultFilters}
                   >
                     <RefreshCw className="h-3.5 w-3.5" /> مسح الفلاتر
                   </button>
                 </div>
 
-                <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(180px,0.45fr)]">
-                  <label className="relative">
+                <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+                  <label className="relative xl:col-span-2">
                     <span className="sr-only">بحث داخل نتائج UNO</span>
                     <Filter className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <input
@@ -560,6 +626,42 @@ const AdminUno = () => {
                       {properties.map((property) => <option key={property} value={property}>{property}</option>)}
                     </select>
                   </label>
+                  <label>
+                    <span className="sr-only">نوع التاريخ</span>
+                    <select
+                      className="h-11 w-full rounded-xl border bg-secondary/35 px-3 text-sm font-bold outline-none focus:border-primary"
+                      value={dateField}
+                      onChange={(event) => setDateField(event.target.value as "booking" | "checkin" | "checkout")}
+                    >
+                      <option value="booking">تاريخ الحجز</option>
+                      <option value="checkin">تاريخ الوصول</option>
+                      <option value="checkout">تاريخ المغادرة</option>
+                    </select>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label>
+                      <span className="sr-only">من تاريخ</span>
+                      <input
+                        type="date"
+                        className="h-11 w-full rounded-xl border bg-secondary/35 px-2 text-xs font-bold outline-none focus:border-primary"
+                        value={fromDate}
+                        max={toDate || undefined}
+                        onChange={(event) => setFromDate(event.target.value)}
+                        aria-label="من تاريخ"
+                      />
+                    </label>
+                    <label>
+                      <span className="sr-only">إلى تاريخ</span>
+                      <input
+                        type="date"
+                        className="h-11 w-full rounded-xl border bg-secondary/35 px-2 text-xs font-bold outline-none focus:border-primary"
+                        value={toDate}
+                        min={fromDate || undefined}
+                        onChange={(event) => setToDate(event.target.value)}
+                        aria-label="إلى تاريخ"
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto rounded-2xl border border-border/45">
