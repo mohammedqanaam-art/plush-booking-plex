@@ -1,10 +1,11 @@
 type OpenAiResponse = {
-  output_text?: string;
-  output?: Array<{
-    content?: Array<{
-      type?: string;
-      text?: string;
-    }>;
+  choices?: Array<{
+    message?: {
+      content?: string | Array<{
+        type?: string;
+        text?: string;
+      }>;
+    };
   }>;
 };
 
@@ -21,14 +22,27 @@ const configuredModel = () => {
 export const isOpenAiConfigured = () => Boolean(Netlify.env.get("OPENAI_API_KEY")?.trim());
 
 const responseText = (data: OpenAiResponse) => {
-  if (typeof data.output_text === "string" && data.output_text.trim()) return data.output_text.trim();
-  return (data.output || [])
-    .flatMap((item) => item.content || [])
-    .filter((item) => item.type === "output_text" && typeof item.text === "string")
+  const content = data.choices?.[0]?.message?.content;
+  if (typeof content === "string") return content.trim();
+  return (content || [])
+    .filter((item) => typeof item.text === "string")
     .map((item) => item.text?.trim())
     .filter(Boolean)
     .join("\n")
     .trim();
+};
+
+const openAiEndpoint = () => {
+  const configuredBaseUrl = Netlify.env.get("OPENAI_BASE_URL")?.trim() || "https://api.openai.com";
+  let parsed: URL;
+  try {
+    parsed = new URL(configuredBaseUrl);
+  } catch {
+    parsed = new URL("https://api.openai.com");
+  }
+  if (parsed.protocol !== "https:") parsed = new URL("https://api.openai.com");
+  const baseUrl = parsed.toString().replace(/\/+$/, "");
+  return `${baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`}/chat/completions`;
 };
 
 export async function generateOpenAiText(options: {
@@ -41,7 +55,7 @@ export async function generateOpenAiText(options: {
   if (!apiKey) throw new Error("OPENAI_NOT_CONFIGURED");
 
   const model = configuredModel();
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch(openAiEndpoint(), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -49,9 +63,11 @@ export async function generateOpenAiText(options: {
     },
     body: JSON.stringify({
       model,
-      instructions: options.instructions.slice(0, 12_000),
-      input: options.input.slice(0, 24_000),
-      max_output_tokens: Math.min(3_000, Math.max(200, options.maxOutputTokens || 1_200)),
+      messages: [
+        { role: "system", content: options.instructions.slice(0, 12_000) },
+        { role: "user", content: options.input.slice(0, 24_000) },
+      ],
+      max_completion_tokens: Math.min(3_000, Math.max(200, options.maxOutputTokens || 1_200)),
       store: false,
     }),
     signal: AbortSignal.timeout(Math.min(50_000, Math.max(5_000, options.timeoutMs || 28_000))),
