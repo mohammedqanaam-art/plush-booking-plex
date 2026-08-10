@@ -46,14 +46,14 @@ function getAnyValue(record: BookingRow, keys: string[]): string {
   return ""
 }
 
-const CONFIRMED_STATUSES = new Set(["M", "O", "N", "I"])
+const CONFIRMED_STATUSES = new Set(["1", "3", "M", "O", "N", "I"])
 const CANCELLED_STATUSES = new Set(["C", "NS"])
 
 export function classifyBookingStatus(status: string): "confirmed" | "cancelled" | "ignored" {
   const s = String(status || "").trim().toUpperCase()
   if (CANCELLED_STATUSES.has(s)) return "cancelled"
   if (CONFIRMED_STATUSES.has(s)) return "confirmed"
-  if (/^CONFIRMED?$/i.test(String(status || "").trim()) || /^مؤكد$/i.test(String(status || "").trim())) return "confirmed"
+  if (/^CONFIRMED?$/i.test(String(status || "").trim()) || /^(MODIFIED|MODIFY)$/i.test(String(status || "").trim()) || /^(مؤكد|معدل|معدّل)$/i.test(String(status || "").trim())) return "confirmed"
   if (/CANCEL|NO[\s-]?SHOW|ملغي|ملغى|إلغاء|الغاء/i.test(String(status || ""))) return "cancelled"
   return "ignored"
 }

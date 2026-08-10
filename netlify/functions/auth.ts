@@ -1,8 +1,10 @@
-import { getStore } from "@netlify/blobs";
+import type { Config } from "@netlify/functions";
 import { randomBytes } from "node:crypto";
 import {
+  clearSessionCookie,
   createSession,
-  getBearerToken,
+  createSessionCookie,
+  getSessionToken,
   hashPassword,
   json,
   normalizeRole,
@@ -10,6 +12,7 @@ import {
   verifyPassword,
   type UserRole,
 } from "./_shared/security";
+import { getEnvironmentStore } from "./_shared/storage";
 
 type StoredUser = {
   username: string;
@@ -19,7 +22,7 @@ type StoredUser = {
 };
 
 async function ensureDefaultUser() {
-  const store = getStore({ name: "users", consistency: "strong" });
+  const store = getEnvironmentStore("users", { consistency: "strong" });
   try {
     const data = await store.get("all", { type: "json" });
     if (Array.isArray(data) && data.length > 0) return;
@@ -51,7 +54,7 @@ export default async (req: Request) => {
 
     const seeded = await ensureDefaultUser();
 
-    const userStore = getStore({ name: "users", consistency: "strong" });
+    const userStore = getEnvironmentStore("users", { consistency: "strong" });
     let users: StoredUser[];
     try {
       users = (await userStore.get("all", { type: "json" })) as typeof users;
@@ -88,15 +91,14 @@ export default async (req: Request) => {
     const token = randomBytes(32).toString("hex");
     const role = normalizeRole(user.role);
     const session = createSession(user.username, role);
-    const sessionStore = getStore({ name: "sessions", consistency: "strong" });
+    const sessionStore = getEnvironmentStore("sessions", { consistency: "strong" });
     await sessionStore.setJSON(`sess_${token}`, session);
 
     return json({
-      token,
       username: user.username,
       role,
       expiresAt: session.expiresAt,
-    });
+    }, 200, { "Set-Cookie": createSessionCookie(token) });
   }
 
   if (method === "GET") {
@@ -106,17 +108,25 @@ export default async (req: Request) => {
   }
 
   if (method === "DELETE") {
-    const token = getBearerToken(req);
+    const token = getSessionToken(req);
     if (token) {
-      const sessionStore = getStore({ name: "sessions", consistency: "strong" });
+      const sessionStore = getEnvironmentStore("sessions", { consistency: "strong" });
       try {
         await sessionStore.delete(`sess_${token}`);
       } catch {
         // session already gone – safe to ignore
       }
     }
-    return json({ ok: true });
+    return json({ ok: true }, 200, { "Set-Cookie": clearSessionCookie() });
   }
 
   return json({ error: "Method not allowed" }, 405);
+};
+
+export const config: Config = {
+  rateLimit: {
+    windowLimit: 12,
+    windowSize: 60,
+    aggregateBy: ["ip"],
+  },
 };

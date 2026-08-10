@@ -1,13 +1,15 @@
-import { getStore } from "@netlify/blobs";
 import type { Config } from "@netlify/functions";
 import { json, validateSession } from "./_shared/security";
+import { getEnvironmentStore } from "./_shared/storage";
 
 type UnoReservation = {
   unoNumber: string;
   pmsNumber: string;
   phone: string;
   guestName: string;
+  agentName: string;
   property: string;
+  city: string;
   status: string;
   checkIn: string;
   checkOut: string;
@@ -32,7 +34,7 @@ const digits = (value: string) => value.replace(/\D/g, "");
 const statusGroup = (value: string) => {
   const candidate = value.trim().toLocaleLowerCase("en");
   if (["c", "ns"].includes(candidate) || /cancel|no[\s-]?show|ملغ|عدم حضور/.test(candidate)) return "cancelled";
-  if (["m", "o", "n", "i"].includes(candidate) || /confirm|مؤكد/.test(candidate)) return "confirmed";
+  if (["1", "3", "m", "o", "n", "i"].includes(candidate) || /confirm|modif|مؤكد|معدل|معدّل/.test(candidate)) return "confirmed";
   return "other";
 };
 
@@ -62,7 +64,9 @@ const queryMatches = (reservation: UnoReservation, field: string, query: string)
             reservation.pmsNumber,
             reservation.phone,
             reservation.guestName,
+            reservation.agentName,
             reservation.property,
+            reservation.city,
             reservation.status,
           ];
   const expected = normalized(query);
@@ -95,7 +99,7 @@ export default async (req: Request) => {
     return json({ error: "Invalid date range" }, 400);
   }
 
-  const store = getStore({ name: "uno-reservations", consistency: "strong" });
+  const store = getEnvironmentStore("uno-reservations", { consistency: "strong" });
   const snapshot = ((await store.get("latest", { type: "json" }).catch(() => null)) || {}) as UnoSnapshot;
   const reservations = Array.isArray(snapshot.reservations) ? snapshot.reservations : [];
 

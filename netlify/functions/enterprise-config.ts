@@ -1,9 +1,9 @@
-import { getStore } from "@netlify/blobs";
 import {
   DEFAULT_EMAIL_TEMPLATE,
   DEFAULT_WHATSAPP_TEMPLATE,
 } from "../../src/lib/enterpriseProtocol";
 import { json, validateSession } from "./_shared/security";
+import { getEnvironmentStore } from "./_shared/storage";
 
 type EnterpriseConfig = {
   whatsappTemplate: string;
@@ -36,7 +36,7 @@ const DEFAULT_CONFIG: EnterpriseConfig = {
 };
 
 export default async (req: Request) => {
-  const store = getStore("enterprise_config");
+  const store = getEnvironmentStore("enterprise_config", { consistency: "strong" });
 
   if (req.method === "GET") {
     try {

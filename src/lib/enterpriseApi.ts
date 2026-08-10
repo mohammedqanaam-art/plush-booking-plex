@@ -1,14 +1,6 @@
 const API_BASE = "/.netlify/functions";
 
-const getToken = (): string | null => {
-  if (typeof window === "undefined") return null;
-  return sessionStorage.getItem("admin_token");
-};
-
-const authHeaders = (): Record<string, string> => {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+const authHeaders = (): Record<string, string> => ({});
 
 async function logApiError(source: string, message: string, context?: string) {
   try {

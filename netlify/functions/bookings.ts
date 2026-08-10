@@ -1,12 +1,12 @@
-import { getStore } from "@netlify/blobs";
 import { json, validateSession } from "./_shared/security";
 import { buildPublicBookingReport } from "./_shared/bookingReport";
 import { BookingCsvError, inspectBookingReportText, saveBookingReportText } from "./_shared/bookingCsv";
 import { publicCachedJson } from "./_shared/publicCache";
+import { getEnvironmentStore } from "./_shared/storage";
 
 export default async (req: Request) => {
   const method = req.method;
-  const store = getStore("bookings");
+  const store = getEnvironmentStore("bookings", { consistency: "strong" });
 
   if (method === "GET") {
     try {
@@ -20,7 +20,7 @@ export default async (req: Request) => {
 
       const requestUrl = new URL(req.url);
       if (requestUrl.searchParams.get("view") === "summary") {
-        const settingsStore = getStore("settings");
+        const settingsStore = getEnvironmentStore("settings");
         const settings = ((await settingsStore.get("site", { type: "json" })) as Record<string, unknown> | null) || {};
         const report = buildPublicBookingReport(
           bookings,

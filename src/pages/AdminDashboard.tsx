@@ -14,11 +14,15 @@ import {
   LogOut,
   MessageSquareMore,
   MoonStar,
+  Radar,
   RefreshCw,
   Save,
   Search,
   Settings,
+  ShieldAlert,
   ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
   Tags,
   Upload,
   User,
@@ -38,6 +42,13 @@ import ReservationReportMerge from "@/components/admin/ReservationReportMerge";
 type UserRecord = { username: string; role: UserRole };
 type AdminTab = "overview" | "analytics" | "bookings" | "employees" | "requests" | "users" | "settings" | "profile";
 type PendingBookingReport = { file: File; stats: BookingReportStats };
+type AdminTool = {
+  to: string;
+  label: string;
+  icon: typeof Gauge;
+  permission?: PermissionAction;
+  roles?: UserRole[];
+};
 
 const reportRangeDays = (stats: BookingReportStats) => {
   if (!stats.dateFrom || !stats.dateTo) return 0;
@@ -62,6 +73,22 @@ const TAB_DEFINITIONS: Array<{ id: AdminTab; label: string; icon: typeof Gauge; 
   { id: "profile", label: "الحساب", icon: User, permission: "view" },
 ];
 
+const ADMIN_TOOLS: AdminTool[] = [
+  { to: "/admin/uno", label: "UNO", icon: RefreshCw, roles: ["superadmin", "admin"] },
+  { to: "/admin/opera-search", label: "OPERA", icon: CalendarSearch, roles: ["superadmin", "admin"] },
+  { to: "/admin/avaya-reports", label: "Avaya", icon: FileSpreadsheet, permission: "upload" },
+  { to: "/admin/shift-start", label: "بداية الشفت", icon: MoonStar, permission: "upload" },
+  { to: "/admin/warnings", label: "إنذارات الموظفين", icon: FileWarning, permission: "manage_employees" },
+  { to: "/admin/complaints", label: "إدارة الشكاوى", icon: MessageSquareMore, permission: "edit_settings" },
+  { to: "/admin/discounts", label: "الخصومات", icon: Tags, permission: "edit_settings" },
+  { to: "/admin/branches", label: "إدارة الفروع", icon: Building2, permission: "manage_knowledge" },
+  { to: "/admin/knowledge-bank", label: "بنك المعلومات", icon: BookOpenCheck, permission: "manage_knowledge" },
+  { to: "/admin/ghost", label: "سجل الزوار", icon: Radar, roles: ["superadmin", "admin"] },
+  { to: "/admin/errors", label: "أخطاء النظام", icon: ShieldAlert, roles: ["superadmin", "admin"] },
+  { to: "/admin/enterprise-control", label: "التحكم المؤسسي", icon: SlidersHorizontal, roles: ["superadmin", "admin"] },
+  { to: "/admin/ai-maintenance", label: "مركز التطوير الذكي", icon: Sparkles, roles: ["superadmin", "admin"] },
+];
+
 const AdminDashboard = () => {
   const session = getAdminSession();
   const sessionRole = session?.role;
@@ -72,6 +99,14 @@ const AdminDashboard = () => {
   const can = (permission: PermissionAction) => !!session && hasPermission(session.role, permission);
   const visibleTabs = useMemo(
     () => TAB_DEFINITIONS.filter((tab) => !!sessionRole && hasPermission(sessionRole, tab.permission)),
+    [sessionRole],
+  );
+  const visibleAdminTools = useMemo(
+    () => ADMIN_TOOLS.filter((tool) => (
+      !!sessionRole
+      && (!tool.roles || tool.roles.includes(sessionRole))
+      && (!tool.permission || hasPermission(sessionRole, tool.permission))
+    )),
     [sessionRole],
   );
 
@@ -227,7 +262,7 @@ const AdminDashboard = () => {
   return (
     <div className="page-wrap">
       <PageHeader
-        title="لوحة الإدارة"
+        title="لوحة مدير ومشرفين إدارة الحجز"
         icon={ShieldCheck}
         showBack={false}
         actions={
@@ -269,20 +304,27 @@ const AdminDashboard = () => {
           </section>
 
           <section className="page-surface space-y-3">
-              <h2 className="section-title">اختصارات الإدارة</h2>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => setTab("bookings")}><Upload className="h-5 w-5 text-primary" /><strong>استيراد ملفات التقارير</strong></button> : null}
-                {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/shift-start")}><MoonStar className="h-5 w-5 text-primary" /><strong>أدوات بداية الشفت</strong></button> : null}
-                {can("upload") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/avaya-reports")}><FileSpreadsheet className="h-5 w-5 text-primary" /><strong>تقارير Avaya</strong></button> : null}
-                {session?.role === "admin" || session?.role === "superadmin" ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/opera-search")}><CalendarSearch className="h-5 w-5 text-primary" /><strong>البحث برقم الجوال</strong></button> : null}
-                {session?.role === "admin" || session?.role === "superadmin" ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/uno")}><RefreshCw className="h-5 w-5 text-primary" /><strong>مزامنة وتقارير UNO</strong></button> : null}
-                {can("manage_employees") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => setTab("employees")}><UsersRound className="h-5 w-5 text-primary" /><strong>إدارة الموظفين</strong></button> : null}
-                {can("manage_employees") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/warnings")}><FileWarning className="h-5 w-5 text-primary" /><strong>إنذارات الموظفين</strong></button> : null}
-                {can("manage_knowledge") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/branches")}><Building2 className="h-5 w-5 text-primary" /><strong>إدارة الفروع</strong></button> : null}
-                {can("manage_knowledge") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/knowledge-bank")}><BookOpenCheck className="h-5 w-5 text-primary" /><strong>إدارة المعلومات</strong></button> : null}
-                {can("edit_settings") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/complaints")}><MessageSquareMore className="h-5 w-5 text-primary" /><strong>إدارة الشكاوى</strong></button> : null}
-                {can("edit_settings") ? <button className="compact-card flex items-center gap-3 text-right hover:border-primary/40" onClick={() => navigate("/admin/discounts")}><Tags className="h-5 w-5 text-primary" /><strong>إدارة الخصومات</strong></button> : null}
-              </div>
+            <h2 className="section-title">الأدوات</h2>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
+              {can("upload") ? (
+                <button className="admin-tool-card" onClick={() => setTab("bookings")}>
+                  <span className="admin-tool-card__icon"><Upload className="h-5 w-5" /></span>
+                  <strong>استيراد التقارير</strong>
+                </button>
+              ) : null}
+              {can("manage_employees") ? (
+                <button className="admin-tool-card" onClick={() => setTab("employees")}>
+                  <span className="admin-tool-card__icon"><UsersRound className="h-5 w-5" /></span>
+                  <strong>إدارة الموظفين</strong>
+                </button>
+              ) : null}
+              {visibleAdminTools.map((tool) => (
+                <button key={tool.to} className="admin-tool-card" onClick={() => navigate(tool.to)}>
+                  <span className="admin-tool-card__icon"><tool.icon className="h-5 w-5" /></span>
+                  <strong>{tool.label}</strong>
+                </button>
+              ))}
+            </div>
           </section>
         </div>
       ) : null}
@@ -305,7 +347,6 @@ const AdminDashboard = () => {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <h2 className="section-title">استيراد تقرير حجوزات الموظفين</h2>
-                <p className="mt-1 text-xs text-muted-foreground">يدعم تقرير UNO بصيغة Excel XML ‏(.xls) وتقارير CSV، ويعرض نتيجة الفحص قبل استبدال البيانات.</p>
               </div>
               {bookingStats?.sourceLabel ? (
                 <span className="rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-xs font-bold text-primary">المصدر الحالي: {bookingStats.sourceLabel}</span>

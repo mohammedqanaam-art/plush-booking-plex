@@ -18,7 +18,7 @@ describe("UNO-only live reservation synchronization", () => {
     const dashboard = readFileSync("src/pages/AdminDashboard.tsx", "utf8");
     expect(app).toContain('path="/admin/cro-export"');
     expect(app).toContain('<Navigate to="/admin/uno" replace />');
-    expect(dashboard).toContain("مزامنة وتقارير UNO");
+    expect(dashboard).toContain('to: "/admin/uno"');
     expect(dashboard).not.toContain("تحكم مزامنة CRO");
   });
 

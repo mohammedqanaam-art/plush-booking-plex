@@ -7,7 +7,8 @@ import {
   randomBytes,
   timingSafeEqual,
 } from "node:crypto";
-import { getBearerToken, json, validateSession } from "./_shared/security";
+import { saveBookingRecords, type BookingRecord, type BookingSaveResult } from "./_shared/bookingCsv";
+import { getSessionToken, json, validateSession } from "./_shared/security";
 
 const DEFAULT_UNO_RESERVATIONS_URL = "https://unolive-voice.rategain.com/view-reservations?brandId=3868248c-c053-43f2-b9c8-3188c74dfeb5&chainId=cdcc2737-a6b9-45bc-9d91-b1a760fb8026";
 const DEFAULT_UNO_API_BASE_URL = "https://uno-prod-ui-api-1087875874170.us-central1.run.app/api/";
@@ -18,11 +19,23 @@ const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RESEND_DELAY_MS = 40 * 1000;
 const SEARCH_LIMIT = 200;
 const UNO_SNAPSHOT_LIMIT = 5_000;
+const UNO_REPORT_LIMIT = 50_000;
+const UNO_REPORT_MAX_DAY_SPAN = 30;
 const SYSTEM_STATE_KEY = "system";
 
 type JsonRecord = Record<string, unknown>;
 type UnoPhase = "idle" | "otp" | "connected";
 type UnoSearchField = "phone" | "pms" | "uno";
+type UnoReportDateType = "booking" | "checkin" | "checkout";
+type UnoReportStatus = "all" | "confirmed" | "cancelled" | "modified";
+
+export type UnoReportFilters = {
+  dateType: UnoReportDateType;
+  from: string;
+  to: string;
+  property: string;
+  status: UnoReportStatus;
+};
 
 type EncryptedValue = {
   iv: string;
@@ -37,6 +50,7 @@ type PendingState = {
   resendAt: number;
   ipAddress: string;
   attempts: number;
+  reportFilters?: UnoReportFilters;
 };
 
 type ConnectedState = {
@@ -44,6 +58,7 @@ type ConnectedState = {
   connectedAt: number;
   expiresAt: number;
   encrypted: EncryptedValue;
+  reportFilters?: UnoReportFilters;
 };
 
 type StoredState = PendingState | ConnectedState;
@@ -63,7 +78,9 @@ export type NormalizedReservation = {
   pmsNumber: string;
   phone: string;
   guestName: string;
+  agentName: string;
   property: string;
+  city: string;
   status: string;
   checkIn: string;
   checkOut: string;
@@ -71,6 +88,22 @@ export type NormalizedReservation = {
   channel: string;
   amount: string;
   currency: string;
+};
+
+type UnoSnapshot = {
+  reservations: NormalizedReservation[];
+  total: number;
+  syncedAt: string;
+  source: "automatic" | "manual";
+  sessionExpiresAt: string | null;
+  reportFilters?: UnoReportFilters;
+  productivity?: {
+    published: boolean;
+    updatedAt?: string;
+    records?: number;
+    employees?: number;
+    error?: string;
+  };
 };
 
 const rawEnv = (key: string) => Netlify.env.get(key) || "";
@@ -98,6 +131,55 @@ const asString = (value: unknown) => {
 const asNumber = (value: unknown) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const riyadhToday = () => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Riyadh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+};
+
+const defaultReportFilters = (): UnoReportFilters => {
+  const today = riyadhToday();
+  return {
+    dateType: "booking",
+    from: `${today.slice(0, 7)}-01`,
+    to: today,
+    property: "all",
+    status: "all",
+  };
+};
+
+const validIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
+  && Number.isFinite(Date.parse(`${value}T00:00:00Z`));
+
+export const parseUnoReportFilters = (value: unknown): UnoReportFilters => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return defaultReportFilters();
+  const input = value as JsonRecord;
+  const defaults = defaultReportFilters();
+  const dateType = asString(input.dateType) || defaults.dateType;
+  const from = asString(input.from) || defaults.from;
+  const to = asString(input.to) || defaults.to;
+  const property = asString(input.property) || "all";
+  const status = asString(input.status) || "all";
+  if (!["booking", "checkin", "checkout"].includes(dateType)) throw new Error("اختر نوع تاريخ صحيحًا.");
+  if (!["all", "confirmed", "cancelled", "modified"].includes(status)) throw new Error("اختر حالة حجز صحيحة.");
+  if (!validIsoDate(from) || !validIsoDate(to) || from > to) throw new Error("اختر فترة صحيحة للتقرير.");
+  const span = Math.floor((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
+  if (span > UNO_REPORT_MAX_DAY_SPAN) throw new Error("UNO يسمح بفترة لا تتجاوز 30 يومًا بين تاريخ البداية والنهاية.");
+  if (property.length > 160) throw new Error("اسم الفرع غير صالح.");
+  return {
+    dateType: dateType as UnoReportDateType,
+    from,
+    to,
+    property,
+    status: status as UnoReportStatus,
+  };
 };
 
 const isExplicitFalse = (value: unknown) => (
@@ -184,7 +266,7 @@ const readConfiguration = () => {
 };
 
 const stateKey = (req: Request) => {
-  const token = getBearerToken(req);
+  const token = getSessionToken(req);
   if (!token) return null;
   return `admin_${createHash("sha256").update(token).digest("hex")}`;
 };
@@ -238,6 +320,15 @@ const snapshotStore = () => (
     : getDeployStore("uno-reservations")
 );
 
+const readLatestSnapshot = async (): Promise<UnoSnapshot | null> => {
+  try {
+    const value = await snapshotStore().get("latest", { type: "json" }) as UnoSnapshot | null;
+    return value?.syncedAt && Array.isArray(value.reservations) ? value : null;
+  } catch {
+    return null;
+  }
+};
+
 const getState = async (key: string) => {
   const store = sessionStore();
   try {
@@ -257,8 +348,13 @@ const clearState = async (key: string) => {
   await store.delete(key).catch(() => undefined);
 };
 
-const isInternalSyncRequest = (req: Request) => {
-  const expected = rawEnv("UNO_SYNC_SECRET");
+const isInternalSyncRequest = (
+  req: Request,
+  configuration: ReturnType<typeof readConfiguration>,
+) => {
+  const expected = rawEnv("UNO_SYNC_SECRET") || (configuration.password
+    ? createHash("sha256").update(`uno-sync:${configuration.password}`).digest("hex")
+    : "");
   const provided = req.headers.get("x-uno-sync-secret") || "";
   if (!expected || !provided) return false;
   const expectedHash = createHash("sha256").update(expected).digest();
@@ -281,7 +377,38 @@ const publicStatus = (
   expiresAt: state?.phase === "connected" ? new Date(state.expiresAt).toISOString() : undefined,
   accountName: session?.accountName || undefined,
   propertyCount: session?.properties.length || undefined,
+  verifiedAt: state?.phase === "connected" ? new Date(state.connectedAt).toISOString() : undefined,
+  reportFilters: state?.reportFilters || undefined,
+  automaticSyncEnabled: configuration.configured && Netlify.context?.deploy.context === "production",
 });
+
+const statusWithSnapshot = async (
+  configuration: ReturnType<typeof readConfiguration>,
+  phase: UnoPhase,
+  state?: StoredState | null,
+  session?: UnoSession | null,
+) => {
+  const snapshot = await readLatestSnapshot();
+  const exportedAtMs = snapshot?.syncedAt ? new Date(snapshot.syncedAt).getTime() : 0;
+  const connectedAt = state?.phase === "connected" ? state.connectedAt : 0;
+  return {
+    ...publicStatus(configuration, phase, state, session),
+    lastExportAt: snapshot?.syncedAt || undefined,
+    lastExportCount: snapshot?.total ?? undefined,
+    lastExportSource: snapshot?.source || undefined,
+    reportReady: phase === "connected" && connectedAt > 0 && exportedAtMs >= connectedAt,
+    productivityReady: phase === "connected"
+      && connectedAt > 0
+      && exportedAtMs >= connectedAt
+      && snapshot?.productivity?.published === true,
+    productivityUpdatedAt: snapshot?.productivity?.updatedAt || undefined,
+    productivityRecords: snapshot?.productivity?.records ?? undefined,
+    productivityEmployees: snapshot?.productivity?.employees ?? undefined,
+    reportError: phase === "connected" && exportedAtMs >= connectedAt
+      ? snapshot?.productivity?.error || undefined
+      : undefined,
+  };
+};
 
 const readActiveState = async (
   key: string,
@@ -419,6 +546,7 @@ const saveConnectedState = async (
   configuration: ReturnType<typeof readConfiguration>,
   session: UnoSession,
   body: JsonRecord,
+  reportFilters: UnoReportFilters,
 ) => {
   const connectedAt = Date.now();
   const expiresAt = tokenExpiry(session.token, body);
@@ -427,6 +555,7 @@ const saveConnectedState = async (
     connectedAt,
     expiresAt,
     encrypted: encryptSession(session, configuration.password),
+    reportFilters,
   };
   await setState(key, state);
   if (key !== SYSTEM_STATE_KEY) await setState(SYSTEM_STATE_KEY, state);
@@ -450,6 +579,7 @@ const connect = async (
   key: string,
   configuration: ReturnType<typeof readConfiguration>,
   context: Context,
+  reportFilters: UnoReportFilters,
 ) => {
   if (!configuration.configured) return json({ error: "إعدادات UNO غير مكتملة." }, 503);
   try {
@@ -457,8 +587,8 @@ const connect = async (
     const { response, payload } = await postUnoAuth(configuration, ipAddress, 0);
     const connected = sessionFromAuth(payload, ipAddress);
     if (response.ok && connected) {
-      const state = await saveConnectedState(key, configuration, connected.session, connected.body);
-      return json(publicStatus(configuration, "connected", state, connected.session));
+      const state = await saveConnectedState(key, configuration, connected.session, connected.body, reportFilters);
+      return finalizeAuthenticatedConnection(key, configuration, connected.session, state);
     }
     if (response.ok && hasOtpChallenge(payload)) {
       const now = Date.now();
@@ -469,6 +599,7 @@ const connect = async (
         resendAt: now + OTP_RESEND_DELAY_MS,
         ipAddress,
         attempts: 0,
+        reportFilters,
       };
       await setState(key, state);
       return json(publicStatus(configuration, "otp", state));
@@ -493,8 +624,14 @@ const verifyOtp = async (
     const { response, payload } = await postUnoAuth(configuration, active.state.ipAddress, 1, otp);
     const connected = sessionFromAuth(payload, active.state.ipAddress);
     if (response.ok && connected) {
-      const state = await saveConnectedState(key, configuration, connected.session, connected.body);
-      return json(publicStatus(configuration, "connected", state, connected.session));
+      const state = await saveConnectedState(
+        key,
+        configuration,
+        connected.session,
+        connected.body,
+        active.state.reportFilters || defaultReportFilters(),
+      );
+      return finalizeAuthenticatedConnection(key, configuration, connected.session, state);
     }
     const attempts = (active.state.attempts || 0) + 1;
     if (attempts >= 5) {
@@ -614,7 +751,18 @@ export const normalizeReservation = (record: JsonRecord): NormalizedReservation 
       "contactNo",
     ]),
     guestName,
+    agentName: firstValue(record, [
+      "createdBy",
+      "CreatedBy",
+      "createdByName",
+      "CreatedByName",
+      "agentName",
+      "AgentName",
+      "userName",
+      "UserName",
+    ]),
     property: firstValue(record, ["name", "propertyName", "PropertyName", "hotelName"]),
+    city: firstValue(record, ["city", "City", "cityName", "CityName", "propertyCity"]),
     status: reservationStatus(firstValue(record, [
       "statusName",
       "reservationStatus",
@@ -746,7 +894,7 @@ const fetchReservations = async (
     endpoint.search = new URLSearchParams({
       isforPageSize: "false",
       page: "1",
-      pageSize: String(field ? SEARCH_LIMIT : UNO_SNAPSHOT_LIMIT),
+      pageSize: field ? String(SEARCH_LIMIT) : "-1",
       isBookingDateUsed: "false",
       ServerSidePagination: "false",
     }).toString();
@@ -768,7 +916,7 @@ const fetchReservations = async (
       .sort((left, right) => right.length - left.length)[0] || [];
     const searchableRecords = field === "phone"
       ? await enrichPhoneReservations(configuration, session, candidates)
-      : candidates.slice(0, field ? SEARCH_LIMIT : UNO_SNAPSHOT_LIMIT);
+      : candidates.slice(0, field ? SEARCH_LIMIT : UNO_REPORT_LIMIT);
     const reservations = searchableRecords
       .map(normalizeReservation)
       .filter((reservation) => (
@@ -786,11 +934,107 @@ const fetchReservations = async (
   return { reservations: [], unauthorized, status: lastStatus };
 };
 
+const reportStatusGroup = (value: string): UnoReportStatus | "other" => {
+  const normalized = value.trim().toLocaleLowerCase("en");
+  if (normalized === "3" || /modif|معدل|معدّل/.test(normalized)) return "modified";
+  if (["-1", "c", "ns"].includes(normalized) || /cancel|no[\s-]?show|ملغ|عدم حضور/.test(normalized)) return "cancelled";
+  if (["1", "m", "o", "n", "i"].includes(normalized) || /confirm|مؤكد/.test(normalized)) return "confirmed";
+  return "other";
+};
+
+const reservationDateKey = (value: string) => {
+  const direct = value.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+  if (direct) return direct;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+};
+
+export const filterReservationsForReport = (
+  reservations: NormalizedReservation[],
+  filters: UnoReportFilters,
+) => reservations.filter((reservation) => {
+  if (filters.property !== "all" && reservation.property !== filters.property) return false;
+  const status = reportStatusGroup(reservation.status);
+  if (filters.status !== "all" && status !== filters.status) return false;
+  const date = reservationDateKey(
+    filters.dateType === "checkin"
+      ? reservation.checkIn
+      : filters.dateType === "checkout"
+        ? reservation.checkOut
+        : reservation.bookingDate,
+  );
+  return Boolean(date && date >= filters.from && date <= filters.to);
+});
+
+const REPORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const reportDateValue = (value: string, includeTime = false) => {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  const day = parsed.getUTCDate();
+  const month = REPORT_MONTHS[parsed.getUTCMonth()];
+  const year = String(parsed.getUTCFullYear()).slice(-2);
+  if (!includeTime) return `${day} ${month} ${year}`;
+  const hour = String(parsed.getUTCHours()).padStart(2, "0");
+  const minute = String(parsed.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} ${year}, ${hour}:${minute}`;
+};
+
+const bookingStatusForReport = (value: string) => {
+  const group = reportStatusGroup(value);
+  if (group === "confirmed") return "Confirmed";
+  if (group === "cancelled") return "Cancelled";
+  if (group === "modified") return "Modified";
+  return value;
+};
+
+export const reservationToBookingRecord = (reservation: NormalizedReservation): BookingRecord => ({
+  "Booking time": reportDateValue(reservation.bookingDate, true),
+  "Guest Name": reservation.guestName,
+  "Agent Name": reservation.agentName,
+  "Resv. no.": reservation.unoNumber || reservation.pmsNumber,
+  "Check-in": reportDateValue(reservation.checkIn),
+  "Check-out": reportDateValue(reservation.checkOut),
+  "Booking Status": bookingStatusForReport(reservation.status),
+  Property: reservation.property,
+  City: reservation.city,
+  Channel: reservation.channel,
+  Amount: reservation.amount,
+  Currency: reservation.currency,
+});
+
+const publishProductivityReport = async (
+  reservations: NormalizedReservation[],
+  filters: UnoReportFilters,
+): Promise<{ published: true; stats: BookingSaveResult } | { published: false; error: string }> => {
+  if (!reservations.length) {
+    return { published: false, error: "لا توجد حجوزات UNO ضمن فترة التقرير المحددة." };
+  }
+  if (!reservations.some((reservation) => reservation.agentName.trim())) {
+    return { published: false, error: "أعاد UNO الحجوزات بدون Agent Name؛ لم يتم استبدال تقرير إنتاجية الموظفين." };
+  }
+  try {
+    const stats = await saveBookingRecords(
+      reservations.map(reservationToBookingRecord),
+      `uno-live-${filters.from}-${filters.to}.csv`,
+    );
+    return { published: true, stats };
+  } catch (error) {
+    return {
+      published: false,
+      error: error instanceof Error ? error.message : "تعذر حفظ تقرير إنتاجية UNO.",
+    };
+  }
+};
+
 const saveReservationSnapshot = async (
   reservations: NormalizedReservation[],
   source: "automatic" | "manual",
   sessionExpiresAt?: string,
-) => {
+  reportFilters?: UnoReportFilters,
+  productivity?: UnoSnapshot["productivity"],
+): Promise<UnoSnapshot> => {
   const deduplicated = new Map<string, NormalizedReservation>();
   reservations.forEach((reservation, index) => {
     const key = [
@@ -812,10 +1056,96 @@ const saveReservationSnapshot = async (
     syncedAt: new Date().toISOString(),
     source,
     sessionExpiresAt: sessionExpiresAt || null,
+    reportFilters,
+    productivity,
   };
   await snapshotStore().setJSON("latest", snapshot);
   return snapshot;
 };
+
+const exportLiveReport = async (
+  configuration: ReturnType<typeof readConfiguration>,
+  session: UnoSession,
+  sessionExpiresAt: string,
+  source: "automatic" | "manual",
+  reportFilters: UnoReportFilters,
+) => {
+  const result = await fetchReservations(configuration, session);
+  if (result.unauthorized) {
+    return { ok: false as const, unauthorized: true, error: "انتهت جلسة UNO قبل جلب التقرير." };
+  }
+  if (result.status < 200 || result.status >= 300) {
+    return { ok: false as const, unauthorized: false, error: `رفض UNO طلب التقرير (${result.status}).` };
+  }
+  const reportReservations = filterReservationsForReport(result.reservations, reportFilters);
+  const productivity = await publishProductivityReport(reportReservations, reportFilters);
+  const productivityState: UnoSnapshot["productivity"] = productivity.published
+    ? {
+        published: true,
+        updatedAt: productivity.stats.updatedAt,
+        records: productivity.stats.classifiedTotal,
+        employees: productivity.stats.employeeCount,
+      }
+    : { published: false, error: productivity.error };
+  const snapshot = await saveReservationSnapshot(
+    reportReservations,
+    source,
+    sessionExpiresAt,
+    reportFilters,
+    productivityState,
+  );
+  return { ok: true as const, snapshot, productivity };
+};
+
+async function finalizeAuthenticatedConnection(
+  key: string,
+  configuration: ReturnType<typeof readConfiguration>,
+  session: UnoSession,
+  state: ConnectedState,
+) {
+  try {
+    const exported = await exportLiveReport(
+      configuration,
+      session,
+      new Date(state.expiresAt).toISOString(),
+      "manual",
+      state.reportFilters || defaultReportFilters(),
+    );
+    if (!exported.ok) {
+      if (exported.unauthorized) {
+        await Promise.all([clearState(key), clearState(SYSTEM_STATE_KEY)]);
+        return json({
+          error: exported.error,
+          reportReady: false,
+          ...publicStatus(configuration, "idle"),
+        }, 401);
+      }
+      return json({
+        ...publicStatus(configuration, "connected", state, session),
+        reportReady: false,
+        reportError: exported.error,
+      });
+    }
+    return json({
+      ...publicStatus(configuration, "connected", state, session),
+      reportReady: true,
+      lastExportAt: exported.snapshot.syncedAt,
+      lastExportCount: exported.snapshot.total,
+      lastExportSource: exported.snapshot.source,
+      productivityReady: exported.productivity.published,
+      productivityUpdatedAt: exported.productivity.published ? exported.productivity.stats.updatedAt : undefined,
+      productivityRecords: exported.productivity.published ? exported.productivity.stats.classifiedTotal : undefined,
+      productivityEmployees: exported.productivity.published ? exported.productivity.stats.employeeCount : undefined,
+      reportError: exported.productivity.published ? undefined : exported.productivity.error,
+    });
+  } catch {
+    return json({
+      ...publicStatus(configuration, "connected", state, session),
+      reportReady: false,
+      reportError: "تم التحقق من UNO، لكن تعذر جلب التقرير الآن.",
+    });
+  }
+}
 
 const syncSystemSnapshot = async (
   configuration: ReturnType<typeof readConfiguration>,
@@ -830,8 +1160,14 @@ const syncSystemSnapshot = async (
   }
 
   try {
-    const result = await fetchReservations(configuration, active.session);
-    if (result.unauthorized) {
+    const exported = await exportLiveReport(
+      configuration,
+      active.session,
+      new Date(active.state.expiresAt).toISOString(),
+      "automatic",
+      active.state.reportFilters || defaultReportFilters(),
+    );
+    if (!exported.ok && exported.unauthorized) {
       await clearState(SYSTEM_STATE_KEY);
       return json({
         error: "UNO session expired",
@@ -839,14 +1175,13 @@ const syncSystemSnapshot = async (
         staleDataPreserved: true,
       }, 409);
     }
-    if (result.status >= 500) return json({ error: "UNO sync unavailable" }, 502);
-
-    const snapshot = await saveReservationSnapshot(
-      result.reservations,
-      "automatic",
-      new Date(active.state.expiresAt).toISOString(),
-    );
-    return json({ ok: true, total: snapshot.total, syncedAt: snapshot.syncedAt });
+    if (!exported.ok) return json({ error: exported.error, staleDataPreserved: true }, 502);
+    return json({
+      ok: true,
+      total: exported.snapshot.total,
+      syncedAt: exported.snapshot.syncedAt,
+      productivityReady: exported.productivity.published,
+    });
   } catch {
     return json({ error: "UNO sync unavailable" }, 502);
   }
@@ -879,7 +1214,7 @@ const searchReservations = async (
       await clearState(key);
       return json({ error: "انتهت جلسة UNO.", ...publicStatus(configuration, "idle") }, 401);
     }
-    if (result.status >= 500) return json({ error: "تعذر تحميل حجوزات UNO." }, 502);
+    if (result.status < 200 || result.status >= 300) return json({ error: `رفض UNO طلب البحث (${result.status}).` }, 502);
     return json({
       reservations: result.reservations,
       total: result.reservations.length,
@@ -893,29 +1228,54 @@ const searchReservations = async (
 const listReservations = async (
   key: string,
   configuration: ReturnType<typeof readConfiguration>,
+  requestedFilters?: unknown,
 ) => {
   const active = await readActiveState(key, configuration);
   if (active.phase !== "connected" || !active.session) {
     return json({ error: "اتصل بـ UNO أولًا.", ...publicStatus(configuration, "idle") }, 409);
   }
 
+  let reportFilters = active.state?.phase === "connected"
+    ? active.state.reportFilters || defaultReportFilters()
+    : defaultReportFilters();
+  if (requestedFilters !== undefined) {
+    try {
+      reportFilters = parseUnoReportFilters(requestedFilters);
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "فلاتر التقرير غير صحيحة." }, 400);
+    }
+    if (active.state?.phase === "connected") {
+      const nextState: ConnectedState = { ...active.state, reportFilters };
+      await Promise.all([setState(key, nextState), setState(SYSTEM_STATE_KEY, nextState)]);
+    }
+  }
+
   try {
-    const result = await fetchReservations(configuration, active.session);
-    if (result.unauthorized) {
+    const exported = await exportLiveReport(
+      configuration,
+      active.session,
+      active.state?.phase === "connected" ? new Date(active.state.expiresAt).toISOString() : "",
+      "manual",
+      reportFilters,
+    );
+    if (!exported.ok && exported.unauthorized) {
       await clearState(key);
       return json({ error: "انتهت جلسة UNO.", ...publicStatus(configuration, "idle") }, 401);
     }
-    if (result.status >= 500) return json({ error: "تعذر تحميل حجوزات UNO." }, 502);
-    const snapshot = await saveReservationSnapshot(
-      result.reservations,
-      "manual",
-      active.state?.phase === "connected" ? new Date(active.state.expiresAt).toISOString() : undefined,
-    );
+    if (!exported.ok) return json({ error: exported.error }, 502);
+    const snapshot = exported.snapshot;
     return json({
-      reservations: result.reservations,
-      total: result.reservations.length,
+      reservations: snapshot.reservations,
+      total: snapshot.total,
       searchedAt: snapshot.syncedAt,
       syncedAt: snapshot.syncedAt,
+      reportReady: true,
+      reportFilters,
+      productivityReady: exported.productivity.published,
+      productivityUpdatedAt: exported.productivity.published ? exported.productivity.stats.updatedAt : undefined,
+      productivityRecords: exported.productivity.published ? exported.productivity.stats.classifiedTotal : undefined,
+      productivityEmployees: exported.productivity.published ? exported.productivity.stats.employeeCount : undefined,
+      reportError: exported.productivity.published ? undefined : exported.productivity.error,
     });
   } catch {
     return json({ error: "تعذر تحميل حجوزات UNO." }, 502);
@@ -925,7 +1285,7 @@ const listReservations = async (
 export default async (req: Request, context: Context) => {
   const configuration = readConfiguration();
 
-  if (req.method === "POST" && isInternalSyncRequest(req)) {
+  if (req.method === "POST" && isInternalSyncRequest(req, configuration)) {
     const body = asRecord(await req.json().catch(() => ({})));
     if (asString(body.action) !== "sync-system") return json({ error: "Permission Denied" }, 403);
     return syncSystemSnapshot(configuration);
@@ -940,13 +1300,19 @@ export default async (req: Request, context: Context) => {
 
   if (req.method === "GET") {
     const active = await readActiveState(key, configuration);
-    return json(publicStatus(configuration, active.phase, active.state, active.session));
+    return json(await statusWithSnapshot(configuration, active.phase, active.state, active.session));
   }
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const body = asRecord(await req.json().catch(() => ({})));
   const action = asString(body.action);
-  if (action === "connect") return connect(key, configuration, context);
+  if (action === "connect") {
+    try {
+      return connect(key, configuration, context, parseUnoReportFilters(body.filters));
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "فلاتر التقرير غير صحيحة." }, 400);
+    }
+  }
   if (action === "verify") return verifyOtp(key, configuration, asString(body.otp));
   if (action === "resend") return resendOtp(key, configuration);
   if (action === "disconnect") {
@@ -957,6 +1323,7 @@ export default async (req: Request, context: Context) => {
     return searchReservations(key, configuration, body.field, body.query);
   }
   if (action === "list") return listReservations(key, configuration);
+  if (action === "export") return listReservations(key, configuration, body.filters);
   return json({ error: "الإجراء غير صحيح." }, 400);
 };
 

@@ -1,7 +1,8 @@
-import { getStore } from "@netlify/blobs";
+import type { Config } from "@netlify/functions";
 import { hotelBranches } from "../../src/data/hotels";
 import { BRAND_PREFIX, COMPLAINT_CATEGORIES, DEFAULT_WHATSAPP_TEMPLATE, applyTemplate } from "../../src/lib/enterpriseProtocol";
 import { json, validateSession } from "./_shared/security";
+import { getEnvironmentStore } from "./_shared/storage";
 type ComplaintStatus = "open" | "under_review" | "closed";
 type Complaint = {
   complaintNo: string;
@@ -38,7 +39,7 @@ function isAllowedWebhookUrl(value: string): boolean {
 }
 
 async function nextComplaintNo(brand: keyof typeof BRAND_PREFIX) {
-  const counters = getStore("complaint_counters");
+  const counters = getEnvironmentStore("complaint_counters", { consistency: "strong" });
   const key = `counter_${brand}`;
   const current = ((await counters.get(key, { type: "json" })) as number | null) || 0;
   const next = current + 1;
@@ -47,7 +48,7 @@ async function nextComplaintNo(brand: keyof typeof BRAND_PREFIX) {
 }
 
 async function sendComplaintEmailCopy(complaint: Complaint, html: string) {
-  const settings = ((await getStore("settings").get("site", { type: "json" })) as { complaintEmail?: string; complaintEmailWebhook?: string; complaintWhatsappNumber?: string } | null) || {};
+  const settings = ((await getEnvironmentStore("settings").get("site", { type: "json" })) as { complaintEmail?: string; complaintEmailWebhook?: string; complaintWhatsappNumber?: string } | null) || {};
   const webhook = settings.complaintEmailWebhook || Netlify.env.get("COMPLAINT_EMAIL_WEBHOOK");
   const recipient = settings.complaintEmail || Netlify.env.get("COMPLAINT_EMAIL_TO") || "";
   if (!webhook || !recipient) return { sent: false, reason: "webhook_or_recipient_missing" };
@@ -66,7 +67,7 @@ async function sendComplaintEmailCopy(complaint: Complaint, html: string) {
 }
 
 export default async (req: Request) => {
-  const store = getStore("complaints");
+  const store = getEnvironmentStore("complaints", { consistency: "strong" });
   const items = ((await store.get("items", { type: "json" })) as Complaint[] | null) || [];
 
   if (req.method === "GET") {
@@ -77,7 +78,7 @@ export default async (req: Request) => {
   }
 
   if (req.method === "POST") {
-    const settings = ((await getStore("settings").get("site", { type: "json" })) as { complaintWhatsappNumber?: string } | null) || {};
+    const settings = ((await getEnvironmentStore("settings").get("site", { type: "json" })) as { complaintWhatsappNumber?: string } | null) || {};
     const body = (await req.json().catch(() => ({}))) as Partial<Complaint>;
     const requestedBrand = clean(body.brand, 30) as keyof typeof BRAND_PREFIX;
     const brand = requestedBrand in BRAND_PREFIX ? requestedBrand : "Boudl";
@@ -103,6 +104,13 @@ export default async (req: Request) => {
     if (!complaint.branch || !complaint.mainCategory || !complaint.guestName || !complaint.contactMobile) {
       return json({ error: "Missing required complaint fields" }, 400);
     }
+    const contactDigits = complaint.contactMobile.replace(/\D/g, "");
+    const bookingDigits = complaint.bookingMobile.replace(/\D/g, "");
+    if (contactDigits.length < 8 || contactDigits.length > 15 || (bookingDigits && (bookingDigits.length < 8 || bookingDigits.length > 15))) {
+      return json({ error: "Invalid complaint phone number" }, 400);
+    }
+    complaint.contactMobile = contactDigits;
+    complaint.bookingMobile = bookingDigits;
 
     items.unshift(complaint);
     await store.setJSON("items", items.slice(0, 5000));
@@ -149,4 +157,12 @@ export default async (req: Request) => {
   }
 
   return json({ error: "Method not allowed" }, 405);
+};
+
+export const config: Config = {
+  rateLimit: {
+    windowLimit: 10,
+    windowSize: 60,
+    aggregateBy: ["ip"],
+  },
 };

@@ -1,5 +1,5 @@
-import { getStore } from "@netlify/blobs";
 import { updateBookingPhoneArchive, type PhoneArchiveStatus } from "./bookingPhoneArchive";
+import { getEnvironmentStore } from "./storage";
 
 export type BookingRecord = Record<string, string>;
 export type BookingSourceFormat = "csv" | "uno-spreadsheetml";
@@ -232,9 +232,9 @@ const reservationNumber = (record: BookingRecord) => getRecordValue(record, [
 
 export const classifyImportedBookingStatus = (status: string): "confirmed" | "cancelled" | "ignored" => {
   const normalized = status.trim().toUpperCase();
-  if (["M", "O", "N", "I"].includes(normalized)) return "confirmed";
+  if (["1", "3", "M", "O", "N", "I"].includes(normalized)) return "confirmed";
   if (["C", "NS"].includes(normalized)) return "cancelled";
-  if (/^CONFIRMED?$/i.test(status.trim()) || /^مؤكد$/i.test(status.trim())) return "confirmed";
+  if (/^CONFIRMED?$/i.test(status.trim()) || /^(MODIFIED|MODIFY)$/i.test(status.trim()) || /^(مؤكد|معدل|معدّل)$/i.test(status.trim())) return "confirmed";
   if (/CANCEL|NO[\s-]?SHOW|ملغي|ملغى|إلغاء|الغاء/i.test(status)) return "cancelled";
   return "ignored";
 };
@@ -430,11 +430,26 @@ const saveParsedBookingReport = async (parsed: ParsedBookingReport, options: Boo
     ? await updateBookingPhoneArchive(parsed.bookings, options.archivePeriod.from, options.archivePeriod.to)
     : undefined;
   if (options.updateCurrent !== false) {
-    const store = getStore("bookings");
+    const store = getEnvironmentStore("bookings", { consistency: "strong" });
     await store.setJSON("data", parsed.bookings);
     await store.setJSON("stats", stats);
   }
   return { ...stats, ...(archive ? { archive } : {}) };
+};
+
+export const saveBookingRecords = async (
+  bookings: BookingRecord[],
+  fileName = "uno-live-api.csv",
+  options: BookingSaveOptions = {},
+): Promise<BookingSaveResult> => {
+  const deduplicated = deduplicateUnoRecords(bookings);
+  return saveParsedBookingReport({
+    bookings: deduplicated.bookings,
+    sourceFormat: "csv",
+    sourceFileName: safeSourceName(fileName),
+    sourceRows: bookings.length,
+    duplicateReservations: deduplicated.duplicates,
+  }, options);
 };
 
 export const saveBookingReportText = async (

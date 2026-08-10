@@ -76,16 +76,36 @@ export type BookingUploadResponse = {
   stats: BookingReportStats;
 };
 
+export type UnoReportFilters = {
+  dateType: "booking" | "checkin" | "checkout";
+  from: string;
+  to: string;
+  property: string;
+  status: "all" | "confirmed" | "cancelled" | "modified";
+};
+
 export type UnoConnectionStatus = {
   configured: boolean;
   loginUrl: string;
   phase: "idle" | "otp" | "connected";
   connected: boolean;
+  automaticSyncEnabled: boolean;
   pendingUntil?: string;
   resendAt?: string;
   expiresAt?: string;
+  verifiedAt?: string;
   accountName?: string;
   propertyCount?: number;
+  reportFilters?: UnoReportFilters;
+  reportReady?: boolean;
+  reportError?: string;
+  lastExportAt?: string;
+  lastExportCount?: number;
+  lastExportSource?: "automatic" | "manual";
+  productivityReady?: boolean;
+  productivityUpdatedAt?: string;
+  productivityRecords?: number;
+  productivityEmployees?: number;
 };
 
 export type UnoSearchField = "phone" | "pms" | "uno";
@@ -95,7 +115,9 @@ export type UnoReservation = {
   pmsNumber: string;
   phone: string;
   guestName: string;
+  agentName: string;
   property: string;
+  city: string;
   status: string;
   checkIn: string;
   checkOut: string;
@@ -110,6 +132,13 @@ export type UnoSearchResponse = {
   total: number;
   searchedAt: string;
   syncedAt?: string;
+  reportReady?: boolean;
+  reportFilters?: UnoReportFilters;
+  reportError?: string;
+  productivityReady?: boolean;
+  productivityUpdatedAt?: string;
+  productivityRecords?: number;
+  productivityEmployees?: number;
 };
 
 export type UnoSnapshotQuery = {
@@ -139,6 +168,27 @@ export type UnoSnapshotResponse = {
     cancelled: number;
     other: number;
   };
+};
+
+export type AiMaintenanceFocus = "uno" | "security" | "ui" | "errors" | "custom";
+
+export type AiMaintenanceReview = {
+  id: string;
+  focus: AiMaintenanceFocus;
+  request: string;
+  report: string;
+  model: string;
+  createdAt: string;
+  requestedBy: string;
+  source: "manual" | "daily";
+  executionMode: "review_required";
+};
+
+export type AiMaintenanceStatus = {
+  configured: boolean;
+  executionMode: "review_required";
+  latest: AiMaintenanceReview | null;
+  history: AiMaintenanceReview[];
 };
 
 export type ContactRequest = {
@@ -375,12 +425,7 @@ const fetchPublicBookingReport = async (fresh = false): Promise<PublicBookingRep
   }
 };
 
-const getToken = (): string | null => (typeof window === "undefined" ? null : sessionStorage.getItem("admin_token"));
-
-const authHeaders = (): Record<string, string> => {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+const authHeaders = (): Record<string, string> => ({});
 
 const unoAction = async <T>(payload: Record<string, unknown>): Promise<T> => {
   const res = await fetch("/api/admin/uno", {
@@ -402,14 +447,11 @@ export const api = {
     });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "فشل تسجيل الدخول");
     const data = await res.json();
-    sessionStorage.setItem("admin_token", data.token);
     sessionStorage.setItem("admin_session", JSON.stringify({ username: data.username, role: data.role }));
     return data;
   },
 
   async validateSession() {
-    const token = getToken();
-    if (!token) return null;
     const res = await fetch(`${API_BASE}/auth`, { headers: authHeaders() });
     if (!res.ok) return null;
     return res.json();
@@ -417,7 +459,6 @@ export const api = {
 
   async logout() {
     await fetch(`${API_BASE}/auth`, { method: "DELETE", headers: authHeaders() }).catch(() => null);
-    sessionStorage.removeItem("admin_token");
     sessionStorage.removeItem("admin_session");
   },
 
@@ -563,8 +604,8 @@ export const api = {
     return data;
   },
 
-  async connectUno() {
-    return unoAction<UnoConnectionStatus>({ action: "connect" });
+  async connectUno(filters?: UnoReportFilters) {
+    return unoAction<UnoConnectionStatus>({ action: "connect", ...(filters ? { filters } : {}) });
   },
 
   async verifyUno(otp: string) {
@@ -585,6 +626,10 @@ export const api = {
 
   async listUnoReservations() {
     return unoAction<UnoSearchResponse>({ action: "list" });
+  },
+
+  async exportUnoReport(filters?: UnoReportFilters) {
+    return unoAction<UnoSearchResponse>({ action: "export", ...(filters ? { filters } : {}) });
   },
 
   async getUnoSnapshot(query: UnoSnapshotQuery = {}) {
@@ -719,7 +764,7 @@ export const api = {
     message: string,
     sessionId?: string,
     history?: Array<{ role: string; content: string }>,
-  ): Promise<{ reply: string; sessionId?: string }> {
+  ): Promise<{ reply: string; sessionId?: string; model?: string; provider?: string }> {
     const res = await fetch(`${API_BASE}/ai-chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -727,5 +772,22 @@ export const api = {
     });
     if (!res.ok) throw new Error("تعذر الوصول إلى المساعد الذكي");
     return res.json();
+  },
+
+  async getAiMaintenance() {
+    const res = await fetch(`${API_BASE}/ai-maintenance`, { headers: authHeaders(), cache: "no-store" });
+    if (!res.ok) throw new Error("تعذر تحميل الفحص الذكي");
+    return res.json() as Promise<AiMaintenanceStatus>;
+  },
+
+  async runAiMaintenance(focus: AiMaintenanceFocus, request: string) {
+    const res = await fetch(`${API_BASE}/ai-maintenance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ focus, request }),
+    });
+    const data = await res.json().catch(() => ({})) as { review?: AiMaintenanceReview; error?: string };
+    if (!res.ok || !data.review) throw new Error(data.error || "تعذر تنفيذ الفحص الذكي");
+    return data.review;
   },
 };

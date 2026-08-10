@@ -176,6 +176,45 @@ footer {
   border-color: rgba(155, 121, 75, 0.28);
 }
 
+.admin-tool-card {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid rgba(7, 83, 63, 0.12);
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 12px;
+  color: #1d1d1f;
+  text-align: right;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.admin-tool-card:hover {
+  border-color: rgba(7, 83, 63, 0.32);
+  box-shadow: 0 8px 24px rgba(7, 83, 63, 0.07);
+}
+
+.admin-tool-card:active {
+  transform: scale(0.99);
+}
+
+.admin-tool-card__icon {
+  display: grid;
+  height: 40px;
+  width: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  color: #07533f;
+  background: #edf7f3;
+}
+
+.admin-tool-card strong {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .text-muted-foreground {
   color: #6e6e73 !important;
 }

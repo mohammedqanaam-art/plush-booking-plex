@@ -208,7 +208,7 @@ const AdminShiftStartTools = () => {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-red-500/10 text-red-600"><PhoneMissed className="h-5 w-5" /></span>
-            <div><h2 className="section-title">2. تنظيف المكالمات المفقودة</h2><p className="mt-1 text-xs text-muted-foreground">يقرأ علامة Answered من PDF نفسه، يحتفظ بـ FALSE فقط، ثم يحذف القصير والمكرر حسب رقم المتصل.</p></div>
+            <div><h2 className="section-title">2. تنظيف المكالمات المفقودة</h2><p className="mt-1 text-xs text-muted-foreground">يحتفظ بـ FALSE فقط، ثم يقبل أرقام الجوال المحلية 05 / 5 فقط ويحذف القصير والمكرر.</p></div>
           </div>
           {missedReport ? <button type="button" onClick={resetMissed} className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/50 px-3 text-xs font-bold"><RefreshCcw className="h-3.5 w-3.5" /> تغيير الملف</button> : null}
         </div>
@@ -229,6 +229,7 @@ const AdminShiftStartTools = () => {
                   ["الإجمالي", filteredMissed.total, ""],
                   ["FALSE", filteredMissed.falseCalls, "text-sky-700 dark:text-sky-300"],
                   ["Answered محذوف", filteredMissed.answeredRemoved, "text-amber-700 dark:text-amber-300"],
+                  ["رقم وهمي محذوف", filteredMissed.invalidPhoneRemoved, "text-red-700 dark:text-red-300"],
                   ["مكرر محذوف", filteredMissed.duplicateRemoved, "text-fuchsia-700 dark:text-fuchsia-300"],
                   ["القائمة النهائية", filteredMissed.calls.length, "text-emerald-700 dark:text-emerald-300"],
                 ].map(([label, value, valueClass]) => <article key={String(label)} className="compact-card"><p className="text-[11px] text-muted-foreground">{label}</p><p className={`mt-2 text-2xl font-black ${valueClass}`}>{Number(value).toLocaleString("ar-SA")}</p></article>)}
@@ -237,7 +238,7 @@ const AdminShiftStartTools = () => {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/15 bg-secondary/20 p-3">
-              <p className="text-xs text-muted-foreground">القصيرة المحذوفة: <strong className="text-foreground">{filteredMissed.shortRemoved.toLocaleString("ar-SA")}</strong> · عند التكرار نحتفظ بأول مكالمة للرقم للحفاظ على أقدم وقت متابعة.</p>
+              <p className="text-xs text-muted-foreground">القصيرة المحذوفة: <strong className="text-foreground">{filteredMissed.shortRemoved.toLocaleString("ar-SA")}</strong> · الأرقام المقبولة تُوحّد إلى 05xxxxxxxx · وعند التكرار نحتفظ بأول مكالمة للحفاظ على أقدم وقت متابعة.</p>
               <div className="flex flex-wrap gap-2">
                 <button type="button" disabled={!!exporting || !filteredMissed.calls.length} onClick={() => void runExport("pdf")} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#173e35] px-4 text-xs font-black text-white shadow-sm disabled:opacity-45">{exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />} تنزيل أ.pdf</button>
                 <button type="button" disabled={!!exporting || !filteredMissed.calls.length} onClick={() => void runExport("excel")} className="inline-flex h-11 items-center gap-2 rounded-xl border border-primary/25 bg-primary/8 px-4 text-xs font-black text-primary disabled:opacity-45">{exporting === "excel" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Excel للمتابعة</button>

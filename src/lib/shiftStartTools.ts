@@ -92,6 +92,7 @@ export type MissedCallsFilterResult = {
   falseCalls: number;
   answeredRemoved: number;
   shortRemoved: number;
+  invalidPhoneRemoved: number;
   duplicateRemoved: number;
   shortThresholdSeconds: number;
 };
@@ -233,23 +234,29 @@ export const loadAbandonedCallsPdf = async (file: File): Promise<AbandonedCallsR
 };
 
 const normalizePhone = (value: string) => {
-  const digits = value.replace(/\D/g, "");
-  if (/^009665\d{8}$/.test(digits)) return `0${digits.slice(5)}`;
-  if (/^9665\d{8}$/.test(digits)) return `0${digits.slice(3)}`;
-  if (/^5\d{8}$/.test(digits)) return `0${digits}`;
-  return digits;
+  const local = value.trim().replace(/[\s\-()]/g, "");
+  if (!/^\d+$/.test(local)) return "";
+  if (/^5\d{8}$/.test(local)) return `0${local}`;
+  return local;
+};
+
+export const normalizeSaudiMobileForFollowup = (value: string) => {
+  const normalized = normalizePhone(value);
+  return /^05\d{8}$/.test(normalized) ? normalized : "";
 };
 
 export const filterMissedCalls = (report: AbandonedCallsReport, shortThresholdSeconds = 30): MissedCallsFilterResult => {
   const threshold = Math.max(0, Math.round(shortThresholdSeconds));
   const falseCalls = report.calls.filter((call) => !call.answered);
   const longEnough = falseCalls.filter((call) => call.durationSeconds === 0 || call.durationSeconds >= threshold);
+  const validPhones = longEnough.flatMap((call) => {
+    const phone = normalizeSaudiMobileForFollowup(call.externalParty);
+    return phone ? [{ ...call, externalParty: phone }] : [];
+  });
   const seen = new Set<string>();
-  const calls = longEnough.filter((call) => {
-    const phone = normalizePhone(call.externalParty);
-    if (!phone) return true;
-    if (seen.has(phone)) return false;
-    seen.add(phone);
+  const calls = validPhones.filter((call) => {
+    if (seen.has(call.externalParty)) return false;
+    seen.add(call.externalParty);
     return true;
   });
   return {
@@ -258,7 +265,8 @@ export const filterMissedCalls = (report: AbandonedCallsReport, shortThresholdSe
     falseCalls: falseCalls.length,
     answeredRemoved: report.calls.length - falseCalls.length,
     shortRemoved: falseCalls.length - longEnough.length,
-    duplicateRemoved: longEnough.length - calls.length,
+    invalidPhoneRemoved: longEnough.length - validPhones.length,
+    duplicateRemoved: validPhones.length - calls.length,
     shortThresholdSeconds: threshold,
   };
 };
@@ -296,7 +304,7 @@ export const exportMissedCallsExcel = async (result: MissedCallsFilterResult, re
   sheet.mergeCells("A6:H6");
   sheet.getCell("A6").value = `${report.rangeStart}${report.rangeEnd ? ` - ${report.rangeEnd}` : ""}`;
   sheet.mergeCells("A7:H7");
-  sheet.getCell("A7").value = `FALSE: ${result.falseCalls} | النهائي: ${result.calls.length} | مكرر محذوف: ${result.duplicateRemoved} | قصير محذوف: ${result.shortRemoved}`;
+  sheet.getCell("A7").value = `FALSE: ${result.falseCalls} | النهائي: ${result.calls.length} | رقم غير صالح: ${result.invalidPhoneRemoved} | مكرر: ${result.duplicateRemoved} | قصير: ${result.shortRemoved}`;
   sheet.getRow(8).values = ["Call ID", "Internal Party", "External", "حالة المتابعة", "Answered", "Date", "Start Time", "Call Duration"];
   result.calls.forEach((call) => {
     const row = sheet.addRow([`Call ID: ${call.id}`, call.internalParty, call.externalParty, "", "FALSE", call.date, call.startTime, call.duration]);

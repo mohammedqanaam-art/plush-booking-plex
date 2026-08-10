@@ -6,13 +6,19 @@ export type AdminSession = {
   role: UserRole;
 };
 
+const USER_ROLES: UserRole[] = ["superadmin", "admin", "editor", "viewer"];
+
 export const getAdminSession = (): AdminSession | null => {
   if (typeof window === "undefined") return null;
   const stored = sessionStorage.getItem("admin_session");
   if (!stored) return null;
   try {
     const parsed = JSON.parse(stored);
-    if (parsed?.username && parsed?.role) return parsed as AdminSession;
+    if (
+      typeof parsed?.username === "string"
+      && parsed.username.trim()
+      && USER_ROLES.includes(parsed.role)
+    ) return { username: parsed.username.trim(), role: parsed.role };
   } catch {
     // invalid JSON
   }
@@ -21,7 +27,6 @@ export const getAdminSession = (): AdminSession | null => {
 
 export const clearAdminSession = () => {
   if (typeof window === "undefined") return;
-  sessionStorage.removeItem("admin_token");
   sessionStorage.removeItem("admin_session");
 };
 

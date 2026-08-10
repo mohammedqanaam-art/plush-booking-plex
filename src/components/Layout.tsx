@@ -1,10 +1,11 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, Building2, LayoutDashboard, PhoneCall, Search } from "lucide-react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { BarChart3, Building2, LayoutDashboard, PhoneCall, Search, ShieldCheck } from "lucide-react";
 import BottomNav from "./BottomNav";
 import RiyadhClock from "./RiyadhClock";
 import ViewerPreferences from "./ViewerPreferences";
 import AnalyticsTracker from "./AnalyticsTracker";
 import BrandFooter from "./BrandFooter";
+import AiChat from "./AiChat";
 
 const desktopNav = [
   { to: "/", label: "الرئيسية", icon: LayoutDashboard },
@@ -50,6 +51,17 @@ const Layout = () => {
           </nav> : null}
 
           <div className="flex items-center gap-2 shrink-0 mr-auto md:mr-0">
+            {!isAdminArea ? (
+              <Link
+                to="/admin"
+                className="admin-entry-link"
+                aria-label="لوحة مدير ومشرفين إدارة الحجز"
+                title="لوحة مدير ومشرفين إدارة الحجز"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                <span className="hidden xl:inline">لوحة مدير ومشرفين إدارة الحجز</span>
+              </Link>
+            ) : null}
             <div className="hidden lg:block">
               <RiyadhClock />
             </div>
@@ -72,6 +84,7 @@ const Layout = () => {
       ) : null}
 
       {!isAdminArea ? <BottomNav /> : null}
+      {isAdminArea && location.pathname !== "/admin/login" ? <AiChat /> : null}
     </div>
   );
 };

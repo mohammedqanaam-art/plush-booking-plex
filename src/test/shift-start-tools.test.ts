@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildNightCoverage,
   filterMissedCalls,
+  normalizeSaudiMobileForFollowup,
   parseAbandonedCallsPages,
   projectedCoverageEnd,
   type AbandonedCallsReport,
@@ -84,21 +85,37 @@ describe("Abandoned Calls filtering", () => {
     expect(report.calls[1].answered).toBe(true);
   });
 
-  it("keeps FALSE, removes sub-30-second calls and de-duplicates Saudi phone formats", () => {
+  it("keeps only valid 05/5 mobile numbers, removes short calls and de-duplicates Saudi formats", () => {
     const report: AbandonedCallsReport = {
       rangeStart: "start",
       rangeEnd: "end",
       calls: [
         { id: "1", internalParty: "A", externalParty: "0551234567", sourceEvent: "Queue", answered: false, date: "d", startTime: "1", endTime: "", duration: "0:01:00", durationSeconds: 60 },
-        { id: "2", internalParty: "A", externalParty: "966551234567", sourceEvent: "Queue", answered: false, date: "d", startTime: "2", endTime: "", duration: "0:02:00", durationSeconds: 120 },
+        { id: "2", internalParty: "A", externalParty: "551234567", sourceEvent: "Queue", answered: false, date: "d", startTime: "2", endTime: "", duration: "0:02:00", durationSeconds: 120 },
         { id: "3", internalParty: "A", externalParty: "0500000000", sourceEvent: "Queue", answered: false, date: "d", startTime: "3", endTime: "", duration: "0:00:20", durationSeconds: 20 },
         { id: "4", internalParty: "A", externalParty: "0500000001", sourceEvent: "Hold", answered: true, date: "d", startTime: "4", endTime: "", duration: "0:01:00", durationSeconds: 60 },
+        { id: "5", internalParty: "A", externalParty: "920000666", sourceEvent: "Queue", answered: false, date: "d", startTime: "5", endTime: "", duration: "0:01:00", durationSeconds: 60 },
+        { id: "6", internalParty: "A", externalParty: "BERIRA2024", sourceEvent: "Queue", answered: false, date: "d", startTime: "6", endTime: "", duration: "0:01:00", durationSeconds: 60 },
+        { id: "7", internalParty: "A", externalParty: "551234568", sourceEvent: "Queue", answered: false, date: "d", startTime: "7", endTime: "", duration: "0:01:00", durationSeconds: 60 },
       ],
     };
     const result = filterMissedCalls(report, 30);
-    expect(result.calls.map((call) => call.id)).toEqual(["1"]);
+    expect(result.calls.map((call) => call.id)).toEqual(["1", "7"]);
+    expect(result.calls.map((call) => call.externalParty)).toEqual(["0551234567", "0551234568"]);
     expect(result.answeredRemoved).toBe(1);
     expect(result.shortRemoved).toBe(1);
+    expect(result.invalidPhoneRemoved).toBe(2);
     expect(result.duplicateRemoved).toBe(1);
+  });
+
+  it("accepts only local 05/5 mobile formats and rejects fake or international caller identifiers", () => {
+    expect(normalizeSaudiMobileForFollowup("055 123 4567")).toBe("0551234567");
+    expect(normalizeSaudiMobileForFollowup("551234567")).toBe("0551234567");
+    expect(normalizeSaudiMobileForFollowup("+966 55 123 4567")).toBe("");
+    expect(normalizeSaudiMobileForFollowup("00966 55 123 4567")).toBe("");
+    expect(normalizeSaudiMobileForFollowup("920000666")).toBe("");
+    expect(normalizeSaudiMobileForFollowup("BERIRA2024")).toBe("");
+    expect(normalizeSaudiMobileForFollowup("X0551234567")).toBe("");
+    expect(normalizeSaudiMobileForFollowup("55123")).toBe("");
   });
 });

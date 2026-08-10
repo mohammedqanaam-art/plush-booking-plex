@@ -2,7 +2,8 @@ import type { ThemeVars } from "@/theme/enterpriseThemeTypes";
 
 export const applyTheme = (preset: ThemeVars) => {
   const root = document.documentElement;
-  const mode = root.dataset.theme === "dark" ? "dark" : "light";
+  const mode = "light";
+  if (root.dataset.theme !== "light") root.dataset.theme = "light";
 
   root.style.setProperty("--background", mode === "light" ? preset.backgroundLight : preset.backgroundDark);
   root.style.setProperty("--foreground", mode === "light" ? preset.foregroundLight : preset.foregroundDark);

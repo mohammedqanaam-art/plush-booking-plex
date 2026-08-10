@@ -109,9 +109,9 @@ const getStatus = (record: BookingRecord) =>
   ]).trim().toUpperCase();
 
 const classifyStatus = (status: string): "confirmed" | "cancelled" | "ignored" => {
-  if (["M", "O", "N", "I"].includes(status)) return "confirmed";
+  if (["1", "3", "M", "O", "N", "I"].includes(status)) return "confirmed";
   if (["C", "NS"].includes(status)) return "cancelled";
-  if (/^CONFIRMED?$/i.test(status) || /^مؤكد$/i.test(status)) return "confirmed";
+  if (/^CONFIRMED?$/i.test(status) || /^(MODIFIED|MODIFY)$/i.test(status) || /^(مؤكد|معدل|معدّل)$/i.test(status)) return "confirmed";
   if (/CANCEL|NO[\s-]?SHOW|ملغي|ملغى|إلغاء|الغاء/i.test(status)) return "cancelled";
   return "ignored";
 };

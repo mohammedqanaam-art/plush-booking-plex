@@ -1,8 +1,11 @@
 import type { Config, Context } from "@netlify/functions";
+import { createHash } from "node:crypto";
 
 export default async (req: Request, context: Context) => {
-  const secret = Netlify.env.get("UNO_SYNC_SECRET")?.trim();
-  if (!secret) return new Response(null, { status: 204 });
+  const password = Netlify.env.get("UNO_PASSWORD") || Netlify.env.get("UNO_LOGIN_PASSWORD") || "";
+  if (!password) return new Response(null, { status: 204 });
+  const configuredSecret = Netlify.env.get("UNO_SYNC_SECRET")?.trim();
+  const secret = configuredSecret || createHash("sha256").update(`uno-sync:${password}`).digest("hex");
 
   const origin = context.site.url || new URL(req.url).origin;
   const endpoint = new URL("/api/admin/uno", origin);

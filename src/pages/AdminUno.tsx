@@ -4,6 +4,7 @@ import {
   CalendarCheck2,
   CalendarClock,
   CheckCircle2,
+  ClipboardCopy,
   Copy,
   Database,
   ExternalLink,
@@ -19,9 +20,11 @@ import PageHeader from "@/components/PageHeader";
 import {
   api,
   type UnoConnectionStatus,
+  type UnoReportFilters,
   type UnoReservation,
   type UnoSearchField,
 } from "@/lib/api";
+import { buildOperaExport, normalizeUnoNumber } from "@/lib/unoOperaExport";
 
 const searchFields: Array<{ value: UnoSearchField; label: string; placeholder: string }> = [
   { value: "phone", label: "رقم التواصل", placeholder: "05xxxxxxxx" },
@@ -74,7 +77,7 @@ const dateKey = (value: string) => {
 const reservationState = (status: string) => {
   const normalized = status.trim().toLocaleLowerCase("en");
   if (["c", "ns"].includes(normalized) || /ملغ|عدم حضور|cancel|no[\s-]?show/.test(normalized)) return "cancelled";
-  if (["m", "o", "n", "i"].includes(normalized) || /مؤكد|confirm/.test(normalized)) return "confirmed";
+  if (["1", "3", "m", "o", "n", "i"].includes(normalized) || /مؤكد|معدل|معدّل|confirm|modif/.test(normalized)) return "confirmed";
   return "other";
 };
 
@@ -89,6 +92,14 @@ const AdminUno = () => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UnoReservation[] | null>(null);
   const [snapshotSyncedAt, setSnapshotSyncedAt] = useState<string | null>(null);
+  const [snapshotTotal, setSnapshotTotal] = useState(0);
+  const [snapshotSource, setSnapshotSource] = useState<"automatic" | "manual" | null>(null);
+  const reportToday = riyadhToday();
+  const [reportDateType, setReportDateType] = useState<UnoReportFilters["dateType"]>("booking");
+  const [reportFrom, setReportFrom] = useState(`${reportToday.slice(0, 7)}-01`);
+  const [reportTo, setReportTo] = useState(reportToday);
+  const [reportProperty, setReportProperty] = useState("all");
+  const [reportStatus, setReportStatus] = useState<UnoReportFilters["status"]>("all");
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
   const [resultQuery, setResultQuery] = useState("");
   const [propertyFilter, setPropertyFilter] = useState("all");
@@ -96,7 +107,16 @@ const AdminUno = () => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [copiedKey, setCopiedKey] = useState("");
+  const [operaBatchSize, setOperaBatchSize] = useState<250 | 500>(250);
   const [now, setNow] = useState(Date.now());
+
+  const reportFilters = useMemo<UnoReportFilters>(() => ({
+    dateType: reportDateType,
+    from: reportFrom,
+    to: reportTo,
+    property: reportProperty,
+    status: reportStatus,
+  }), [reportDateType, reportFrom, reportProperty, reportStatus, reportTo]);
 
   useEffect(() => {
     api.getUnoConnection()
@@ -107,9 +127,23 @@ const AdminUno = () => {
       });
 
     api.getUnoSnapshot({ limit: 1 })
-      .then((snapshot) => setSnapshotSyncedAt(snapshot.syncedAt))
+      .then((snapshot) => {
+        setSnapshotSyncedAt(snapshot.syncedAt);
+        setSnapshotTotal(snapshot.summary.total);
+        setSnapshotSource(snapshot.source);
+      })
       .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    const filters = status?.reportFilters;
+    if (!filters) return;
+    setReportDateType(filters.dateType);
+    setReportFrom(filters.from);
+    setReportTo(filters.to);
+    setReportProperty(filters.property);
+    setReportStatus(filters.status);
+  }, [status?.reportFilters]);
 
   useEffect(() => {
     if (status?.phase !== "otp") return undefined;
@@ -137,7 +171,28 @@ const AdminUno = () => {
     try {
       const next = await action();
       setStatus(next);
-      setMessage(next.phase === "otp" ? "تم إرسال رمز التحقق." : successMessage);
+      if (next.phase === "otp") {
+        setMessage("تم إرسال رمز التحقق من UNO. أدخل الرمز لإكمال الجلسة وجلب التقرير.");
+      } else if (next.phase === "connected" && next.reportReady) {
+        const snapshot = await api.getUnoSnapshot({ limit: 5_000 });
+        setResults(snapshot.reservations);
+        setSnapshotSyncedAt(snapshot.syncedAt);
+        setSnapshotTotal(snapshot.summary.total);
+        setSnapshotSource(snapshot.source);
+        if (next.productivityReady) {
+          setMessage(`تم التحقق من OTP وتحديث تقرير الإنتاجية من UNO: ${(next.productivityRecords ?? snapshot.summary.total).toLocaleString("ar-SA")} سجل · ${(next.productivityEmployees ?? 0).toLocaleString("ar-SA")} موظف.`);
+        } else if (next.reportError) {
+          setFailed(true);
+          setMessage(`تم التحقق من UNO وجلب ${snapshot.summary.total.toLocaleString("ar-SA")} حجزًا، لكن ${next.reportError}`);
+        } else {
+          setMessage(`تم التحقق من UNO وجلب ${snapshot.summary.total.toLocaleString("ar-SA")} حجزًا.`);
+        }
+      } else if (next.phase === "connected" && next.reportError) {
+        setFailed(true);
+        setMessage(next.reportError);
+      } else {
+        setMessage(successMessage);
+      }
       if (next.phase !== "otp") setOtp("");
       if (next.phase !== "connected") setResults(null);
     } catch (error) {
@@ -176,6 +231,8 @@ const AdminUno = () => {
         limit: 5_000,
       });
       setSnapshotSyncedAt(snapshot.syncedAt);
+      setSnapshotTotal(snapshot.summary.total);
+      setSnapshotSource(snapshot.source);
       resetResultFilters();
 
       if (snapshot.reservations.length || status?.phase !== "connected") {
@@ -203,6 +260,8 @@ const AdminUno = () => {
       const snapshot = await api.getUnoSnapshot({ limit: 5_000 });
       setResults(snapshot.reservations);
       setSnapshotSyncedAt(snapshot.syncedAt);
+      setSnapshotTotal(snapshot.summary.total);
+      setSnapshotSource(snapshot.source);
       resetResultFilters();
       setMessage(snapshot.total ? "" : "لا توجد بيانات UNO متزامنة حتى الآن.");
     } catch (error) {
@@ -218,11 +277,33 @@ const AdminUno = () => {
     setFailed(false);
     setMessage("");
     try {
-      const response = await api.listUnoReservations();
+      const response = await api.exportUnoReport(reportFilters);
       setResults(response.reservations);
       setSnapshotSyncedAt(response.syncedAt || response.searchedAt);
+      setSnapshotTotal(response.total);
+      setSnapshotSource("manual");
+      setStatus((current) => current ? {
+        ...current,
+        reportReady: true,
+        lastExportAt: response.syncedAt || response.searchedAt,
+        lastExportCount: response.total,
+        lastExportSource: "manual",
+        reportFilters: response.reportFilters || reportFilters,
+        productivityReady: response.productivityReady,
+        productivityUpdatedAt: response.productivityUpdatedAt,
+        productivityRecords: response.productivityRecords,
+        productivityEmployees: response.productivityEmployees,
+        reportError: response.reportError,
+      } : current);
       resetResultFilters();
-      setMessage(response.total ? "تم تحديث سجل UNO." : "لا توجد حجوزات متاحة.");
+      if (response.productivityReady) {
+        setMessage(`تم تصدير بيانات UNO وتحديث تقرير الإنتاجية: ${(response.productivityRecords ?? response.total).toLocaleString("ar-SA")} سجل · ${(response.productivityEmployees ?? 0).toLocaleString("ar-SA")} موظف.`);
+      } else if (response.reportError) {
+        setFailed(true);
+        setMessage(`تم جلب ${response.total.toLocaleString("ar-SA")} حجزًا، لكن ${response.reportError}`);
+      } else {
+        setMessage(`تم جلب ${response.total.toLocaleString("ar-SA")} حجزًا من UNO.`);
+      }
     } catch (error) {
       setFailed(true);
       setMessage(error instanceof Error ? error.message : "تعذر تحديث حجوزات UNO.");
@@ -272,7 +353,9 @@ const AdminUno = () => {
         reservation.pmsNumber,
         reservation.phone,
         reservation.guestName,
+        reservation.agentName,
         reservation.property,
+        reservation.city,
         reservation.status,
       ].some((value) => value.toLocaleLowerCase("ar").includes(searchText));
     });
@@ -283,8 +366,10 @@ const AdminUno = () => {
       `UNO: ${reservation.unoNumber || "—"}`,
       `PMS: ${reservation.pmsNumber || "—"}`,
       `الضيف: ${reservation.guestName || "—"}`,
+      `الموظف: ${reservation.agentName || "—"}`,
       `التواصل: ${reservation.phone || "—"}`,
       `الفرع: ${reservation.property || "—"}`,
+      `المدينة: ${reservation.city || "—"}`,
       `الحالة: ${reservation.status || "—"}`,
       `الوصول: ${displayDate(reservation.checkIn)}`,
       `المغادرة: ${displayDate(reservation.checkOut)}`,
@@ -319,7 +404,9 @@ const AdminUno = () => {
         { header: "رقم PMS", key: "pmsNumber", width: 20 },
         { header: "رقم التواصل", key: "phone", width: 18 },
         { header: "العميل", key: "guestName", width: 24 },
+        { header: "Agent Name", key: "agentName", width: 24 },
         { header: "المنشأة", key: "property", width: 26 },
+        { header: "المدينة", key: "city", width: 16 },
         { header: "الحالة", key: "status", width: 16 },
         { header: "الوصول", key: "checkIn", width: 16 },
         { header: "المغادرة", key: "checkOut", width: 16 },
@@ -332,9 +419,9 @@ const AdminUno = () => {
       const header = worksheet.getRow(1);
       header.height = 24;
       header.font = { bold: true, color: { argb: "FFFFFFFF" } };
-      header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF17243A" } };
+      header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF07533F" } };
       header.alignment = { horizontal: "center", vertical: "middle" };
-      worksheet.autoFilter = { from: "A1", to: "L1" };
+      worksheet.autoFilter = { from: "A1", to: "N1" };
       worksheet.views = [{ rightToLeft: true, state: "frozen", ySplit: 1 }];
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([new Uint8Array(buffer)], {
@@ -349,6 +436,117 @@ const AdminUno = () => {
     } catch {
       setFailed(true);
       setMessage("تعذر تصدير الملف.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const exportOperaBatches = async () => {
+    if (!visibleResults.length) return;
+    setBusy("opera-export");
+    setFailed(false);
+    setMessage("");
+    try {
+      const prepared = buildOperaExport(visibleResults, operaBatchSize);
+      if (!prepared.eligible) {
+        setFailed(true);
+        setMessage("لا توجد حجوزات مؤكدة أو معدلة صالحة للتصدير إلى OPERA.");
+        return;
+      }
+
+      const { default: ExcelJS } = await import("exceljs");
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "RES Dashboard";
+      workbook.created = new Date();
+
+      const summary = workbook.addWorksheet("SUMMARY", { views: [{ rightToLeft: true }] });
+      summary.columns = [
+        { header: "البيان", key: "label", width: 30 },
+        { header: "القيمة", key: "value", width: 22 },
+      ];
+      summary.addRows([
+        { label: "حجوزات السعودية", value: prepared.saudi.numbers.length },
+        { label: "حجوزات الكويت", value: prepared.kuwait.numbers.length },
+        { label: "الإجمالي الجاهز", value: prepared.eligible },
+        { label: "حجم الدفعة", value: operaBatchSize },
+        { label: "التكرارات المستبعدة", value: prepared.duplicateReservations },
+        { label: "الأرقام غير الصالحة", value: prepared.invalidReservations },
+        { label: "الحالات المستبعدة", value: prepared.excludedStatuses },
+      ]);
+
+      const addBatchSheet = (name: string, batches: typeof prepared.saudi.batches) => {
+        const sheet = workbook.addWorksheet(name, { views: [{ rightToLeft: true, state: "frozen", ySplit: 1 }] });
+        sheet.columns = [
+          { header: "الدفعة", key: "batch", width: 12 },
+          { header: "العدد", key: "count", width: 12 },
+          { header: "قائمة النسخ — COPY", key: "value", width: 110 },
+          { header: "الحالة", key: "status", width: 14 },
+        ];
+        batches.forEach((batch) => sheet.addRow({ ...batch, status: "جاهز" }));
+        sheet.getColumn("value").numFmt = "@";
+        sheet.getColumn("value").alignment = { horizontal: "left", vertical: "middle", wrapText: false };
+        sheet.autoFilter = { from: "A1", to: "D1" };
+        return sheet;
+      };
+
+      const saudiSheet = addBatchSheet("OPERA SAUDI", prepared.saudi.batches);
+      const kuwaitSheet = addBatchSheet("OPERA KUWAIT", prepared.kuwait.batches);
+      const raw = workbook.addWorksheet("UNO RECORDS", { views: [{ rightToLeft: true, state: "frozen", ySplit: 1 }] });
+      raw.columns = [
+        { header: "النظام", key: "region", width: 16 },
+        { header: "رقم UNO", key: "uno", width: 20 },
+        { header: "رقم PMS", key: "pms", width: 20 },
+        { header: "المنشأة", key: "property", width: 28 },
+        { header: "المدينة", key: "city", width: 18 },
+        { header: "الحالة", key: "status", width: 16 },
+      ];
+      const saudiNumbers = new Set(prepared.saudi.numbers);
+      const kuwaitNumbers = new Set(prepared.kuwait.numbers);
+      const rawSeen = new Set<string>();
+      visibleResults.forEach((reservation) => {
+        const uno = normalizeUnoNumber(reservation.unoNumber);
+        if (rawSeen.has(uno) || (!saudiNumbers.has(uno) && !kuwaitNumbers.has(uno))) return;
+        rawSeen.add(uno);
+        raw.addRow({
+          region: kuwaitNumbers.has(uno) ? "OPERA Kuwait" : "OPERA Saudi",
+          uno,
+          pms: reservation.pmsNumber,
+          property: reservation.property,
+          city: reservation.city,
+          status: reservation.status,
+        });
+      });
+      raw.autoFilter = { from: "A1", to: "F1" };
+
+      [summary, saudiSheet, kuwaitSheet, raw].forEach((sheet) => {
+        const header = sheet.getRow(1);
+        header.height = 26;
+        header.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF07533F" } };
+        header.alignment = { horizontal: "center", vertical: "middle" };
+        sheet.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return;
+          row.height = 23;
+          if (rowNumber % 2 === 0) {
+            row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3F8F5" } };
+          }
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([new Uint8Array(buffer)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `UNO_OPERA_COPY_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+      setMessage(`تم تجهيز OPERA: السعودية ${prepared.saudi.numbers.length.toLocaleString("ar-SA")} · الكويت ${prepared.kuwait.numbers.length.toLocaleString("ar-SA")} · بدون مسافات.`);
+    } catch {
+      setFailed(true);
+      setMessage("تعذر تجهيز ملف OPERA.");
     } finally {
       setBusy("");
     }
@@ -373,7 +571,9 @@ const AdminUno = () => {
           }`}
           >
             {phase === "connected" ? <CheckCircle2 className="h-4 w-4" /> : null}
-            {phase === "connected" ? "متصل" : phase === "otp" ? "رمز التحقق" : "غير متصل"}
+            {phase === "connected"
+              ? (status?.productivityReady ? "UNO موثّق · تقرير الإنتاجية جاهز" : "UNO موثّق · التقرير غير جاهز")
+              : phase === "otp" ? "بانتظار رمز التحقق" : "غير متصل"}
           </span>
         )}
       />
@@ -384,16 +584,104 @@ const AdminUno = () => {
         </section>
       ) : null}
 
+      {status ? (
+        <section className="page-surface space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="section-title">تصدير ومزامنة UNO</h2>
+            </div>
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${status.automaticSyncEnabled ? "bg-emerald-500/10 text-emerald-700" : "bg-amber-500/10 text-amber-700"}`}>
+              {status.automaticSyncEnabled ? "التحديث التلقائي: مفعّل / 30 دقيقة" : "التحديث التلقائي: غير مفعّل"}
+            </span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                step: "01",
+                title: "تسجيل الدخول",
+                value: status.configured ? "بيانات UNO جاهزة بالخادم" : "الإعدادات ناقصة",
+                done: status.configured,
+              },
+              {
+                step: "02",
+                title: "OTP",
+                value: phase === "connected" ? `تم التحقق ${displayTimestamp(status.verifiedAt)}` : phase === "otp" ? "بانتظار إدخال الرمز" : "لم يبدأ التحقق",
+                done: phase === "connected",
+              },
+              {
+                step: "03",
+                title: "جلب بيانات UNO",
+                value: status.reportReady
+                  ? `${(status.lastExportCount ?? snapshotTotal).toLocaleString("ar-SA")} حجز · ${displayTimestamp(status.lastExportAt || snapshotSyncedAt || undefined)}`
+                  : "لم يتم جلب بيانات في الجلسة الحالية",
+                done: Boolean(status.reportReady),
+              },
+              {
+                step: "04",
+                title: "تقرير الإنتاجية",
+                value: status.productivityReady
+                  ? `${(status.productivityRecords ?? 0).toLocaleString("ar-SA")} سجل · ${(status.productivityEmployees ?? 0).toLocaleString("ar-SA")} موظف · ${displayTimestamp(status.productivityUpdatedAt)}`
+                  : status.reportError || "لم يتم تحديث تقرير الموظفين بعد",
+                done: Boolean(status.productivityReady),
+              },
+            ].map((item) => (
+              <article key={item.step} className={`rounded-2xl border p-3 ${item.done ? "border-emerald-500/25 bg-emerald-500/5" : "border-border/50 bg-secondary/20"}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`grid h-7 w-7 place-items-center rounded-full text-[10px] font-black ${item.done ? "bg-emerald-600 text-white" : "bg-secondary text-muted-foreground"}`}>{item.step}</span>
+                  <strong className="text-xs">{item.title}</strong>
+                </div>
+                <p className="mt-2 text-[11px] leading-5 text-muted-foreground">{item.value}</p>
+              </article>
+            ))}
+          </div>
+          <div className="grid gap-2 rounded-2xl border border-border/50 bg-secondary/15 p-3 md:grid-cols-2 xl:grid-cols-5" aria-label="فلاتر تقرير UNO">
+            <label className="text-xs font-bold">
+              <span className="mb-1 block text-muted-foreground">نوع التاريخ</span>
+              <select className="h-10 w-full rounded-xl border bg-background px-3" value={reportDateType} onChange={(event) => setReportDateType(event.target.value as UnoReportFilters["dateType"])} disabled={phase === "otp"}>
+                <option value="booking">تاريخ الحجز</option>
+                <option value="checkin">تاريخ الوصول</option>
+                <option value="checkout">تاريخ المغادرة</option>
+              </select>
+            </label>
+            <label className="text-xs font-bold">
+              <span className="mb-1 block text-muted-foreground">من</span>
+              <input type="date" className="h-10 w-full rounded-xl border bg-background px-3" value={reportFrom} max={reportTo || undefined} onChange={(event) => setReportFrom(event.target.value)} disabled={phase === "otp"} />
+            </label>
+            <label className="text-xs font-bold">
+              <span className="mb-1 block text-muted-foreground">إلى</span>
+              <input type="date" className="h-10 w-full rounded-xl border bg-background px-3" value={reportTo} min={reportFrom || undefined} onChange={(event) => setReportTo(event.target.value)} disabled={phase === "otp"} />
+            </label>
+            <label className="text-xs font-bold">
+              <span className="mb-1 block text-muted-foreground">الحالة</span>
+              <select className="h-10 w-full rounded-xl border bg-background px-3" value={reportStatus} onChange={(event) => setReportStatus(event.target.value as UnoReportFilters["status"])} disabled={phase === "otp"}>
+                <option value="all">الكل</option>
+                <option value="confirmed">مؤكد</option>
+                <option value="cancelled">ملغي / No-show</option>
+                <option value="modified">معدل</option>
+              </select>
+            </label>
+            <label className="text-xs font-bold">
+              <span className="mb-1 block text-muted-foreground">المنشأة</span>
+              <select className="h-10 w-full rounded-xl border bg-background px-3" value={reportProperty} onChange={(event) => setReportProperty(event.target.value)} disabled={phase === "otp"}>
+                <option value="all">جميع المنشآت</option>
+                {reportProperty !== "all" && !properties.includes(reportProperty) ? <option value={reportProperty}>{reportProperty}</option> : null}
+                {properties.map((property) => <option key={property} value={property}>{property}</option>)}
+              </select>
+            </label>
+          </div>
+        </section>
+      ) : null}
+
       {status && phase === "idle" ? (
         <section className="page-surface flex flex-wrap items-center gap-2">
           <button
             type="button"
             className="inline-flex h-11 items-center gap-2 rounded-xl gold-gradient px-5 text-sm font-bold text-primary-foreground disabled:opacity-50"
-            onClick={() => void runStatusAction("connect", () => api.connectUno())}
+            onClick={() => void runStatusAction("connect", () => api.connectUno(reportFilters))}
             disabled={isBusy || !status.configured}
           >
             {busy === "connect" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cable className="h-4 w-4" />}
-            اتصال
+            اتصال وطلب OTP
           </button>
           <a
             className="inline-flex h-11 items-center gap-2 rounded-xl border border-border px-4 text-sm font-bold"
@@ -458,8 +746,8 @@ const AdminUno = () => {
                   <strong className="block truncate">{phase === "connected" ? (status.accountName || "UNO") : "سجل UNO المتزامن"}</strong>
                   <span className="text-xs text-muted-foreground">
                     {phase === "connected"
-                      ? `${(status.propertyCount || 0).toLocaleString("ar-SA")} منشأة · مزامنة تلقائية كل 30 دقيقة · تنتهي الجلسة ${displayTimestamp(status.expiresAt)}`
-                      : `آخر مزامنة ${displayTimestamp(snapshotSyncedAt || undefined)}`}
+                      ? `${(status.propertyCount || 0).toLocaleString("ar-SA")} منشأة · ${status.automaticSyncEnabled ? "تحديث تلقائي كل 30 دقيقة" : "التحديث التلقائي غير مفعّل"} · تنتهي الجلسة ${displayTimestamp(status.expiresAt)}`
+                      : `آخر تقرير محفوظ ${displayTimestamp(snapshotSyncedAt || undefined)} · ${(snapshotTotal || 0).toLocaleString("ar-SA")} حجز`}
                   </span>
                 </div>
               </div>
@@ -547,7 +835,7 @@ const AdminUno = () => {
                   disabled={isBusy}
                 >
                   {busy === "refresh" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  تحديث الآن
+                  تحديث تقرير الإنتاجية من UNO
                 </button>
               ) : null}
               <button
@@ -557,8 +845,29 @@ const AdminUno = () => {
                 disabled={!visibleResults.length || isBusy}
               >
                 {busy === "export" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-                Excel
+                تصدير Excel
               </button>
+              <div className="flex h-11 overflow-hidden rounded-xl border border-primary/30 bg-background">
+                <select
+                  className="h-full min-w-[82px] border-0 bg-transparent px-2 text-xs font-bold"
+                  value={operaBatchSize}
+                  onChange={(event) => setOperaBatchSize(Number(event.target.value) === 500 ? 500 : 250)}
+                  aria-label="حجم دفعة OPERA"
+                  disabled={isBusy}
+                >
+                  <option value={250}>250</option>
+                  <option value={500}>500</option>
+                </select>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center gap-2 border-r border-primary/25 px-4 text-sm font-bold text-primary disabled:opacity-50"
+                  onClick={() => void exportOperaBatches()}
+                  disabled={!visibleResults.length || isBusy}
+                >
+                  {busy === "opera-export" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCopy className="h-4 w-4" />}
+                  تصدير OPERA
+                </button>
+              </div>
             </div>
           </form>
 
@@ -591,7 +900,7 @@ const AdminUno = () => {
                   <div>
                     <h2 className="section-title">نتائج UNO</h2>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      عرض {visibleResults.length.toLocaleString("ar-SA")} من {(results || []).length.toLocaleString("ar-SA")} · آخر مزامنة {displayTimestamp(snapshotSyncedAt || undefined)}
+                      عرض {visibleResults.length.toLocaleString("ar-SA")} من {(results || []).length.toLocaleString("ar-SA")} · آخر تقرير {displayTimestamp(snapshotSyncedAt || undefined)}{snapshotSource ? ` · ${snapshotSource === "automatic" ? "تلقائي" : "يدوي"}` : ""}
                     </p>
                   </div>
                   <button
@@ -671,6 +980,7 @@ const AdminUno = () => {
                         <th className="px-3 py-3 font-bold">PMS</th>
                         <th className="px-3 py-3 font-bold">التواصل</th>
                         <th className="px-3 py-3 font-bold">العميل</th>
+                        <th className="px-3 py-3 font-bold">الموظف</th>
                         <th className="px-3 py-3 font-bold">المنشأة</th>
                         <th className="px-3 py-3 font-bold">الحالة</th>
                         <th className="px-3 py-3 font-bold">الوصول</th>
@@ -689,6 +999,7 @@ const AdminUno = () => {
                             <td className="whitespace-nowrap px-3 py-3">{reservation.pmsNumber || "—"}</td>
                             <td className="whitespace-nowrap px-3 py-3" dir="ltr">{reservation.phone || "—"}</td>
                             <td className="px-3 py-3">{reservation.guestName || "—"}</td>
+                            <td className="px-3 py-3">{reservation.agentName || "—"}</td>
                             <td className="px-3 py-3">{reservation.property || "—"}</td>
                             <td className="whitespace-nowrap px-3 py-3">{reservation.status || "—"}</td>
                             <td className="whitespace-nowrap px-3 py-3">{displayDate(reservation.checkIn)}</td>

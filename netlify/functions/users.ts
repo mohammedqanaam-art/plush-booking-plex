@@ -1,5 +1,5 @@
-import { getStore } from "@netlify/blobs";
 import { hashPassword, json, VALID_ROLES, validateSession, verifyPassword, type UserRole } from "./_shared/security";
+import { getEnvironmentStore } from "./_shared/storage";
 
 type User = { username: string; role: UserRole; password?: string; passwordHash?: string };
 
@@ -18,7 +18,7 @@ export default async (req: Request) => {
   if (!session) return json({ error: "Unauthorized" }, 401);
 
   const method = req.method;
-  const userStore = getStore({ name: "users", consistency: "strong" });
+  const userStore = getEnvironmentStore("users", { consistency: "strong" });
 
   if (method === "GET") {
     if (!hasPermission(session.role, "view_users")) {

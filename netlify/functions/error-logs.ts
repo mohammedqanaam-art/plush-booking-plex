@@ -1,5 +1,6 @@
-import { getStore } from "@netlify/blobs";
+import type { Config } from "@netlify/functions";
 import { json, validateSession } from "./_shared/security";
+import { getEnvironmentStore } from "./_shared/storage";
 
 type ErrorLog = {
   id: string;
@@ -10,7 +11,7 @@ type ErrorLog = {
 };
 
 export default async (req: Request) => {
-  const store = getStore("errors_store");
+  const store = getEnvironmentStore("errors_store", { consistency: "strong" });
   const logs = ((await store.get("items", { type: "json" })) as ErrorLog[] | null) || [];
 
   if (req.method === "POST") {
@@ -35,4 +36,12 @@ export default async (req: Request) => {
   if (req.method === "GET") return json({ logs });
 
   return json({ error: "Method not allowed" }, 405);
+};
+
+export const config: Config = {
+  rateLimit: {
+    windowLimit: 60,
+    windowSize: 60,
+    aggregateBy: ["ip"],
+  },
 };

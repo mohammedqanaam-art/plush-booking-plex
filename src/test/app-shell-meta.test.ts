@@ -34,6 +34,8 @@ describe("app shell and web app metadata", () => {
     expect(layout).not.toContain('aria-label="دخول الإدارة"');
     expect(app).toContain('path="/admin" element={<ProtectedRoute>');
     expect(app).toContain('path="/admin/uno" element={<ProtectedRoute>');
+    expect(layout).toContain('to="/admin"');
+    expect(layout).toContain('aria-label="لوحة مدير ومشرفين إدارة الحجز"');
     expect(layout).not.toContain("bannerText");
     expect(layout).not.toContain("آخر تحديث اليوم");
   });

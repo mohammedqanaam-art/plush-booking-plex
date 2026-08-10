@@ -1,6 +1,6 @@
-import { getStore } from "@netlify/blobs";
 import { croEnvironmentValue } from "./croEnvironment";
 import { buildPeriodPhoneEntries, mobileLookupKey, type CroBookingRecord, type IndexedCroReservation } from "./croPhoneSearch";
+import { getEnvironmentStore } from "./storage";
 
 type ArchivePeriod = { key: string; from: string; to: string; recordCount: number; indexedReservations: number; phoneColumnCount: number; updatedAt: string };
 type PhoneArchive = { version: 1; updatedAt: string; periods: Record<string, ArchivePeriod>; entries: Record<string, IndexedCroReservation[]> };
@@ -10,7 +10,7 @@ export type PhoneArchiveStatus = {
   latestPeriodPhoneColumnCount: number;
 };
 const EPOCH = new Date(0).toISOString(); const MAX_PERIODS = 60;
-const store = () => getStore({ name: "booking-phone-index", consistency: "strong" });
+const store = () => getEnvironmentStore("booking-phone-index", { consistency: "strong" });
 const secret = () => croEnvironmentValue("PHONE_SEARCH_SECRET") || croEnvironmentValue("CRO_SYNC_SECRET");
 const empty = (): PhoneArchive => ({ version: 1, updatedAt: EPOCH, periods: {}, entries: {} });
 const read = async () => {

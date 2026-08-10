@@ -1,5 +1,7 @@
-import { getStore } from "@netlify/blobs";
+import type { Config } from "@netlify/functions";
+import { randomUUID } from "node:crypto";
 import { json, validateSession } from "./_shared/security";
+import { getEnvironmentStore } from "./_shared/storage";
 type ContactRequest = {
   id: string;
   requestNo: string;
@@ -12,7 +14,7 @@ type ContactRequest = {
   createdAt: string;
 };
 
-async function getRequests(store: ReturnType<typeof getStore>): Promise<ContactRequest[]> {
+async function getRequests(store: ReturnType<typeof getEnvironmentStore>): Promise<ContactRequest[]> {
   try {
     return ((await store.get("items", { type: "json" })) as ContactRequest[]) || [];
   } catch {
@@ -21,7 +23,7 @@ async function getRequests(store: ReturnType<typeof getStore>): Promise<ContactR
 }
 
 async function nextRequestNo() {
-  const counterStore = getStore("contacts_counter");
+  const counterStore = getEnvironmentStore("contacts_counter", { consistency: "strong" });
   const key = "contact_counter";
   const current = ((await counterStore.get(key, { type: "json" })) as number | null) || 0;
   const next = current + 1;
@@ -31,7 +33,7 @@ async function nextRequestNo() {
 
 export default async (req: Request) => {
   const method = req.method;
-  const store = getStore("contacts");
+  const store = getEnvironmentStore("contacts", { consistency: "strong" });
 
   if (method === "POST") {
     let body: Partial<ContactRequest>;
@@ -50,14 +52,18 @@ export default async (req: Request) => {
     if (!brand || !branchName || !guestName || !guestPhone || !reason) {
       return json({ error: "brand, branchName, guestName, guestPhone and reason are required" }, 400);
     }
+    const normalizedPhone = guestPhone.replace(/\D/g, "");
+    if (normalizedPhone.length < 8 || normalizedPhone.length > 15) {
+      return json({ error: "Invalid guest phone" }, 400);
+    }
 
     const item: ContactRequest = {
-      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: randomUUID(),
       requestNo: await nextRequestNo(),
       brand,
       branchName,
       guestName,
-      guestPhone,
+      guestPhone: normalizedPhone,
       reason,
       status: "new",
       createdAt: new Date().toISOString(),
@@ -108,4 +114,12 @@ export default async (req: Request) => {
   }
 
   return json({ error: "Method not allowed" }, 405);
+};
+
+export const config: Config = {
+  rateLimit: {
+    windowLimit: 12,
+    windowSize: 60,
+    aggregateBy: ["ip"],
+  },
 };

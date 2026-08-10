@@ -25,12 +25,13 @@ const AdminShiftStartTools = lazy(() => import("./pages/AdminShiftStartTools"));
 const AdminGhost = lazy(() => import("./pages/AdminGhost"));
 const AdminUno = lazy(() => import("./pages/AdminUno"));
 const AdminOperaSearch = lazy(() => import("./pages/AdminOperaSearch"));
+const AdminAiMaintenance = lazy(() => import("./pages/AdminAiMaintenance"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const App = () => (
   <>
     <EnterpriseThemeLoader />
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter>
       <Suspense fallback={<div className="grid min-h-screen place-items-center text-sm text-muted-foreground">جاري التحميل…</div>}>
         <Routes>
           <Route element={<Layout />}>
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/admin/cro-export" element={<ProtectedRoute><Navigate to="/admin/uno" replace /></ProtectedRoute>} />
             <Route path="/admin/uno" element={<ProtectedRoute><AdminUno /></ProtectedRoute>} />
             <Route path="/admin/opera-search" element={<ProtectedRoute><AdminOperaSearch /></ProtectedRoute>} />
+            <Route path="/admin/ai-maintenance" element={<ProtectedRoute><AdminAiMaintenance /></ProtectedRoute>} />
             <Route path="/admin/ghost" element={<ProtectedRoute><AdminGhost /></ProtectedRoute>} />
             <Route path="/admin/discounts" element={<ProtectedRoute><AdminDiscounts /></ProtectedRoute>} />
             <Route path="/admin/enterprise-control" element={<ProtectedRoute><AdminEnterpriseControl /></ProtectedRoute>} />
