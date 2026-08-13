@@ -60,6 +60,9 @@ describe("UNO integration boundary", () => {
     expect(fn).toContain('trimmedEnv("UNO_RESERVATIONS_URL")');
     expect(fn).toContain('trimmedEnv("UNO_LOGIN_URL")');
     expect(fn).toContain('const DEFAULT_UNO_APP_VERSION = "29.2"');
+    expect(fn).toContain("UNO_REFRESH_WINDOW_MS");
+    expect(fn).toContain("AuthenticateUser/RefreshToken/");
+    expect(fn).toContain("refreshConnectedState");
     expect(fn).toContain('rawEnv("UNO_SYNC_SECRET")');
     expect(fn).toContain('req.headers.get("x-uno-sync-key")');
     expect(background).toContain('req.headers.get("x-uno-sync-key")');

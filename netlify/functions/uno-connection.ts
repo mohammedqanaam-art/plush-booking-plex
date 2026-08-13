@@ -22,6 +22,7 @@ const SEARCH_LIMIT = 200;
 const UNO_SNAPSHOT_LIMIT = 5_000;
 const UNO_REPORT_LIMIT = 50_000;
 const UNO_REPORT_MAX_DAY_SPAN = 30;
+const UNO_REFRESH_WINDOW_MS = 45 * 60 * 1000;
 const SYSTEM_STATE_KEY = "system";
 const SYNC_HEALTH_KEY = "sync-health";
 const AUTOMATIC_SYNC_FRESH_MS = 75 * 60 * 1000;
@@ -544,14 +545,32 @@ const readActiveState = async (
 ) => {
   const state = await getState(key);
   if (!state) return { state: null, phase: "idle" as const, session: null };
-  if (state.expiresAt <= Date.now()) {
-    await clearState(key);
-    return { state: null, phase: "idle" as const, session: null };
+  if (state.phase === "otp") {
+    if (state.expiresAt <= Date.now()) {
+      await clearState(key);
+      return { state: null, phase: "idle" as const, session: null };
+    }
+    return { state, phase: "otp" as const, session: null };
   }
-  if (state.phase === "otp") return { state, phase: "otp" as const, session: null };
 
   const session = decryptSession(state.encrypted, configuration.password);
   if (!session?.token || !session.userId || !session.sessionId) {
+    await clearState(key);
+    return { state: null, phase: "idle" as const, session: null };
+  }
+
+  if (state.expiresAt <= Date.now() + UNO_REFRESH_WINDOW_MS) {
+    const refreshed = await refreshConnectedState(key, configuration, state, session);
+    if (refreshed) {
+      return {
+        state: refreshed.state,
+        phase: "connected" as const,
+        session: refreshed.session,
+      };
+    }
+  }
+
+  if (state.expiresAt <= Date.now()) {
     await clearState(key);
     return { state: null, phase: "idle" as const, session: null };
   }
@@ -639,6 +658,77 @@ const tokenExpiry = (token: string, body: JsonRecord) => {
   }
   return Math.min(maximum, ttlExpiry, jwtExpiry);
 };
+
+const refreshTokenId = (token: string, fallback: string) => {
+  try {
+    const payload = asRecord(JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8")));
+    const nameId = firstValue(payload, ["nameid", "nameId"]);
+    const tokenUserId = nameId.split("_")[1] || nameId;
+    return tokenUserId || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+async function refreshConnectedState(
+  key: string,
+  configuration: ReturnType<typeof readConfiguration>,
+  state: ConnectedState,
+  session: UnoSession,
+) {
+  const tokenUserId = refreshTokenId(session.token, session.userId);
+  if (!tokenUserId) return null;
+
+  try {
+    const endpoint = new URL(
+      `AuthenticateUser/RefreshToken/${encodeURIComponent(tokenUserId)}`,
+      configuration.apiBaseUrl,
+    );
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        AppVersion: configuration.appVersion,
+        Authorization: `Bearer ${session.token}`,
+        SessionID: session.sessionId,
+        UserId: session.userId,
+        IPAddress: session.ipAddress,
+      },
+      body: "{}",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) return null;
+
+    const payload = asRecord(await response.json().catch(() => ({})));
+    const body = asRecord(payload.body);
+    const userDetails = asRecord(body.userDetails);
+    const token = firstValue(body, ["userToken", "token", "accessToken"])
+      || firstValue(userDetails, ["userToken", "token", "accessToken"]);
+    if (!token) return null;
+
+    const refreshedSession: UnoSession = {
+      ...session,
+      token,
+      userId: firstValue(userDetails, ["userID", "UserID", "userId"]) || session.userId,
+      sessionId: firstValue(userDetails, ["userSessionId", "UserSessionID", "sessionId"])
+        || session.sessionId,
+      ipAddress: firstValue(userDetails, ["ipAddress", "IPAddress"]) || session.ipAddress,
+    };
+    const expiresAt = tokenExpiry(token, body);
+    if (expiresAt <= Date.now()) return null;
+
+    const refreshedState: ConnectedState = {
+      ...state,
+      expiresAt,
+      encrypted: encryptSession(refreshedSession, configuration.password),
+    };
+    await setState(key, refreshedState);
+    return { state: refreshedState, session: refreshedSession };
+  } catch {
+    return null;
+  }
+}
 
 const sessionFromAuth = (payload: JsonRecord, fallbackIp: string) => {
   const body = asRecord(payload.body);
