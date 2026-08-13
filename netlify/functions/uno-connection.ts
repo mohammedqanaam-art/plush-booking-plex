@@ -12,6 +12,7 @@ import { getSessionToken, json, validateSession } from "./_shared/security";
 
 const DEFAULT_UNO_RESERVATIONS_URL = "https://unolive-voice.rategain.com/view-reservations?brandId=3868248c-c053-43f2-b9c8-3188c74dfeb5&chainId=cdcc2737-a6b9-45bc-9d91-b1a760fb8026";
 const DEFAULT_UNO_API_BASE_URL = "https://uno-prod-ui-api-1087875874170.us-central1.run.app/api/";
+const DEFAULT_UNO_APP_VERSION = "29.2";
 const AUTH_PATH = "AuthenticateUser/ValidateUserDetails";
 const SEARCH_PATHS = ["reservation/SearchReservations", "reservation/allreservaions"] as const;
 const UNO_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -258,7 +259,8 @@ export const isTrustedRateGainUrl = (value: string) => {
     const url = new URL(value);
     const rateGainHost = url.hostname === "rategain.com" || url.hostname.endsWith(".rategain.com");
     const approvedUnoApiHost = url.hostname === "uno-prod-ui-api-1087875874170.us-central1.run.app"
-      || url.hostname === "v29-1---uno-prod-ui-api-cpayzgdkqq-uc.a.run.app";
+      || url.hostname === "uno-prod-ui-api-cpayzgdkqq-uc.a.run.app"
+      || /^v\d+-\d+---uno-prod-ui-api-cpayzgdkqq-uc\.a\.run\.app$/.test(url.hostname);
     return url.protocol === "https:" && (rateGainHost || approvedUnoApiHost);
   } catch {
     return false;
@@ -266,7 +268,8 @@ export const isTrustedRateGainUrl = (value: string) => {
 };
 
 const readConfiguration = () => {
-  const configuredReservationsUrl = trimmedEnv("UNO_RESERVATIONS_URL");
+  const configuredReservationsUrl = trimmedEnv("UNO_RESERVATIONS_URL")
+    || trimmedEnv("UNO_LOGIN_URL");
   const configuredApiBaseUrl = trimmedEnv("UNO_API_BASE_URL");
   const loginUrl = isTrustedRateGainUrl(configuredReservationsUrl)
     ? configuredReservationsUrl
@@ -277,7 +280,7 @@ const readConfiguration = () => {
   const username = trimmedEnv("UNO_USERNAME") || trimmedEnv("UNO_LOGIN_EMAIL");
   const password = rawEnv("UNO_PASSWORD") || rawEnv("UNO_LOGIN_PASSWORD");
   const companyId = Math.max(1, Math.trunc(asNumber(trimmedEnv("UNO_COMPANY_ID")) || 1));
-  const appVersion = trimmedEnv("UNO_APP_VERSION") || "29.1";
+  const appVersion = trimmedEnv("UNO_APP_VERSION") || DEFAULT_UNO_APP_VERSION;
 
   return {
     loginUrl,

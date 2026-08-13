@@ -18,6 +18,8 @@ describe("UNO integration boundary", () => {
     expect(isTrustedRateGainUrl("https://unolive-voice.rategain.com/create-booking")).toBe(true);
     expect(isTrustedRateGainUrl("https://api.rategain.com/uno")).toBe(true);
     expect(isTrustedRateGainUrl("https://uno-prod-ui-api-1087875874170.us-central1.run.app/api/")).toBe(true);
+    expect(isTrustedRateGainUrl("https://uno-prod-ui-api-cpayzgdkqq-uc.a.run.app/api/")).toBe(true);
+    expect(isTrustedRateGainUrl("https://v29-2---uno-prod-ui-api-cpayzgdkqq-uc.a.run.app/api/")).toBe(true);
     expect(isTrustedRateGainUrl("http://unolive.rategain.com/")).toBe(false);
     expect(isTrustedRateGainUrl("https://rategain.com.attacker.example/")).toBe(false);
     expect(isTrustedRateGainUrl("https://fake-uno-api.us-central1.run.app/api/")).toBe(false);
@@ -56,6 +58,8 @@ describe("UNO integration boundary", () => {
     expect(page).toContain("الملغاة / NS");
     expect(fn).toContain('const DEFAULT_UNO_RESERVATIONS_URL = "https://unolive-voice.rategain.com/view-reservations?brandId=3868248c-c053-43f2-b9c8-3188c74dfeb5&chainId=cdcc2737-a6b9-45bc-9d91-b1a760fb8026"');
     expect(fn).toContain('trimmedEnv("UNO_RESERVATIONS_URL")');
+    expect(fn).toContain('trimmedEnv("UNO_LOGIN_URL")');
+    expect(fn).toContain('const DEFAULT_UNO_APP_VERSION = "29.2"');
     expect(fn).toContain('rawEnv("UNO_SYNC_SECRET")');
     expect(fn).toContain('req.headers.get("x-uno-sync-key")');
     expect(background).toContain('req.headers.get("x-uno-sync-key")');
