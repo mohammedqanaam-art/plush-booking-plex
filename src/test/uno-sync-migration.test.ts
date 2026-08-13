@@ -5,12 +5,19 @@ describe("UNO-only live reservation synchronization", () => {
   it("deploys the UNO scheduler and no CRO synchronization functions", () => {
     const functionNames = readdirSync("netlify/functions");
     expect(functionNames).toContain("uno-sync-scheduled.ts");
+    expect(functionNames).toContain("uno-sync-background.ts");
     expect(functionNames.filter((name) => name.startsWith("cro-sync"))).toEqual([]);
     expect(functionNames).not.toContain("cro-export.ts");
 
     const scheduled = readFileSync("netlify/functions/uno-sync-scheduled.ts", "utf8");
+    const background = readFileSync("netlify/functions/uno-sync-background.ts", "utf8");
+    const connection = readFileSync("netlify/functions/uno-connection.ts", "utf8");
     expect(scheduled).toContain('schedule: "*/30 * * * *"');
-    expect(scheduled).toContain('action: "sync-system"');
+    expect(scheduled).toContain('action: "dispatch-sync"');
+    expect(background).toContain('action: "sync-system"');
+    expect(connection).toContain("const canonicalFilters = currentMonthUnoSyncFilters()");
+    expect(connection).toContain("await setState(key, nextState)");
+    expect(connection).not.toContain("setState(SYSTEM_STATE_KEY, nextState)");
   });
 
   it("redirects the retired CRO admin URL to UNO Voice", () => {

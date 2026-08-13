@@ -22,6 +22,8 @@ const UNO_SNAPSHOT_LIMIT = 5_000;
 const UNO_REPORT_LIMIT = 50_000;
 const UNO_REPORT_MAX_DAY_SPAN = 30;
 const SYSTEM_STATE_KEY = "system";
+const SYNC_HEALTH_KEY = "sync-health";
+const AUTOMATIC_SYNC_FRESH_MS = 75 * 60 * 1000;
 
 type JsonRecord = Record<string, unknown>;
 type UnoPhase = "idle" | "otp" | "connected";
@@ -106,6 +108,18 @@ type UnoSnapshot = {
   };
 };
 
+type UnoSyncHealth = {
+  state: "never" | "running" | "healthy" | "verification_required" | "failed";
+  lastAttemptAt?: string;
+  lastSuccessAt?: string;
+  lastSuccessSource?: "automatic" | "manual";
+  lastError?: string;
+  lastCount?: number;
+  consecutiveFailures: number;
+  requiresOtp: boolean;
+  reportFilters?: UnoReportFilters;
+};
+
 const rawEnv = (key: string) => Netlify.env.get(key) || "";
 const trimmedEnv = (key: string) => rawEnv(key).trim();
 
@@ -144,7 +158,7 @@ const riyadhToday = () => {
   return `${part("year")}-${part("month")}-${part("day")}`;
 };
 
-const defaultReportFilters = (): UnoReportFilters => {
+export const currentMonthUnoSyncFilters = (): UnoReportFilters => {
   const today = riyadhToday();
   return {
     dateType: "booking",
@@ -153,6 +167,17 @@ const defaultReportFilters = (): UnoReportFilters => {
     property: "all",
     status: "all",
   };
+};
+
+const defaultReportFilters = currentMonthUnoSyncFilters;
+
+export const isCanonicalUnoSyncFilters = (filters: UnoReportFilters) => {
+  const canonical = currentMonthUnoSyncFilters();
+  return filters.dateType === canonical.dateType
+    && filters.from === canonical.from
+    && filters.to === canonical.to
+    && filters.property === canonical.property
+    && filters.status === canonical.status;
 };
 
 const validIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -329,6 +354,69 @@ const readLatestSnapshot = async (): Promise<UnoSnapshot | null> => {
   }
 };
 
+const readSyncHealth = async (): Promise<UnoSyncHealth> => {
+  try {
+    const value = await snapshotStore().get(SYNC_HEALTH_KEY, { type: "json" }) as UnoSyncHealth | null;
+    if (value?.state) return value;
+  } catch {
+    // Missing health data is represented as a never-run synchronization.
+  }
+  return {
+    state: "never",
+    consecutiveFailures: 0,
+    requiresOtp: false,
+  };
+};
+
+const writeSyncHealth = async (health: UnoSyncHealth) => {
+  await snapshotStore().setJSON(SYNC_HEALTH_KEY, health);
+  return health;
+};
+
+const markSyncAttempt = async () => {
+  const previous = await readSyncHealth();
+  return writeSyncHealth({
+    ...previous,
+    state: "running",
+    lastAttemptAt: new Date().toISOString(),
+    lastError: undefined,
+    requiresOtp: false,
+  });
+};
+
+const markSyncSuccess = async (
+  source: "automatic" | "manual",
+  total: number,
+  reportFilters: UnoReportFilters,
+) => {
+  const now = new Date().toISOString();
+  return writeSyncHealth({
+    state: "healthy",
+    lastAttemptAt: now,
+    lastSuccessAt: now,
+    lastSuccessSource: source,
+    lastCount: total,
+    consecutiveFailures: 0,
+    requiresOtp: false,
+    reportFilters,
+  });
+};
+
+const markSyncFailure = async (
+  error: string,
+  requiresOtp = false,
+) => {
+  const previous = await readSyncHealth();
+  return writeSyncHealth({
+    ...previous,
+    state: requiresOtp ? "verification_required" : "failed",
+    lastAttemptAt: new Date().toISOString(),
+    lastError: error,
+    consecutiveFailures: (previous.consecutiveFailures || 0) + 1,
+    requiresOtp,
+  });
+};
+
 const getState = async (key: string) => {
   const store = sessionStore();
   try {
@@ -379,7 +467,10 @@ const publicStatus = (
   propertyCount: session?.properties.length || undefined,
   verifiedAt: state?.phase === "connected" ? new Date(state.connectedAt).toISOString() : undefined,
   reportFilters: state?.reportFilters || undefined,
-  automaticSyncEnabled: configuration.configured && Netlify.context?.deploy.context === "production",
+  automaticSyncConfigured: configuration.configured && Netlify.context?.deploy.context === "production",
+  automaticSyncEnabled: configuration.configured
+    && Netlify.context?.deploy.context === "production"
+    && phase === "connected",
 });
 
 const statusWithSnapshot = async (
@@ -388,11 +479,45 @@ const statusWithSnapshot = async (
   state?: StoredState | null,
   session?: UnoSession | null,
 ) => {
-  const snapshot = await readLatestSnapshot();
+  const [snapshot, health, system] = await Promise.all([
+    readLatestSnapshot(),
+    readSyncHealth(),
+    readActiveState(SYSTEM_STATE_KEY, configuration),
+  ]);
   const exportedAtMs = snapshot?.syncedAt ? new Date(snapshot.syncedAt).getTime() : 0;
   const connectedAt = state?.phase === "connected" ? state.connectedAt : 0;
+  const automaticSyncConfigured = configuration.configured
+    && Netlify.context?.deploy.context === "production";
+  const automaticSyncEnabled = automaticSyncConfigured && system.phase === "connected";
+  const lastSuccessAt = health.lastSuccessAt
+    || (snapshot?.source === "automatic" ? snapshot.syncedAt : undefined);
+  const lastSuccessMs = lastSuccessAt ? new Date(lastSuccessAt).getTime() : 0;
+  const automaticSyncHealthy = automaticSyncEnabled
+    && health.state === "healthy"
+    && lastSuccessMs > 0
+    && Date.now() - lastSuccessMs <= AUTOMATIC_SYNC_FRESH_MS;
+  const automaticSyncState = !automaticSyncConfigured
+    ? "disabled"
+    : health.state === "running"
+      ? "running"
+      : health.requiresOtp || system.phase !== "connected"
+        ? "verification_required"
+        : automaticSyncHealthy
+          ? "healthy"
+          : "failed";
   return {
     ...publicStatus(configuration, phase, state, session),
+    automaticSyncConfigured,
+    automaticSyncEnabled,
+    automaticSyncHealthy,
+    automaticSyncState,
+    lastSyncAttemptAt: health.lastAttemptAt,
+    lastSyncSuccessAt: lastSuccessAt,
+    lastSyncSuccessSource: health.lastSuccessSource,
+    syncConsecutiveFailures: health.consecutiveFailures || 0,
+    syncRequiresOtp: health.requiresOtp || system.phase !== "connected",
+    syncError: health.lastError,
+    syncReportFilters: health.reportFilters || currentMonthUnoSyncFilters(),
     lastExportAt: snapshot?.syncedAt || undefined,
     lastExportCount: snapshot?.total ?? undefined,
     lastExportSource: snapshot?.source || undefined,
@@ -558,7 +683,12 @@ const saveConnectedState = async (
     reportFilters,
   };
   await setState(key, state);
-  if (key !== SYSTEM_STATE_KEY) await setState(SYSTEM_STATE_KEY, state);
+  if (key !== SYSTEM_STATE_KEY) {
+    await setState(SYSTEM_STATE_KEY, {
+      ...state,
+      reportFilters: currentMonthUnoSyncFilters(),
+    });
+  }
   return state;
 };
 
@@ -799,12 +929,29 @@ export const createReservationSearchPayload = (
   session: Pick<UnoSession, "chainId" | "properties">,
   field?: UnoSearchField,
   query = "",
+  filters?: UnoReportFilters,
 ) => {
-  const propertyId = session.properties.map((property) => property.id).join(",");
+  const selectedProperties = filters?.property && filters.property !== "all"
+    ? session.properties.filter((property) => property.name === filters.property)
+    : session.properties;
+  const propertyIds = selectedProperties.map((property) => property.id);
+  const propertyId = propertyIds.join(",");
+  const bookingStatus = filters?.status === "confirmed"
+    ? 1
+    : filters?.status === "cancelled"
+      ? -1
+      : filters?.status === "modified"
+        ? 3
+        : 0;
   const payload: JsonRecord = {
     chainID: session.chainId,
     ChainID: session.chainId,
+    propertyIds,
     propertyId,
+    BookingStatus: bookingStatus,
+    Channel: "0",
+    SourceType: "Voice",
+    searchText: query,
     bookingStatus: [],
     channelId: [],
     paymentStatus: [],
@@ -817,6 +964,16 @@ export const createReservationSearchPayload = (
     phoneNumber: field === "phone" ? query : "",
     mobileNumber: field === "phone" ? query : "",
   };
+  if (filters?.dateType === "checkin") {
+    payload.checkinDateFrom = filters.from;
+    payload.checkinDateTo = filters.to;
+  } else if (filters?.dateType === "checkout") {
+    payload.checkoutDateFrom = filters.from;
+    payload.checkoutDateTo = filters.to;
+  } else if (filters) {
+    payload.bookingDateFrom = filters.from;
+    payload.bookingDateTo = filters.to;
+  }
   return payload;
 };
 
@@ -884,8 +1041,9 @@ const fetchReservations = async (
   session: UnoSession,
   field?: UnoSearchField,
   query = "",
+  reportFilters?: UnoReportFilters,
 ) => {
-  const searchPayload = createReservationSearchPayload(session, field, query);
+  const searchPayload = createReservationSearchPayload(session, field, query, reportFilters);
   let unauthorized = false;
   let lastStatus = 502;
 
@@ -895,7 +1053,7 @@ const fetchReservations = async (
       isforPageSize: "false",
       page: "1",
       pageSize: field ? String(SEARCH_LIMIT) : "-1",
-      isBookingDateUsed: "false",
+      isBookingDateUsed: String(reportFilters?.dateType === "booking"),
       ServerSidePagination: "false",
     }).toString();
     const response = await fetch(endpoint, {
@@ -1028,12 +1186,16 @@ const publishProductivityReport = async (
   }
 };
 
+type UnoProductivityResult = Awaited<ReturnType<typeof publishProductivityReport>>
+  | { published: false; skipped: true; error?: undefined };
+
 const saveReservationSnapshot = async (
   reservations: NormalizedReservation[],
   source: "automatic" | "manual",
   sessionExpiresAt?: string,
   reportFilters?: UnoReportFilters,
   productivity?: UnoSnapshot["productivity"],
+  persist = true,
 ): Promise<UnoSnapshot> => {
   const deduplicated = new Map<string, NormalizedReservation>();
   reservations.forEach((reservation, index) => {
@@ -1059,7 +1221,7 @@ const saveReservationSnapshot = async (
     reportFilters,
     productivity,
   };
-  await snapshotStore().setJSON("latest", snapshot);
+  if (persist) await snapshotStore().setJSON("latest", snapshot);
   return snapshot;
 };
 
@@ -1070,7 +1232,7 @@ const exportLiveReport = async (
   source: "automatic" | "manual",
   reportFilters: UnoReportFilters,
 ) => {
-  const result = await fetchReservations(configuration, session);
+  const result = await fetchReservations(configuration, session, undefined, "", reportFilters);
   if (result.unauthorized) {
     return { ok: false as const, unauthorized: true, error: "انتهت جلسة UNO قبل جلب التقرير." };
   }
@@ -1078,7 +1240,10 @@ const exportLiveReport = async (
     return { ok: false as const, unauthorized: false, error: `رفض UNO طلب التقرير (${result.status}).` };
   }
   const reportReservations = filterReservationsForReport(result.reservations, reportFilters);
-  const productivity = await publishProductivityReport(reportReservations, reportFilters);
+  const canonicalUpdated = isCanonicalUnoSyncFilters(reportFilters);
+  const productivity: UnoProductivityResult = canonicalUpdated
+    ? await publishProductivityReport(reportReservations, reportFilters)
+    : { published: false, skipped: true };
   const productivityState: UnoSnapshot["productivity"] = productivity.published
     ? {
         published: true,
@@ -1093,8 +1258,9 @@ const exportLiveReport = async (
     sessionExpiresAt,
     reportFilters,
     productivityState,
+    canonicalUpdated,
   );
-  return { ok: true as const, snapshot, productivity };
+  return { ok: true as const, snapshot, productivity, canonicalUpdated };
 };
 
 async function finalizeAuthenticatedConnection(
@@ -1103,42 +1269,40 @@ async function finalizeAuthenticatedConnection(
   session: UnoSession,
   state: ConnectedState,
 ) {
+  const canonicalFilters = currentMonthUnoSyncFilters();
+  await markSyncAttempt().catch(() => undefined);
   try {
     const exported = await exportLiveReport(
       configuration,
       session,
       new Date(state.expiresAt).toISOString(),
       "manual",
-      state.reportFilters || defaultReportFilters(),
+      canonicalFilters,
     );
     if (!exported.ok) {
       if (exported.unauthorized) {
-        await Promise.all([clearState(key), clearState(SYSTEM_STATE_KEY)]);
+        await Promise.all([
+          clearState(key),
+          clearState(SYSTEM_STATE_KEY),
+          markSyncFailure(exported.error, true).catch(() => undefined),
+        ]);
         return json({
           error: exported.error,
           reportReady: false,
           ...publicStatus(configuration, "idle"),
         }, 401);
       }
+      await markSyncFailure(exported.error).catch(() => undefined);
       return json({
         ...publicStatus(configuration, "connected", state, session),
         reportReady: false,
         reportError: exported.error,
       });
     }
-    return json({
-      ...publicStatus(configuration, "connected", state, session),
-      reportReady: true,
-      lastExportAt: exported.snapshot.syncedAt,
-      lastExportCount: exported.snapshot.total,
-      lastExportSource: exported.snapshot.source,
-      productivityReady: exported.productivity.published,
-      productivityUpdatedAt: exported.productivity.published ? exported.productivity.stats.updatedAt : undefined,
-      productivityRecords: exported.productivity.published ? exported.productivity.stats.classifiedTotal : undefined,
-      productivityEmployees: exported.productivity.published ? exported.productivity.stats.employeeCount : undefined,
-      reportError: exported.productivity.published ? undefined : exported.productivity.error,
-    });
+    await markSyncSuccess("manual", exported.snapshot.total, canonicalFilters).catch(() => undefined);
+    return json(await statusWithSnapshot(configuration, "connected", state, session));
   } catch {
+    await markSyncFailure("تعذر جلب تقرير UNO بعد التحقق.").catch(() => undefined);
     return json({
       ...publicStatus(configuration, "connected", state, session),
       reportReady: false,
@@ -1150,8 +1314,10 @@ async function finalizeAuthenticatedConnection(
 const syncSystemSnapshot = async (
   configuration: ReturnType<typeof readConfiguration>,
 ) => {
+  await markSyncAttempt().catch(() => undefined);
   const active = await readActiveState(SYSTEM_STATE_KEY, configuration);
   if (active.phase !== "connected" || !active.session || active.state?.phase !== "connected") {
+    await markSyncFailure("انتهت جلسة UNO وتحتاج إلى تحقق OTP جديد.", true).catch(() => undefined);
     return json({
       error: "UNO verification required",
       requiresOtp: true,
@@ -1160,22 +1326,34 @@ const syncSystemSnapshot = async (
   }
 
   try {
+    const canonicalFilters = currentMonthUnoSyncFilters();
+    await setState(SYSTEM_STATE_KEY, {
+      ...active.state,
+      reportFilters: canonicalFilters,
+    });
     const exported = await exportLiveReport(
       configuration,
       active.session,
       new Date(active.state.expiresAt).toISOString(),
       "automatic",
-      active.state.reportFilters || defaultReportFilters(),
+      canonicalFilters,
     );
     if (!exported.ok && exported.unauthorized) {
-      await clearState(SYSTEM_STATE_KEY);
+      await Promise.all([
+        clearState(SYSTEM_STATE_KEY),
+        markSyncFailure("انتهت جلسة UNO وتحتاج إلى تحقق OTP جديد.", true).catch(() => undefined),
+      ]);
       return json({
         error: "UNO session expired",
         requiresOtp: true,
         staleDataPreserved: true,
       }, 409);
     }
-    if (!exported.ok) return json({ error: exported.error, staleDataPreserved: true }, 502);
+    if (!exported.ok) {
+      await markSyncFailure(exported.error).catch(() => undefined);
+      return json({ error: exported.error, staleDataPreserved: true }, 502);
+    }
+    await markSyncSuccess("automatic", exported.snapshot.total, canonicalFilters).catch(() => undefined);
     return json({
       ok: true,
       total: exported.snapshot.total,
@@ -1183,6 +1361,7 @@ const syncSystemSnapshot = async (
       productivityReady: exported.productivity.published,
     });
   } catch {
+    await markSyncFailure("تعذر الوصول إلى UNO أثناء المزامنة المجدولة.").catch(() => undefined);
     return json({ error: "UNO sync unavailable" }, 502);
   }
 };
@@ -1246,7 +1425,7 @@ const listReservations = async (
     }
     if (active.state?.phase === "connected") {
       const nextState: ConnectedState = { ...active.state, reportFilters };
-      await Promise.all([setState(key, nextState), setState(SYSTEM_STATE_KEY, nextState)]);
+      await setState(key, nextState);
     }
   }
 
@@ -1264,6 +1443,9 @@ const listReservations = async (
     }
     if (!exported.ok) return json({ error: exported.error }, 502);
     const snapshot = exported.snapshot;
+    if (exported.canonicalUpdated) {
+      await markSyncSuccess("manual", snapshot.total, reportFilters).catch(() => undefined);
+    }
     return json({
       reservations: snapshot.reservations,
       total: snapshot.total,
@@ -1271,6 +1453,7 @@ const listReservations = async (
       syncedAt: snapshot.syncedAt,
       reportReady: true,
       reportFilters,
+      canonicalUpdated: exported.canonicalUpdated,
       productivityReady: exported.productivity.published,
       productivityUpdatedAt: exported.productivity.published ? exported.productivity.stats.updatedAt : undefined,
       productivityRecords: exported.productivity.published ? exported.productivity.stats.classifiedTotal : undefined,
