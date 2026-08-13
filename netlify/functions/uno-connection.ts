@@ -443,7 +443,7 @@ const isInternalSyncRequest = (
   const expected = rawEnv("UNO_SYNC_SECRET") || (configuration.password
     ? createHash("sha256").update(`uno-sync:${configuration.password}`).digest("hex")
     : "");
-  const provided = req.headers.get("x-uno-sync-secret") || "";
+  const provided = req.headers.get("x-uno-sync-key") || "";
   if (!expected || !provided) return false;
   const expectedHash = createHash("sha256").update(expected).digest();
   const providedHash = createHash("sha256").update(provided).digest();

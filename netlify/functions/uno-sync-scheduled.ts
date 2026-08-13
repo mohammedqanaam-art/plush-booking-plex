@@ -15,7 +15,7 @@ export default async (req: Request, context: Context) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-UNO-Sync-Secret": secret,
+        "X-UNO-Sync-Key": secret,
       },
       body: JSON.stringify({ action: "dispatch-sync" }),
       signal: AbortSignal.timeout(10_000),
