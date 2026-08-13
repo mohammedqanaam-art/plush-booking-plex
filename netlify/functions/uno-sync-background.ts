@@ -9,7 +9,7 @@ const secretValue = () => {
 };
 
 const authorized = (req: Request, expected: string) => {
-  const provided = req.headers.get("x-uno-sync-secret") || "";
+  const provided = req.headers.get("x-uno-sync-key") || "";
   if (!expected || !provided) return false;
   return timingSafeEqual(
     createHash("sha256").update(expected).digest(),
@@ -30,7 +30,7 @@ export default async (req: Request, context: Context) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-UNO-Sync-Secret": secret,
+      "X-UNO-Sync-Key": secret,
     },
     body: JSON.stringify({ action: "sync-system" }),
     signal: AbortSignal.timeout(55_000),

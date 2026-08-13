@@ -57,6 +57,12 @@ describe("UNO integration boundary", () => {
     expect(fn).toContain('const DEFAULT_UNO_RESERVATIONS_URL = "https://unolive-voice.rategain.com/view-reservations?brandId=3868248c-c053-43f2-b9c8-3188c74dfeb5&chainId=cdcc2737-a6b9-45bc-9d91-b1a760fb8026"');
     expect(fn).toContain('trimmedEnv("UNO_RESERVATIONS_URL")');
     expect(fn).toContain('rawEnv("UNO_SYNC_SECRET")');
+    expect(fn).toContain('req.headers.get("x-uno-sync-key")');
+    expect(background).toContain('req.headers.get("x-uno-sync-key")');
+    expect(background).toContain('"X-UNO-Sync-Key": secret');
+    expect(schedule).toContain('"X-UNO-Sync-Key": secret');
+    expect(`${fn}\n${background}\n${schedule}`).not.toContain("X-UNO-Sync-Secret");
+    expect(`${fn}\n${background}\n${schedule}`).not.toContain("x-uno-sync-secret");
     expect(schedule).toContain('schedule: "*/30 * * * *"');
     expect(schedule).toContain('/.netlify/functions/uno-sync-background');
     expect(schedule).not.toContain('new URL("/api/admin/uno"');
