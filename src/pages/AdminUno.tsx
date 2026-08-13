@@ -279,24 +279,34 @@ const AdminUno = () => {
     try {
       const response = await api.exportUnoReport(reportFilters);
       setResults(response.reservations);
-      setSnapshotSyncedAt(response.syncedAt || response.searchedAt);
-      setSnapshotTotal(response.total);
-      setSnapshotSource("manual");
+      if (response.canonicalUpdated) {
+        setSnapshotSyncedAt(response.syncedAt || response.searchedAt);
+        setSnapshotTotal(response.total);
+        setSnapshotSource("manual");
+      }
       setStatus((current) => current ? {
         ...current,
-        reportReady: true,
-        lastExportAt: response.syncedAt || response.searchedAt,
-        lastExportCount: response.total,
-        lastExportSource: "manual",
         reportFilters: response.reportFilters || reportFilters,
-        productivityReady: response.productivityReady,
-        productivityUpdatedAt: response.productivityUpdatedAt,
-        productivityRecords: response.productivityRecords,
-        productivityEmployees: response.productivityEmployees,
-        reportError: response.reportError,
+        ...(response.canonicalUpdated ? {
+          reportReady: true,
+          lastExportAt: response.syncedAt || response.searchedAt,
+          lastExportCount: response.total,
+          lastExportSource: "manual" as const,
+          lastSyncSuccessAt: response.syncedAt || response.searchedAt,
+          lastSyncSuccessSource: "manual" as const,
+          automaticSyncHealthy: true,
+          automaticSyncState: "healthy" as const,
+          productivityReady: response.productivityReady,
+          productivityUpdatedAt: response.productivityUpdatedAt,
+          productivityRecords: response.productivityRecords,
+          productivityEmployees: response.productivityEmployees,
+          reportError: response.reportError,
+        } : {}),
       } : current);
       resetResultFilters();
-      if (response.productivityReady) {
+      if (!response.canonicalUpdated) {
+        setMessage(`تم جلب ${response.total.toLocaleString("ar-SA")} حجزًا كتصدير مخصص دون استبدال التقرير الشهري المتزامن.`);
+      } else if (response.productivityReady) {
         setMessage(`تم تصدير بيانات UNO وتحديث تقرير الإنتاجية: ${(response.productivityRecords ?? response.total).toLocaleString("ar-SA")} سجل · ${(response.productivityEmployees ?? 0).toLocaleString("ar-SA")} موظف.`);
       } else if (response.reportError) {
         setFailed(true);
@@ -555,6 +565,17 @@ const AdminUno = () => {
   const activeField = searchFields.find((option) => option.value === field) || searchFields[0];
   const phase = status?.phase || "idle";
   const isBusy = Boolean(busy);
+  const syncState = status?.automaticSyncState || "disabled";
+  const syncHealthy = Boolean(status?.automaticSyncHealthy);
+  const syncLabel = syncHealthy
+    ? "متزامن فعليًا · كل 30 دقيقة"
+    : syncState === "running"
+      ? "جاري التحديث من UNO"
+      : syncState === "verification_required"
+        ? "المزامنة متوقفة · OTP مطلوب"
+        : syncState === "failed"
+          ? "المزامنة متأخرة أو فشلت"
+          : "المزامنة غير مفعّلة";
 
   return (
     <div className="page-wrap-narrow">
@@ -590,8 +611,8 @@ const AdminUno = () => {
             <div>
               <h2 className="section-title">تصدير ومزامنة UNO</h2>
             </div>
-            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${status.automaticSyncEnabled ? "bg-emerald-500/10 text-emerald-700" : "bg-amber-500/10 text-amber-700"}`}>
-              {status.automaticSyncEnabled ? "التحديث التلقائي: مفعّل / 30 دقيقة" : "التحديث التلقائي: غير مفعّل"}
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${syncHealthy ? "bg-emerald-500/10 text-emerald-700" : syncState === "running" ? "bg-sky-500/10 text-sky-700" : "bg-amber-500/10 text-amber-800"}`}>
+              {syncLabel}
             </span>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -610,11 +631,11 @@ const AdminUno = () => {
               },
               {
                 step: "03",
-                title: "جلب بيانات UNO",
-                value: status.reportReady
-                  ? `${(status.lastExportCount ?? snapshotTotal).toLocaleString("ar-SA")} حجز · ${displayTimestamp(status.lastExportAt || snapshotSyncedAt || undefined)}`
-                  : "لم يتم جلب بيانات في الجلسة الحالية",
-                done: Boolean(status.reportReady),
+                title: "آخر مزامنة ناجحة",
+                value: status.lastSyncSuccessAt
+                  ? `${(status.lastExportCount ?? snapshotTotal).toLocaleString("ar-SA")} حجز · ${displayTimestamp(status.lastSyncSuccessAt)}`
+                  : status.syncError || "لم تنجح مزامنة فعلية حتى الآن",
+                done: syncHealthy,
               },
               {
                 step: "04",
@@ -634,6 +655,15 @@ const AdminUno = () => {
               </article>
             ))}
           </div>
+          {!syncHealthy && status.automaticSyncConfigured ? (
+            <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs font-bold leading-5 text-amber-900">
+              {status.syncError || "الجدولة موجودة، لكن لا يوجد نجاح حديث من UNO."}
+              {status.lastSyncAttemptAt ? ` آخر محاولة: ${displayTimestamp(status.lastSyncAttemptAt)}.` : ""}
+            </div>
+          ) : null}
+          <p className="text-[11px] leading-5 text-muted-foreground">
+            المزامنة العامة تستخدم تلقائيًا حجوزات الشهر الحالي لجميع المنشآت والحالات. الفلاتر أدناه للتصدير اليدوي ولا تغيّر النسخة العامة إلا عند اختيار نطاق الشهر الحالي كاملًا.
+          </p>
           <div className="grid gap-2 rounded-2xl border border-border/50 bg-secondary/15 p-3 md:grid-cols-2 xl:grid-cols-5" aria-label="فلاتر تقرير UNO">
             <label className="text-xs font-bold">
               <span className="mb-1 block text-muted-foreground">نوع التاريخ</span>
@@ -746,7 +776,7 @@ const AdminUno = () => {
                   <strong className="block truncate">{phase === "connected" ? (status.accountName || "UNO") : "سجل UNO المتزامن"}</strong>
                   <span className="text-xs text-muted-foreground">
                     {phase === "connected"
-                      ? `${(status.propertyCount || 0).toLocaleString("ar-SA")} منشأة · ${status.automaticSyncEnabled ? "تحديث تلقائي كل 30 دقيقة" : "التحديث التلقائي غير مفعّل"} · تنتهي الجلسة ${displayTimestamp(status.expiresAt)}`
+                      ? `${(status.propertyCount || 0).toLocaleString("ar-SA")} منشأة · ${syncLabel} · تنتهي الجلسة ${displayTimestamp(status.expiresAt)}`
                       : `آخر تقرير محفوظ ${displayTimestamp(snapshotSyncedAt || undefined)} · ${(snapshotTotal || 0).toLocaleString("ar-SA")} حجز`}
                   </span>
                 </div>

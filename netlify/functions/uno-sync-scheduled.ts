@@ -8,7 +8,7 @@ export default async (req: Request, context: Context) => {
   const secret = configuredSecret || createHash("sha256").update(`uno-sync:${password}`).digest("hex");
 
   const origin = context.site.url || new URL(req.url).origin;
-  const endpoint = new URL("/api/admin/uno", origin);
+  const endpoint = new URL("/.netlify/functions/uno-sync-background", origin);
 
   try {
     const response = await fetch(endpoint, {
@@ -17,14 +17,13 @@ export default async (req: Request, context: Context) => {
         "Content-Type": "application/json",
         "X-UNO-Sync-Secret": secret,
       },
-      body: JSON.stringify({ action: "sync-system" }),
-      signal: AbortSignal.timeout(28_000),
+      body: JSON.stringify({ action: "dispatch-sync" }),
+      signal: AbortSignal.timeout(10_000),
     });
 
-    // A 409 means UNO requires a fresh admin/OTP session. Keep the last good
-    // snapshot and wait for the next authenticated reconnect instead of failing
-    // the published schedule or repeatedly requesting OTP codes.
-    if (response.ok || response.status === 409) return new Response(null, { status: 204 });
+    // Netlify background functions acknowledge with 202 and continue outside
+    // the 30-second scheduled-function limit.
+    if (response.ok || response.status === 202) return new Response(null, { status: 204 });
     return new Response(null, { status: 502 });
   } catch {
     return new Response(null, { status: 502 });

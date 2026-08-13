@@ -3,7 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   createReservationSearchPayload,
+  currentMonthUnoSyncFilters,
   filterReservationsForReport,
+  isCanonicalUnoSyncFilters,
   isTrustedRateGainUrl,
   normalizeReservation,
   parseUnoReportFilters,
@@ -27,6 +29,7 @@ describe("UNO integration boundary", () => {
     const page = fs.readFileSync(path.join(root, "src/pages/AdminUno.tsx"), "utf8");
     const fn = fs.readFileSync(path.join(root, "netlify/functions/uno-connection.ts"), "utf8");
     const schedule = fs.readFileSync(path.join(root, "netlify/functions/uno-sync-scheduled.ts"), "utf8");
+    const background = fs.readFileSync(path.join(root, "netlify/functions/uno-sync-background.ts"), "utf8");
     const app = fs.readFileSync(path.join(root, "src/App.tsx"), "utf8");
 
     expect(app).toContain('path="/admin/uno"');
@@ -55,6 +58,10 @@ describe("UNO integration boundary", () => {
     expect(fn).toContain('trimmedEnv("UNO_RESERVATIONS_URL")');
     expect(fn).toContain('rawEnv("UNO_SYNC_SECRET")');
     expect(schedule).toContain('schedule: "*/30 * * * *"');
+    expect(schedule).toContain('/.netlify/functions/uno-sync-background');
+    expect(schedule).not.toContain('new URL("/api/admin/uno"');
+    expect(background).toContain('new URL("/api/admin/uno"');
+    expect(background).toContain('action: "sync-system"');
     expect(schedule).toContain('Netlify.env.get("UNO_PASSWORD")');
     expect(schedule).toContain('createHash("sha256").update(`uno-sync:${password}`).digest("hex")');
     expect(fn).not.toContain('trimmedEnv("UNO_BOOKING_URL")');
@@ -76,8 +83,34 @@ describe("UNO integration boundary", () => {
 
     expect(payload.chainID).toBe("4");
     expect(payload.propertyId).toBe("11,12");
+    expect(payload.propertyIds).toEqual(["11", "12"]);
     expect(payload.pmsConfirmationNo).toBe("PMS-9988");
     expect(payload.phoneNo).toBe("");
+  });
+
+  it("sends UNO its native date, property, and status filters before downloading", () => {
+    const payload = createReservationSearchPayload({
+      chainId: "4",
+      properties: [
+        { id: "11", name: "Braira Olaya" },
+        { id: "12", name: "Braira Qurtubah" },
+      ],
+    }, undefined, "", {
+      dateType: "booking",
+      from: "2026-08-01",
+      to: "2026-08-13",
+      property: "Braira Olaya",
+      status: "confirmed",
+    });
+
+    expect(payload).toMatchObject({
+      ChainID: "4",
+      propertyIds: ["11"],
+      BookingStatus: 1,
+      SourceType: "Voice",
+      bookingDateFrom: "2026-08-01",
+      bookingDateTo: "2026-08-13",
+    });
   });
 
   it("builds a property-scoped list request without a search value", () => {
@@ -141,6 +174,19 @@ describe("UNO integration boundary", () => {
       status: "confirmed",
     });
     expect(() => parseUnoReportFilters({ from: "2026-07-01", to: "2026-08-08" })).toThrow(/30/);
+  });
+
+  it("keeps the automatic snapshot on a moving current-month scope", () => {
+    const filters = currentMonthUnoSyncFilters();
+    expect(filters).toMatchObject({
+      dateType: "booking",
+      property: "all",
+      status: "all",
+    });
+    expect(filters.from).toBe(`${filters.to.slice(0, 7)}-01`);
+    expect(isCanonicalUnoSyncFilters(filters)).toBe(true);
+    expect(isCanonicalUnoSyncFilters({ ...filters, property: "Braira Olaya" })).toBe(false);
+    expect(isCanonicalUnoSyncFilters({ ...filters, status: "confirmed" })).toBe(false);
   });
 
   it("turns the authenticated reservation response into the employee productivity report", () => {

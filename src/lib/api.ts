@@ -89,7 +89,17 @@ export type UnoConnectionStatus = {
   loginUrl: string;
   phase: "idle" | "otp" | "connected";
   connected: boolean;
+  automaticSyncConfigured: boolean;
   automaticSyncEnabled: boolean;
+  automaticSyncHealthy?: boolean;
+  automaticSyncState?: "disabled" | "running" | "healthy" | "verification_required" | "failed";
+  lastSyncAttemptAt?: string;
+  lastSyncSuccessAt?: string;
+  lastSyncSuccessSource?: "automatic" | "manual";
+  syncConsecutiveFailures?: number;
+  syncRequiresOtp?: boolean;
+  syncError?: string;
+  syncReportFilters?: UnoReportFilters;
   pendingUntil?: string;
   resendAt?: string;
   expiresAt?: string;
@@ -139,6 +149,7 @@ export type UnoSearchResponse = {
   productivityUpdatedAt?: string;
   productivityRecords?: number;
   productivityEmployees?: number;
+  canonicalUpdated?: boolean;
 };
 
 export type UnoSnapshotQuery = {
