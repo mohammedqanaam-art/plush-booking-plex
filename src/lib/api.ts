@@ -396,6 +396,9 @@ export type AvayaSyncStatus = {
   sync: {
     configured: boolean;
     updatedAt: string | null;
+    bridgeLastSeenAt?: string | null;
+    bridgeVersion?: string | null;
+    bridgeHealthy?: boolean;
   };
 };
 
