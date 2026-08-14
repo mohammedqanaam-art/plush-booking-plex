@@ -781,8 +781,23 @@ export const api = {
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ message, sessionId, history }),
     });
-    if (!res.ok) throw new Error("تعذر الوصول إلى المساعد الذكي");
-    return res.json();
+    const data = await res.json().catch(() => ({})) as {
+      reply?: string;
+      sessionId?: string;
+      model?: string;
+      provider?: string;
+      error?: unknown;
+    };
+    if (!res.ok) {
+      const serverMessage = typeof data.error === "string" && /[\u0600-\u06ff]/.test(data.error)
+        ? data.error.trim().slice(0, 240)
+        : "تعذر الوصول إلى المساعد الذكي الآن.";
+      throw new Error(serverMessage);
+    }
+    if (typeof data.reply !== "string" || !data.reply.trim()) {
+      throw new Error("لم يُرجع المساعد ردًا صالحًا.");
+    }
+    return { ...data, reply: data.reply.trim() };
   },
 
   async getAiMaintenance() {

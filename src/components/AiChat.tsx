@@ -32,7 +32,10 @@ const AiChat = () => {
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply || "..." }]);
     } catch (err) {
       console.error("[AiChat] sendChatMessage error:", err);
-      setMessages((prev) => [...prev, { role: "assistant", content: "حدث خطأ أثناء الاتصال بالمساعد." }]);
+      const errorMessage = err instanceof Error && err.message
+        ? err.message.slice(0, 240)
+        : "حدث خطأ أثناء الاتصال بالمساعد.";
+      setMessages((prev) => [...prev, { role: "assistant", content: errorMessage }]);
     } finally {
       setLoading(false);
     }

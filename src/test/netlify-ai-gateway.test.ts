@@ -4,6 +4,7 @@ import { generateOpenAiText, isOpenAiConfigured } from "../../netlify/functions/
 describe("Netlify AI Gateway", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -50,6 +51,27 @@ describe("Netlify AI Gateway", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.openai.com/v1/chat/completions",
       expect.any(Object),
+    );
+  });
+
+  it("reads Netlify AI Gateway variables injected into process.env", async () => {
+    vi.stubGlobal("Netlify", { env: { get: vi.fn(() => undefined) } });
+    vi.stubEnv("OPENAI_API_KEY", "automatic-gateway-key");
+    vi.stubEnv("OPENAI_BASE_URL", "https://gateway.netlify.test/openai");
+    vi.stubEnv("OPENAI_MODEL", "gpt-5-mini");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: "يعمل" } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(isOpenAiConfigured()).toBe(true);
+    await expect(generateOpenAiText({ instructions: "test", input: "test" }))
+      .resolves.toEqual({ text: "يعمل", model: "gpt-5-mini" });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://gateway.netlify.test/openai/v1/chat/completions",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: "Bearer automatic-gateway-key" }),
+      }),
     );
   });
 });

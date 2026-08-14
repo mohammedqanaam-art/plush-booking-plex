@@ -12,9 +12,11 @@ import { getSessionToken, json, validateSession } from "./_shared/security";
 
 const DEFAULT_UNO_RESERVATIONS_URL = "https://unolive-voice.rategain.com/view-reservations?brandId=3868248c-c053-43f2-b9c8-3188c74dfeb5&chainId=cdcc2737-a6b9-45bc-9d91-b1a760fb8026";
 const DEFAULT_UNO_API_BASE_URL = "https://uno-prod-ui-api-1087875874170.us-central1.run.app/api/";
+const DEFAULT_UNO_VOICE_API_BASE_URL = "https://ibe-prod-api-cpayzgdkqq-uc.a.run.app/api/";
 const DEFAULT_UNO_APP_VERSION = "29.2";
 const AUTH_PATH = "AuthenticateUser/ValidateUserDetails";
-const SEARCH_PATHS = ["reservation/SearchReservations", "reservation/allreservaions"] as const;
+const VOICE_SEARCH_PATH = "voice/allreservaions";
+const LEGACY_SEARCH_PATHS = ["reservation/SearchReservations", "reservation/allreservaions"] as const;
 const UNO_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RESEND_DELAY_MS = 40 * 1000;
@@ -261,6 +263,7 @@ export const isTrustedRateGainUrl = (value: string) => {
     const rateGainHost = url.hostname === "rategain.com" || url.hostname.endsWith(".rategain.com");
     const approvedUnoApiHost = url.hostname === "uno-prod-ui-api-1087875874170.us-central1.run.app"
       || url.hostname === "uno-prod-ui-api-cpayzgdkqq-uc.a.run.app"
+      || url.hostname === "ibe-prod-api-cpayzgdkqq-uc.a.run.app"
       || /^v\d+-\d+---uno-prod-ui-api-cpayzgdkqq-uc\.a\.run\.app$/.test(url.hostname);
     return url.protocol === "https:" && (rateGainHost || approvedUnoApiHost);
   } catch {
@@ -272,12 +275,16 @@ const readConfiguration = () => {
   const configuredReservationsUrl = trimmedEnv("UNO_RESERVATIONS_URL")
     || trimmedEnv("UNO_LOGIN_URL");
   const configuredApiBaseUrl = trimmedEnv("UNO_API_BASE_URL");
+  const configuredVoiceApiBaseUrl = trimmedEnv("UNO_VOICE_API_BASE_URL");
   const loginUrl = isTrustedRateGainUrl(configuredReservationsUrl)
     ? configuredReservationsUrl
     : DEFAULT_UNO_RESERVATIONS_URL;
   const apiBaseUrl = isTrustedRateGainUrl(configuredApiBaseUrl)
     ? configuredApiBaseUrl
     : DEFAULT_UNO_API_BASE_URL;
+  const voiceApiBaseUrl = isTrustedRateGainUrl(configuredVoiceApiBaseUrl)
+    ? configuredVoiceApiBaseUrl
+    : DEFAULT_UNO_VOICE_API_BASE_URL;
   const username = trimmedEnv("UNO_USERNAME") || trimmedEnv("UNO_LOGIN_EMAIL");
   const password = rawEnv("UNO_PASSWORD") || rawEnv("UNO_LOGIN_PASSWORD");
   const companyId = Math.max(1, Math.trunc(asNumber(trimmedEnv("UNO_COMPANY_ID")) || 1));
@@ -286,6 +293,7 @@ const readConfiguration = () => {
   return {
     loginUrl,
     apiBaseUrl: apiBaseUrl.endsWith("/") ? apiBaseUrl : `${apiBaseUrl}/`,
+    voiceApiBaseUrl: voiceApiBaseUrl.endsWith("/") ? voiceApiBaseUrl : `${voiceApiBaseUrl}/`,
     username,
     password,
     companyId,
@@ -1028,7 +1036,6 @@ export const createReservationSearchPayload = (
     ? session.properties.filter((property) => property.name === filters.property)
     : session.properties;
   const propertyIds = selectedProperties.map((property) => property.id);
-  const propertyId = propertyIds.join(",");
   const bookingStatus = filters?.status === "confirmed"
     ? 1
     : filters?.status === "cancelled"
@@ -1037,25 +1044,13 @@ export const createReservationSearchPayload = (
         ? 3
         : 0;
   const payload: JsonRecord = {
-    chainID: session.chainId,
     ChainID: session.chainId,
     propertyIds,
-    propertyId,
     BookingStatus: bookingStatus,
     Channel: "0",
     SourceType: "Voice",
     searchText: query,
-    bookingStatus: [],
-    channelId: [],
-    paymentStatus: [],
-    filterBy: "1",
-    oTABookingId: field === "uno" ? query : "",
-    reservationNo: field === "uno" ? query : "",
-    pmsid: field === "pms" ? query : "",
-    pmsConfirmationNo: field === "pms" ? query : "",
-    phoneNo: field === "phone" ? query : "",
-    phoneNumber: field === "phone" ? query : "",
-    mobileNumber: field === "phone" ? query : "",
+    isExcelDownload: false,
   };
   if (filters?.dateType === "checkin") {
     payload.checkinDateFrom = filters.from;
@@ -1070,6 +1065,34 @@ export const createReservationSearchPayload = (
   return payload;
 };
 
+const createLegacyReservationSearchPayload = (
+  session: Pick<UnoSession, "chainId" | "properties">,
+  field?: UnoSearchField,
+  query = "",
+  filters?: UnoReportFilters,
+) => {
+  const payload = createReservationSearchPayload(session, field, query, filters);
+  const propertyIds = Array.isArray(payload.propertyIds)
+    ? payload.propertyIds.map((value) => asString(value)).filter(Boolean)
+    : [];
+  return {
+    ...payload,
+    chainID: session.chainId,
+    propertyId: propertyIds.join(","),
+    bookingStatus: [],
+    channelId: [],
+    paymentStatus: [],
+    filterBy: "1",
+    oTABookingId: field === "uno" ? query : "",
+    reservationNo: field === "uno" ? query : "",
+    pmsid: field === "pms" ? query : "",
+    pmsConfirmationNo: field === "pms" ? query : "",
+    phoneNo: field === "phone" ? query : "",
+    phoneNumber: field === "phone" ? query : "",
+    mobileNumber: field === "phone" ? query : "",
+  };
+};
+
 const unoHeaders = (session: UnoSession, configuration: ReturnType<typeof readConfiguration>) => ({
   Accept: "application/json",
   "Content-Type": "application/json",
@@ -1078,6 +1101,13 @@ const unoHeaders = (session: UnoSession, configuration: ReturnType<typeof readCo
   SessionID: session.sessionId,
   UserId: session.userId,
   IPAddress: session.ipAddress,
+});
+
+const voiceHeaders = (session: UnoSession) => ({
+  Accept: "application/json",
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${session.token}`,
+  UserID: "VOICE",
 });
 
 const enrichPhoneReservations = async (
@@ -1137,10 +1167,72 @@ const fetchReservations = async (
   reportFilters?: UnoReportFilters,
 ) => {
   const searchPayload = createReservationSearchPayload(session, field, query, reportFilters);
+  const legacySearchPayload = createLegacyReservationSearchPayload(session, field, query, reportFilters);
   let unauthorized = false;
   let lastStatus = 502;
 
-  for (const path of SEARCH_PATHS) {
+  const voiceEndpoint = new URL(VOICE_SEARCH_PATH, configuration.voiceApiBaseUrl);
+  voiceEndpoint.search = new URLSearchParams({
+    isforPageSize: "false",
+    page: "1",
+    pageSize: field ? String(SEARCH_LIMIT) : "-1",
+    isBookingDateUsed: String(reportFilters?.dateType === "booking"),
+    ServerSidePagination: "false",
+  }).toString();
+  try {
+    const response = await fetch(voiceEndpoint, {
+      method: "POST",
+      headers: voiceHeaders(session),
+      body: JSON.stringify(searchPayload),
+      signal: AbortSignal.timeout(25_000),
+    });
+    lastStatus = response.status;
+    if (response.status === 401 || response.status === 403) unauthorized = true;
+    if (response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const body = asRecord(asRecord(payload).body);
+      const hasOfficialRecords = Array.isArray(body.reservationsRecords);
+      const officialRecords = hasOfficialRecords
+        ? body.reservationsRecords as JsonRecord[]
+        : [];
+      const candidates = hasOfficialRecords
+        ? officialRecords
+        : reservationArrays(payload).sort((left, right) => right.length - left.length)[0] || [];
+      if (hasOfficialRecords || candidates.length) {
+        const searchableRecords = field === "phone"
+          ? await enrichPhoneReservations(configuration, session, candidates)
+          : candidates.slice(0, field ? SEARCH_LIMIT : UNO_REPORT_LIMIT);
+        const reservations = searchableRecords
+          .map(normalizeReservation)
+          .filter((reservation) => (
+            field
+              ? matchesSearch(reservation, field, query)
+              : Boolean(
+                reservation.unoNumber
+                || reservation.pmsNumber
+                || reservation.phone
+                || reservation.guestName,
+              )
+          ));
+        return { reservations, unauthorized: false, status: response.status };
+      }
+    }
+    if (!response.ok) {
+      console.warn("UNO reservation request failed", {
+        provider: "voice",
+        status: response.status,
+        path: voiceEndpoint.pathname,
+      });
+    }
+  } catch (error) {
+    console.warn("UNO reservation request failed", {
+      provider: "voice",
+      code: error instanceof Error && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK",
+      path: voiceEndpoint.pathname,
+    });
+  }
+
+  for (const path of LEGACY_SEARCH_PATHS) {
     const endpoint = new URL(path, configuration.apiBaseUrl);
     endpoint.search = new URLSearchParams({
       isforPageSize: "false",
@@ -1152,13 +1244,13 @@ const fetchReservations = async (
     const response = await fetch(endpoint, {
       method: "POST",
       headers: unoHeaders(session, configuration),
-      body: JSON.stringify(searchPayload),
+      body: JSON.stringify(legacySearchPayload),
       signal: AbortSignal.timeout(25_000),
     });
     lastStatus = response.status;
     if (response.status === 401 || response.status === 403) {
       unauthorized = true;
-      break;
+      continue;
     }
     if (!response.ok) continue;
 

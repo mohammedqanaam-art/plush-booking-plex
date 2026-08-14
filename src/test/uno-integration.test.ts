@@ -20,6 +20,7 @@ describe("UNO integration boundary", () => {
     expect(isTrustedRateGainUrl("https://uno-prod-ui-api-1087875874170.us-central1.run.app/api/")).toBe(true);
     expect(isTrustedRateGainUrl("https://uno-prod-ui-api-cpayzgdkqq-uc.a.run.app/api/")).toBe(true);
     expect(isTrustedRateGainUrl("https://v29-2---uno-prod-ui-api-cpayzgdkqq-uc.a.run.app/api/")).toBe(true);
+    expect(isTrustedRateGainUrl("https://ibe-prod-api-cpayzgdkqq-uc.a.run.app/api/")).toBe(true);
     expect(isTrustedRateGainUrl("http://unolive.rategain.com/")).toBe(false);
     expect(isTrustedRateGainUrl("https://rategain.com.attacker.example/")).toBe(false);
     expect(isTrustedRateGainUrl("https://fake-uno-api.us-central1.run.app/api/")).toBe(false);
@@ -60,6 +61,11 @@ describe("UNO integration boundary", () => {
     expect(fn).toContain('trimmedEnv("UNO_RESERVATIONS_URL")');
     expect(fn).toContain('trimmedEnv("UNO_LOGIN_URL")');
     expect(fn).toContain('const DEFAULT_UNO_APP_VERSION = "29.2"');
+    expect(fn).toContain('const DEFAULT_UNO_VOICE_API_BASE_URL = "https://ibe-prod-api-cpayzgdkqq-uc.a.run.app/api/"');
+    expect(fn).toContain('const VOICE_SEARCH_PATH = "voice/allreservaions"');
+    expect(fn).toContain('trimmedEnv("UNO_VOICE_API_BASE_URL")');
+    expect(fn).toContain('UserID: "VOICE"');
+    expect(fn).not.toMatch(/Bearer eyJ/);
     expect(fn).toContain("UNO_REFRESH_WINDOW_MS");
     expect(fn).toContain("AuthenticateUser/RefreshToken/");
     expect(fn).toContain("refreshConnectedState");
@@ -94,11 +100,12 @@ describe("UNO integration boundary", () => {
       ],
     }, "pms", "PMS-9988");
 
-    expect(payload.chainID).toBe("4");
-    expect(payload.propertyId).toBe("11,12");
+    expect(payload.ChainID).toBe("4");
     expect(payload.propertyIds).toEqual(["11", "12"]);
-    expect(payload.pmsConfirmationNo).toBe("PMS-9988");
-    expect(payload.phoneNo).toBe("");
+    expect(payload.searchText).toBe("PMS-9988");
+    expect(payload.isExcelDownload).toBe(false);
+    expect(payload).not.toHaveProperty("propertyId");
+    expect(payload).not.toHaveProperty("pmsConfirmationNo");
   });
 
   it("sends UNO its native date, property, and status filters before downloading", () => {
@@ -132,11 +139,15 @@ describe("UNO integration boundary", () => {
       properties: [{ id: "11", name: "One" }],
     });
 
-    expect(payload.chainID).toBe("4");
-    expect(payload.propertyId).toBe("11");
-    expect(payload.reservationNo).toBe("");
-    expect(payload.pmsConfirmationNo).toBe("");
-    expect(payload.phoneNo).toBe("");
+    expect(payload).toEqual({
+      ChainID: "4",
+      propertyIds: ["11"],
+      BookingStatus: 0,
+      Channel: "0",
+      SourceType: "Voice",
+      searchText: "",
+      isExcelDownload: false,
+    });
   });
 
   it("normalizes UNO reservation fields without exposing the raw response", () => {

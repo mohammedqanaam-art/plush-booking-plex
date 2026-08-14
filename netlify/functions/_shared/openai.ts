@@ -14,12 +14,17 @@ export type OpenAiTextResult = {
   model: string;
 };
 
+const configuredEnv = (key: string) => {
+  const netlifyValue = typeof Netlify !== "undefined" ? Netlify.env.get(key) : undefined;
+  return (netlifyValue || process.env[key] || "").trim();
+};
+
 const configuredModel = () => {
-  const value = Netlify.env.get("OPENAI_MODEL")?.trim() || "gpt-5-mini";
+  const value = configuredEnv("OPENAI_MODEL") || "gpt-5-mini";
   return /^[a-zA-Z0-9._-]{2,80}$/.test(value) ? value : "gpt-5-mini";
 };
 
-export const isOpenAiConfigured = () => Boolean(Netlify.env.get("OPENAI_API_KEY")?.trim());
+export const isOpenAiConfigured = () => Boolean(configuredEnv("OPENAI_API_KEY"));
 
 const responseText = (data: OpenAiResponse) => {
   const content = data.choices?.[0]?.message?.content;
@@ -33,7 +38,7 @@ const responseText = (data: OpenAiResponse) => {
 };
 
 const openAiEndpoint = () => {
-  const configuredBaseUrl = Netlify.env.get("OPENAI_BASE_URL")?.trim() || "https://api.openai.com";
+  const configuredBaseUrl = configuredEnv("OPENAI_BASE_URL") || "https://api.openai.com";
   let parsed: URL;
   try {
     parsed = new URL(configuredBaseUrl);
@@ -51,7 +56,7 @@ export async function generateOpenAiText(options: {
   maxOutputTokens?: number;
   timeoutMs?: number;
 }): Promise<OpenAiTextResult> {
-  const apiKey = Netlify.env.get("OPENAI_API_KEY")?.trim();
+  const apiKey = configuredEnv("OPENAI_API_KEY");
   if (!apiKey) throw new Error("OPENAI_NOT_CONFIGURED");
 
   const model = configuredModel();
