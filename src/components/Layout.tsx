@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, Building2, LayoutDashboard, PhoneCall, Search, ShieldCheck } from "lucide-react";
+import { BarChart3, Building2, LayoutDashboard, MessageCircle, PhoneCall, Search, ShieldCheck } from "lucide-react";
 import BottomNav from "./BottomNav";
 import RiyadhClock from "./RiyadhClock";
 import ViewerPreferences from "./ViewerPreferences";
@@ -9,6 +9,7 @@ import AiChat from "./AiChat";
 
 const desktopNav = [
   { to: "/", label: "الرئيسية", icon: LayoutDashboard },
+  { to: "/assistant", label: "المساعد", icon: MessageCircle },
   { to: "/operations", label: "البحث", icon: Search },
   { to: "/branches", label: "الفروع", icon: Building2 },
   { to: "/booking-reports", label: "التقارير", icon: BarChart3 },
