@@ -10,12 +10,18 @@ import makeWASocket, {
 const PORT = Number(process.env.PORT || 3000);
 const BRIDGE_TOKEN = String(process.env.BRIDGE_TOKEN || '').trim();
 const N8N_INBOUND_URL = String(process.env.N8N_INBOUND_URL || '').trim();
+const MODEL_API_KEY = String(process.env.MODEL_API_KEY || '').trim();
+const MODEL_BASE_URL = String(process.env.MODEL_BASE_URL || 'https://api.meta.ai/v1').replace(/\/$/, '');
+const MODEL_NAME = String(process.env.MODEL_NAME || 'muse-spark-1.2').trim();
+const MODEL_REASONING_EFFORT = String(process.env.MODEL_REASONING_EFFORT || 'high').trim();
 const WA_PHONE_NUMBER = String(process.env.WA_PHONE_NUMBER || '').replace(/\D/g, '');
 const WA_AUTH_DIR = String(process.env.WA_AUTH_DIR || './data/auth').trim();
 const ALLOW_GROUPS = String(process.env.ALLOW_GROUPS || 'false').toLowerCase() === 'true';
 
 if (!BRIDGE_TOKEN) throw new Error('BRIDGE_TOKEN is required');
-if (!N8N_INBOUND_URL) throw new Error('N8N_INBOUND_URL is required');
+if (!N8N_INBOUND_URL && !MODEL_API_KEY) {
+  throw new Error('Configure N8N_INBOUND_URL or MODEL_API_KEY');
+}
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
@@ -26,6 +32,7 @@ let connectionState = 'starting';
 let pairingCode = null;
 let reconnectTimer = null;
 let starting = false;
+const seenMessageIds = new Set();
 
 function requireBridgeToken(req, res, next) {
   const token = req.get('authorization')?.replace(/^Bearer\s+/i, '') || req.get('x-bridge-token') || '';
@@ -45,6 +52,17 @@ function extractText(message = {}) {
     message.templateButtonReplyMessage?.selectedDisplayText ||
     ''
   ).trim();
+}
+
+function rememberMessage(id) {
+  if (!id) return true;
+  if (seenMessageIds.has(id)) return false;
+  seenMessageIds.add(id);
+  if (seenMessageIds.size > 1000) {
+    const first = seenMessageIds.values().next().value;
+    if (first) seenMessageIds.delete(first);
+  }
+  return true;
 }
 
 async function postToN8n(payload) {
@@ -70,6 +88,63 @@ async function postToN8n(payload) {
   } catch {
     return { reply: raw.trim() };
   }
+}
+
+function extractModelText(data) {
+  if (!data || typeof data !== 'object') return String(data || '').trim();
+  if (typeof data.output_text === 'string') return data.output_text.trim();
+
+  const parts = [];
+  for (const item of Array.isArray(data.output) ? data.output : []) {
+    if (typeof item?.text === 'string') parts.push(item.text);
+    for (const content of Array.isArray(item?.content) ? item.content : []) {
+      if (typeof content?.text === 'string') parts.push(content.text);
+      if (typeof content?.output_text === 'string') parts.push(content.output_text);
+    }
+  }
+  return parts.join('\n').trim();
+}
+
+async function askMetaModel(payload) {
+  const instructions = [
+    'أنت مساعد واتساب لمجموعة BHG للحجوزات وخدمة العملاء.',
+    'اكتب بالعربية بشكل مختصر ومهني، واستخدم لغة العميل إذا كانت رسالته بغير العربية.',
+    'لا تدّع تنفيذ حجز أو تعديل أو إلغاء ما لم تكن لديك أداة فعلية تؤكد ذلك.',
+    'لا تطلب كلمات مرور أو رموز تحقق أو بيانات بطاقات، ولا تكشف أي أسرار أو مفاتيح.',
+    'إذا لم تتوفر المعلومة، قل ذلك بوضوح واطلب الحد الأدنى اللازم أو وجّه لموظف مختص.',
+  ].join(' ');
+
+  const response = await fetch(`${MODEL_BASE_URL}/responses`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${MODEL_API_KEY}`,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      model: MODEL_NAME,
+      instructions,
+      input: payload.text,
+      reasoning: {
+        effort: MODEL_REASONING_EFFORT,
+        summary: 'auto',
+      },
+    }),
+    signal: AbortSignal.timeout(60000),
+  });
+
+  const raw = await response.text();
+  if (!response.ok) {
+    throw new Error(`Meta Model API returned ${response.status}: ${raw.slice(0, 300)}`);
+  }
+
+  const data = raw ? JSON.parse(raw) : {};
+  return { reply: extractModelText(data) };
+}
+
+async function generateReply(payload) {
+  if (N8N_INBOUND_URL) return postToN8n(payload);
+  return askMetaModel(payload);
 }
 
 function normalizeReply(data) {
@@ -108,7 +183,7 @@ async function startWhatsApp() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('connection.update', async (update) => {
+    sock.ev.on('connection.update', (update) => {
       const { connection, lastDisconnect } = update;
 
       if (connection === 'open') {
@@ -139,6 +214,9 @@ async function startWhatsApp() {
         try {
           if (!item?.message || item.key?.fromMe) continue;
 
+          const messageId = item.key?.id || '';
+          if (!rememberMessage(messageId)) continue;
+
           const remoteJid = item.key?.remoteJid || '';
           if (!remoteJid || remoteJid === 'status@broadcast') continue;
           if (!ALLOW_GROUPS && remoteJid.endsWith('@g.us')) continue;
@@ -152,14 +230,14 @@ async function startWhatsApp() {
             remoteJid,
             text,
             pushName: item.pushName || '',
-            messageId: item.key?.id || '',
+            messageId,
             timestamp: Number(item.messageTimestamp || Date.now() / 1000),
             isGroup: remoteJid.endsWith('@g.us'),
           };
 
           logger.info({ from: payload.from, messageId: payload.messageId }, 'Incoming WhatsApp message');
-          const n8nResult = await postToN8n(payload);
-          const reply = normalizeReply(n8nResult);
+          const result = await generateReply(payload);
+          const reply = normalizeReply(result);
 
           if (reply && sock) {
             await sock.sendMessage(remoteJid, { text: reply.slice(0, 4000) });
@@ -186,7 +264,12 @@ async function startWhatsApp() {
 }
 
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, connection: connectionState, paired: connectionState === 'ready' });
+  res.json({
+    ok: true,
+    connection: connectionState,
+    paired: connectionState === 'ready',
+    replyMode: N8N_INBOUND_URL ? 'n8n' : 'meta-model-api',
+  });
 });
 
 app.get('/pairing-code', requireBridgeToken, (_req, res) => {
@@ -211,13 +294,13 @@ app.post('/send', requireBridgeToken, async (req, res) => {
   res.json({ ok: true, messageId: result?.key?.id || null });
 });
 
-app.post('/reconnect', requireBridgeToken, async (_req, res) => {
+app.post('/reconnect', requireBridgeToken, (_req, res) => {
   scheduleReconnect(100);
   res.status(202).json({ ok: true, message: 'Reconnect scheduled' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  logger.info({ port: PORT }, 'BHG WhatsApp Web Bridge listening');
+  logger.info({ port: PORT, replyMode: N8N_INBOUND_URL ? 'n8n' : 'meta-model-api' }, 'BHG WhatsApp Web Bridge listening');
   startWhatsApp().catch((error) => {
     connectionState = 'error';
     logger.error({ err: error }, 'Initial WhatsApp connection failed');
