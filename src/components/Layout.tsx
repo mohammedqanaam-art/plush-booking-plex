@@ -27,9 +27,6 @@ const Layout = () => {
       <header className="app-topbar safe-area-top sticky top-0 z-40">
         <div className="content-container app-topbar__inner">
           <Link to={isAdminArea ? "/admin" : "/"} className="app-brand" aria-label="إدارة الحجز المركزي">
-            <span className="app-brand__mark" aria-hidden="true">
-              <img src="/bhg-hospitality-group.jpg" alt="" loading="eager" />
-            </span>
             <span className="app-brand__copy">
               <strong>إدارة الحجز المركزي</strong>
               <small>{isAdminArea ? "لوحة الإدارة والتشغيل" : "BHG · Central Reservation"}</small>
