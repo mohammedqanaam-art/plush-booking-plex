@@ -6,6 +6,7 @@ import ViewerPreferences from "./ViewerPreferences";
 import AnalyticsTracker from "./AnalyticsTracker";
 import BrandFooter from "./BrandFooter";
 import AiChat from "./AiChat";
+import VisitorChat from "./VisitorChat";
 
 const desktopNav = [
   { to: "/", label: "الرئيسية", icon: LayoutDashboard },
@@ -92,6 +93,7 @@ const Layout = () => {
       ) : null}
 
       {!isAdminArea ? <BottomNav /> : null}
+      {!isAdminArea && location.pathname !== "/assistant" ? <VisitorChat /> : null}
       {isAdminArea && location.pathname !== "/admin/login" ? <AiChat /> : null}
     </div>
   );
