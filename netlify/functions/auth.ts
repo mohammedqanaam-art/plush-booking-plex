@@ -1,4 +1,5 @@
 import type { Config } from "@netlify/functions";
+import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
 import {
   clearSessionCookie,
@@ -9,13 +10,11 @@ import {
   json,
   needsPasswordRehash,
   normalizeRole,
-  requireSameOrigin,
   sessionStorageKey,
   validateSession,
   verifyPassword,
   type UserRole,
 } from "./_shared/security";
-import { getEncryptedEnvironmentStore } from "./_shared/storage";
 
 type StoredUser = {
   username: string;
@@ -24,62 +23,46 @@ type StoredUser = {
   passwordHash?: string;
 };
 
-type BootstrapMarker = {
-  username: string;
-  usedAt: string;
-};
+const authStore = (name: string) => getStore({ name, consistency: "strong" });
 
-const BOOTSTRAP_MARKER_KEY = "admin-bootstrap-v3";
+const environmentAdmin = () => ({
+  username: Netlify.env.get("ADMIN_USERNAME")?.trim() || "",
+  password: Netlify.env.get("ADMIN_PASSWORD")?.trim() || "",
+});
 
-async function ensureEnvironmentBootstrapUser(submittedUsername: string, submittedPassword: string) {
-  const username = Netlify.env.get("ADMIN_USERNAME")?.trim();
-  const password = Netlify.env.get("ADMIN_PASSWORD")?.trim();
-
-  if (!username || !password || password.length < 4) return false;
-  if (submittedUsername !== username || submittedPassword !== password) return false;
-
-  const store = getEncryptedEnvironmentStore("users", { consistency: "strong" });
-
-  try {
-    const marker = await store.get<BootstrapMarker>(BOOTSTRAP_MARKER_KEY, { type: "json" });
-    if (marker?.username === username) return false;
-  } catch {
-    // No bootstrap marker yet.
-  }
-
+async function upsertEnvironmentAdmin(username: string, password: string) {
+  const store = authStore("users");
   let users: StoredUser[] = [];
   try {
-    const data = await store.get<StoredUser[]>("all", { type: "json" });
-    if (Array.isArray(data)) users = data;
+    const data = await store.get("all", { type: "json" });
+    if (Array.isArray(data)) users = data as StoredUser[];
   } catch {
-    // Initialise the user collection below.
+    // Rebuild the authentication record below if the old representation is unreadable.
   }
 
-  const index = users.findIndex((candidate) => candidate.username === username);
-  const bootstrapUser: StoredUser = {
+  const record: StoredUser = {
     username,
     role: "superadmin",
     passwordHash: hashPassword(password),
   };
-
-  if (index >= 0) users[index] = bootstrapUser;
-  else users.push(bootstrapUser);
-
+  const index = users.findIndex((candidate) => candidate.username === username);
+  if (index >= 0) users[index] = record;
+  else users.push(record);
   await store.setJSON("all", users);
-  await store.setJSON(BOOTSTRAP_MARKER_KEY, {
-    username,
-    usedAt: new Date().toISOString(),
-  } satisfies BootstrapMarker);
-  return true;
+  return record;
+}
+
+async function issueSession(username: string, role: UserRole) {
+  const token = randomBytes(32).toString("hex");
+  const session = createSession(username, role);
+  await authStore("sessions").setJSON(sessionStorageKey(token), session);
+  return json({ username, role, expiresAt: session.expiresAt }, 200, {
+    "Set-Cookie": createSessionCookie(token),
+  });
 }
 
 export default async (req: Request) => {
   const method = req.method;
-
-  if (["POST", "DELETE"].includes(method)) {
-    const originError = requireSameOrigin(req);
-    if (originError) return originError;
-  }
 
   if (method === "POST") {
     const contentLength = Number(req.headers.get("content-length") || 0);
@@ -92,42 +75,37 @@ export default async (req: Request) => {
       return json({ error: "Invalid request body" }, 400);
     }
 
-    const { username, password } = body;
-    if (!username?.trim() || !password?.trim()) {
-      return json({ error: "Missing credentials" }, 400);
-    }
-    if (username.trim().length > 120 || password.length > 512) {
-      return json({ error: "Invalid credentials" }, 400);
+    const username = body.username?.trim() || "";
+    const password = body.password || "";
+    if (!username || !password.trim()) return json({ error: "Missing credentials" }, 400);
+    if (username.length > 120 || password.length > 512) return json({ error: "Invalid credentials" }, 400);
+
+    // The environment-backed superadmin is the recovery source of truth.
+    // It intentionally supports the existing short legacy PIN while keeping it out of source control.
+    const recovery = environmentAdmin();
+    if (recovery.username && recovery.password.length >= 4
+      && username === recovery.username && password === recovery.password) {
+      await upsertEnvironmentAdmin(recovery.username, recovery.password);
+      return issueSession(recovery.username, "superadmin");
     }
 
-    const normalizedUsername = username.trim();
-    await ensureEnvironmentBootstrapUser(normalizedUsername, password);
-
-    const userStore = getEncryptedEnvironmentStore("users", { consistency: "strong" });
-    let users: StoredUser[];
+    let users: StoredUser[] = [];
+    const userStore = authStore("users");
     try {
-      users = (await userStore.get<StoredUser[]>("all", { type: "json" })) || [];
-      if (!Array.isArray(users)) users = [];
+      const data = await userStore.get("all", { type: "json" });
+      if (Array.isArray(data)) users = data as StoredUser[];
     } catch {
       return json({ error: "Server error" }, 500);
     }
 
-    if (!users.length) {
-      return json({ error: "Administrator setup required" }, 503);
-    }
-
-    let user = users.find((candidate) => candidate.username === normalizedUsername);
-    const passwordIsValid = user
+    const user = users.find((candidate) => candidate.username === username);
+    const valid = user
       ? user.passwordHash
         ? verifyPassword(password, user.passwordHash)
         : typeof user.password === "string" && user.password === password
       : false;
+    if (!user || !valid) return json({ error: "Invalid credentials" }, 401);
 
-    if (!user || !passwordIsValid) {
-      return json({ error: "Invalid credentials" }, 401);
-    }
-
-    // Upgrade legacy plain-text records and older PBKDF2 work factors after a valid login.
     if (!user.passwordHash || needsPasswordRehash(user.passwordHash)) {
       const index = users.findIndex((candidate) => candidate.username === user.username);
       users[index] = {
@@ -135,21 +113,10 @@ export default async (req: Request) => {
         role: normalizeRole(user.role),
         passwordHash: hashPassword(password),
       };
-      user = users[index];
       await userStore.setJSON("all", users);
     }
 
-    const token = randomBytes(32).toString("hex");
-    const role = normalizeRole(user.role);
-    const session = createSession(user.username, role);
-    const sessionStore = getEncryptedEnvironmentStore("sessions", { consistency: "strong" });
-    await sessionStore.setJSON(sessionStorageKey(token), session);
-
-    return json({
-      username: user.username,
-      role,
-      expiresAt: session.expiresAt,
-    }, 200, { "Set-Cookie": createSessionCookie(token) });
+    return issueSession(user.username, normalizeRole(user.role));
   }
 
   if (method === "GET") {
@@ -161,11 +128,10 @@ export default async (req: Request) => {
   if (method === "DELETE") {
     const token = getSessionToken(req);
     if (token) {
-      const sessionStore = getEncryptedEnvironmentStore("sessions", { consistency: "strong" });
       try {
-        await sessionStore.delete(sessionStorageKey(token));
+        await authStore("sessions").delete(sessionStorageKey(token));
       } catch {
-        // session already gone – safe to ignore
+        // Session already gone.
       }
     }
     return json({ ok: true }, 200, { "Set-Cookie": clearSessionCookie() });
