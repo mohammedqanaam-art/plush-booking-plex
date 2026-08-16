@@ -7,12 +7,15 @@ import {
   getSessionToken,
   hashPassword,
   json,
+  needsPasswordRehash,
   normalizeRole,
+  requireSameOrigin,
+  sessionStorageKey,
   validateSession,
   verifyPassword,
   type UserRole,
 } from "./_shared/security";
-import { getEnvironmentStore } from "./_shared/storage";
+import { getEncryptedEnvironmentStore } from "./_shared/storage";
 
 type StoredUser = {
   username: string;
@@ -22,9 +25,9 @@ type StoredUser = {
 };
 
 async function ensureDefaultUser() {
-  const store = getEnvironmentStore("users", { consistency: "strong" });
+  const store = getEncryptedEnvironmentStore("users", { consistency: "strong" });
   try {
-    const data = await store.get("all", { type: "json" });
+    const data = await store.get<StoredUser[]>("all", { type: "json" });
     if (Array.isArray(data) && data.length > 0) return;
   } catch {
     // store empty or not yet initialised – proceed to seed default user
@@ -39,7 +42,15 @@ async function ensureDefaultUser() {
 export default async (req: Request) => {
   const method = req.method;
 
+  if (["POST", "DELETE"].includes(method)) {
+    const originError = requireSameOrigin(req);
+    if (originError) return originError;
+  }
+
   if (method === "POST") {
+    const contentLength = Number(req.headers.get("content-length") || 0);
+    if (contentLength > 8 * 1024) return json({ error: "Request too large" }, 413);
+
     let body: { username?: string; password?: string };
     try {
       body = await req.json();
@@ -51,13 +62,16 @@ export default async (req: Request) => {
     if (!username?.trim() || !password?.trim()) {
       return json({ error: "Missing credentials" }, 400);
     }
+    if (username.trim().length > 120 || password.length > 512) {
+      return json({ error: "Invalid credentials" }, 400);
+    }
 
     const seeded = await ensureDefaultUser();
 
-    const userStore = getEnvironmentStore("users", { consistency: "strong" });
+    const userStore = getEncryptedEnvironmentStore("users", { consistency: "strong" });
     let users: StoredUser[];
     try {
-      users = (await userStore.get("all", { type: "json" })) as typeof users;
+      users = (await userStore.get<StoredUser[]>("all", { type: "json" })) || [];
       if (!Array.isArray(users)) users = [];
     } catch {
       return json({ error: "Server error" }, 500);
@@ -67,7 +81,8 @@ export default async (req: Request) => {
       return json({ error: "Administrator setup required" }, 503);
     }
 
-    const user = users.find((u) => u.username === username.trim());
+    const normalizedUsername = username.trim();
+    const user = users.find((u) => u.username === normalizedUsername);
     const passwordIsValid = user
       ? user.passwordHash
         ? verifyPassword(password, user.passwordHash)
@@ -77,8 +92,8 @@ export default async (req: Request) => {
       return json({ error: "Invalid credentials" }, 401);
     }
 
-    // Upgrade legacy plain-text records immediately after a successful login.
-    if (!user.passwordHash) {
+    // Upgrade legacy plain-text records and older PBKDF2 work factors after a valid login.
+    if (!user.passwordHash || needsPasswordRehash(user.passwordHash)) {
       const index = users.findIndex((candidate) => candidate.username === user.username);
       users[index] = {
         username: user.username,
@@ -91,8 +106,8 @@ export default async (req: Request) => {
     const token = randomBytes(32).toString("hex");
     const role = normalizeRole(user.role);
     const session = createSession(user.username, role);
-    const sessionStore = getEnvironmentStore("sessions", { consistency: "strong" });
-    await sessionStore.setJSON(`sess_${token}`, session);
+    const sessionStore = getEncryptedEnvironmentStore("sessions", { consistency: "strong" });
+    await sessionStore.setJSON(sessionStorageKey(token), session);
 
     return json({
       username: user.username,
@@ -110,9 +125,9 @@ export default async (req: Request) => {
   if (method === "DELETE") {
     const token = getSessionToken(req);
     if (token) {
-      const sessionStore = getEnvironmentStore("sessions", { consistency: "strong" });
+      const sessionStore = getEncryptedEnvironmentStore("sessions", { consistency: "strong" });
       try {
-        await sessionStore.delete(`sess_${token}`);
+        await sessionStore.delete(sessionStorageKey(token));
       } catch {
         // session already gone – safe to ignore
       }
@@ -125,7 +140,7 @@ export default async (req: Request) => {
 
 export const config: Config = {
   rateLimit: {
-    windowLimit: 12,
+    windowLimit: 8,
     windowSize: 60,
     aggregateBy: ["ip"],
   },
