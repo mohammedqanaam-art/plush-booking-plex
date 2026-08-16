@@ -1,6 +1,7 @@
 import type { Config } from "@netlify/functions";
-import { callN8nAgent } from "./_shared/n8n";
-import { json, validateSession } from "./_shared/security";
+import { callN8nAgent, n8nAgentConfigured } from "./_shared/n8n";
+import { json, requireSameOrigin, validateSession } from "./_shared/security";
+import { dispatchWorkflow, type ExecutableWorkflowKey } from "./_shared/workflowDispatcher";
 
 const ACTIONS = [
   "branch_lookup",
@@ -37,8 +38,18 @@ const sanitizePayload = (value: unknown): Record<string, unknown> => {
   return output;
 };
 
+const workflowForAction = (action: AgentAction, requested: string): ExecutableWorkflowKey => {
+  if (action === "branch_lookup") return "employee-support";
+  if (action === "refresh_branch_knowledge") return "branch-knowledge-refresh";
+  if (action === "create_development_request") return "development-request";
+  return requested as ExecutableWorkflowKey;
+};
+
 export default async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+  const originError = requireSameOrigin(req);
+  if (originError) return originError;
 
   const session = await validateSession(req);
   if (!session) return json({ error: "Unauthorized" }, 401);
@@ -66,55 +77,81 @@ export default async (req: Request) => {
     return json({ error: "Explicit confirmation required", requiresConfirmation: true }, 409);
   }
 
-  const workflowKey = String(body.workflowKey || "").trim();
-  if (action === "run_workflow") {
-    if (!workflowKey || !allowedWorkflowKeys().has(workflowKey)) {
-      return json({ error: "Workflow is not allow-listed" }, 403);
-    }
+  const requestedWorkflow = String(body.workflowKey || "").trim();
+  const workflowKey = workflowForAction(action, requestedWorkflow);
+  if (!allowedWorkflowKeys().has(workflowKey)) {
+    return json({ error: "Workflow is not allow-listed" }, 403);
   }
 
   const requestId = crypto.randomUUID();
   const payload = sanitizePayload(body.payload);
-  const reason = String(body.reason || "").trim().slice(0, 1_000);
+  const reason = String(body.reason || payload.request || "").trim().slice(0, 1_000);
 
+  let execution;
   try {
-    const result = await callN8nAgent({
-      version: 1,
-      type: "admin_command",
-      requestId,
-      actor: {
-        type: "admin",
-        username: session.username,
-        role: session.role,
-      },
-      action,
-      workflowKey: workflowKey || undefined,
-      confirmed: body.confirm === true,
+    execution = await dispatchWorkflow({
+      workflowKey,
       reason,
       payload,
-      governance: {
-        source: "res-dashbord.com",
-        requireHumanApprovalForDeployment: true,
-        noCredentialDisclosure: true,
-      },
-    });
-
-    return json({
-      ok: true,
-      action,
-      workflowKey: workflowKey || null,
-      reply: result.reply || "تم تمرير الطلب إلى n8n.",
-      result: typeof result.data === "object" ? result.data : { text: result.data },
-      requestId,
+      actor: { username: session.username, role: session.role },
     });
   } catch (error) {
-    console.error("[agent-command] n8n command failed", {
+    console.error("[agent-command] workflow execution failed", {
       code: error instanceof Error ? error.message : "UNKNOWN",
-      action,
+      workflowKey,
       requestId,
     });
-    return json({ error: "تعذر الوصول إلى n8n أو تنفيذ الأمر.", requestId }, 502);
+    return json({ error: "تعذر تنفيذ الـWorkflow المطلوب.", workflowKey, requestId }, 502);
   }
+
+  let agentReply = "";
+  let orchestrator: "n8n" | "server-dispatcher" = "server-dispatcher";
+  if (n8nAgentConfigured()) {
+    try {
+      const result = await callN8nAgent({
+        version: 2,
+        type: "admin_command_result",
+        requestId,
+        sessionId: `admin_${session.username.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+        actor: {
+          type: "admin",
+          username: session.username,
+          role: session.role,
+        },
+        action,
+        workflowKey,
+        confirmed: body.confirm === true,
+        reason,
+        payload,
+        executionResult: execution,
+        governance: {
+          source: "res-dashbord.com",
+          executionIsServerSide: true,
+          requireHumanApprovalForDeployment: true,
+          noCredentialDisclosure: true,
+        },
+      });
+      agentReply = result.reply;
+      orchestrator = "n8n";
+    } catch (error) {
+      console.error("[agent-command] n8n orchestration unavailable; server execution retained", {
+        code: error instanceof Error ? error.message : "UNKNOWN",
+        workflowKey,
+        requestId,
+      });
+    }
+  }
+
+  return json({
+    ok: true,
+    action,
+    workflowKey,
+    reply: execution.reply,
+    agentReply: agentReply || null,
+    orchestrator,
+    execution,
+    requestId,
+  });
 };
 
 export const config: Config = {
