@@ -1,7 +1,7 @@
 import type { Config } from "@netlify/functions";
 import { hotelBranches } from "../../src/data/hotels";
 import { BRAND_PREFIX, COMPLAINT_CATEGORIES, DEFAULT_WHATSAPP_TEMPLATE, applyTemplate } from "../../src/lib/enterpriseProtocol";
-import { json, validateSession } from "./_shared/security";
+import { json, requireSameOrigin, validateSession } from "./_shared/security";
 import { getEnvironmentStore } from "./_shared/storage";
 type ComplaintStatus = "open" | "under_review" | "closed";
 type Complaint = {
@@ -69,6 +69,11 @@ async function sendComplaintEmailCopy(complaint: Complaint, html: string) {
 export default async (req: Request) => {
   const store = getEnvironmentStore("complaints", { consistency: "strong" });
   const items = ((await store.get("items", { type: "json" })) as Complaint[] | null) || [];
+
+  if (["POST", "PUT"].includes(req.method)) {
+    const originError = requireSameOrigin(req);
+    if (originError) return originError;
+  }
 
   if (req.method === "GET") {
     const session = await validateSession(req);

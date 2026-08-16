@@ -1,17 +1,17 @@
-import { json, validateSession } from "./_shared/security";
+import { json, requireSameOrigin, validateSession } from "./_shared/security";
 import { buildPublicBookingReport } from "./_shared/bookingReport";
 import { BookingCsvError, inspectBookingReportText, saveBookingReportText } from "./_shared/bookingCsv";
 import { publicCachedJson } from "./_shared/publicCache";
-import { getEnvironmentStore } from "./_shared/storage";
+import { getEncryptedEnvironmentStore, getEnvironmentStore } from "./_shared/storage";
 
 export default async (req: Request) => {
   const method = req.method;
-  const store = getEnvironmentStore("bookings", { consistency: "strong" });
+  const store = getEncryptedEnvironmentStore("bookings", { consistency: "strong" });
 
   if (method === "GET") {
     try {
-      const bookings = ((await store.get("data", { type: "json" })) as Record<string, string>[]) || [];
-      const stats = ((await store.get("stats", { type: "json" })) as Record<string, unknown> | null) || {
+      const bookings = (await store.get<Record<string, string>[]>("data", { type: "json" })) || [];
+      const stats = (await store.get<Record<string, unknown>>("stats", { type: "json" })) || {
         total: 0,
         confirmed: 0,
         cancelled: 0,
@@ -42,9 +42,11 @@ export default async (req: Request) => {
     }
   }
 
+  const originError = requireSameOrigin(req);
+  if (originError) return originError;
+
   const session = await validateSession(req);
   if (!session) return json({ error: "Unauthorized" }, 401);
-
 
   if (method === "DELETE") {
     if (!["superadmin", "admin"].includes(session.role)) {

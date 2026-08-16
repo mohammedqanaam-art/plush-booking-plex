@@ -1,5 +1,6 @@
-import { hashPassword, json, VALID_ROLES, validateSession, verifyPassword, type UserRole } from "./_shared/security";
-import { getEnvironmentStore } from "./_shared/storage";
+import type { Config } from "@netlify/functions";
+import { hashPassword, json, requireSameOrigin, VALID_ROLES, validateSession, verifyPassword, type UserRole } from "./_shared/security";
+import { getEncryptedEnvironmentStore } from "./_shared/storage";
 
 type User = { username: string; role: UserRole; password?: string; passwordHash?: string };
 
@@ -18,14 +19,19 @@ export default async (req: Request) => {
   if (!session) return json({ error: "Unauthorized" }, 401);
 
   const method = req.method;
-  const userStore = getEnvironmentStore("users", { consistency: "strong" });
+  if (["POST", "PATCH", "DELETE"].includes(method)) {
+    const originError = requireSameOrigin(req);
+    if (originError) return originError;
+  }
+
+  const userStore = getEncryptedEnvironmentStore("users", { consistency: "strong" });
 
   if (method === "GET") {
     if (!hasPermission(session.role, "view_users")) {
       return json({ error: "Permission Denied" }, 403);
     }
     try {
-      const users = ((await userStore.get("all", { type: "json" })) as User[]) || [];
+      const users = (await userStore.get<User[]>("all", { type: "json" })) || [];
       const safeUsers = users.map((u) => ({
         username: u.username,
         role: u.role || "admin",
@@ -55,10 +61,13 @@ export default async (req: Request) => {
     if (!role || !VALID_ROLES.includes(role as UserRole)) {
       return json({ error: "Invalid role" }, 400);
     }
+    if (username.trim().length > 120 || password.length > 512) {
+      return json({ error: "Invalid account fields" }, 400);
+    }
 
     let users: User[] = [];
     try {
-      users = ((await userStore.get("all", { type: "json" })) as User[]) || [];
+      users = (await userStore.get<User[]>("all", { type: "json" })) || [];
     } catch {
       users = [];
     }
@@ -88,13 +97,13 @@ export default async (req: Request) => {
     if (!currentPassword?.trim() || !newPassword?.trim()) {
       return json({ error: "Current password and new password are required" }, 400);
     }
-    if (newPassword.trim().length < 12) {
-      return json({ error: "New password must be at least 12 characters" }, 400);
+    if (newPassword.trim().length < 12 || newPassword.length > 512) {
+      return json({ error: "New password must be between 12 and 512 characters" }, 400);
     }
 
     let users: User[] = [];
     try {
-      users = ((await userStore.get("all", { type: "json" })) as User[]) || [];
+      users = (await userStore.get<User[]>("all", { type: "json" })) || [];
     } catch {
       return json({ error: "Server error" }, 500);
     }
@@ -136,13 +145,13 @@ export default async (req: Request) => {
     if (!username?.trim()) {
       return json({ error: "Username required" }, 400);
     }
-    if (username.trim() === "admin") {
-      return json({ error: "Cannot delete default admin" }, 400);
+    if (username.trim() === session.username) {
+      return json({ error: "Cannot delete the active account" }, 400);
     }
 
     let users: User[] = [];
     try {
-      users = ((await userStore.get("all", { type: "json" })) as User[]) || [];
+      users = (await userStore.get<User[]>("all", { type: "json" })) || [];
     } catch {
       return json({ error: "Server error" }, 500);
     }
@@ -153,4 +162,12 @@ export default async (req: Request) => {
   }
 
   return json({ error: "Method not allowed" }, 405);
+};
+
+export const config: Config = {
+  rateLimit: {
+    windowLimit: 60,
+    windowSize: 60,
+    aggregateBy: ["ip"],
+  },
 };

@@ -20,37 +20,42 @@ const Layout = () => {
   const isAdminArea = location.pathname.startsWith("/admin");
 
   return (
-    <div className="app-shell flex flex-col">
+    <div className={`app-shell ${isAdminArea ? "app-shell--admin" : "app-shell--public"} flex flex-col`}>
       <AnalyticsTracker />
 
-      <header className="safe-area-top sticky top-0 z-40 border-b border-border/15 bg-background/82 backdrop-blur-2xl">
-        <div className="content-container h-[60px] flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="min-w-0">
-              <p className="truncate text-[15px] font-bold leading-5">إدارة الحجز المركزي</p>
+      <header className="app-topbar safe-area-top sticky top-0 z-40">
+        <div className="content-container app-topbar__inner">
+          <Link to={isAdminArea ? "/admin" : "/"} className="app-brand" aria-label="إدارة الحجز المركزي">
+            <span className="app-brand__mark" aria-hidden="true">
+              <img src="/bhg-hospitality-group.jpg" alt="" loading="eager" />
+            </span>
+            <span className="app-brand__copy">
+              <strong>إدارة الحجز المركزي</strong>
+              <small>{isAdminArea ? "لوحة الإدارة والتشغيل" : "BHG · Central Reservation"}</small>
+            </span>
+          </Link>
+
+          {!isAdminArea ? (
+            <nav className="app-desktop-nav hidden md:flex" aria-label="التنقل الرئيسي">
+              {desktopNav.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => `app-desktop-nav__item ${isActive ? "is-active" : ""}`}
+                >
+                  <item.icon className="w-4 h-4" strokeWidth={1.9} />
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          ) : (
+            <div className="hidden md:inline-flex admin-context-pill">
+              <ShieldCheck className="h-4 w-4" />
+              مساحة إدارية محمية
             </div>
-          </div>
+          )}
 
-          {!isAdminArea ? <nav className="hidden md:flex items-center justify-center gap-2 overflow-auto custom-scrollbar rounded-2xl border border-border/15 bg-secondary/20 p-1">
-            {desktopNav.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-semibold interactive whitespace-nowrap ${
-                    isActive
-                      ? "bg-primary/12 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.22)]"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/45"
-                  }`
-                }
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-              </NavLink>
-            ))}
-          </nav> : null}
-
-          <div className="flex items-center gap-2 shrink-0 mr-auto md:mr-0">
+          <div className="app-topbar__actions">
             {!isAdminArea ? (
               <Link
                 to="/admin"
@@ -59,21 +64,24 @@ const Layout = () => {
                 title="لوحة مدير ومشرفين إدارة الحجز"
               >
                 <ShieldCheck className="h-4 w-4" />
-                <span className="hidden xl:inline">لوحة مدير ومشرفين إدارة الحجز</span>
+                <span className="hidden xl:inline">الإدارة</span>
               </Link>
-            ) : null}
-            <div className="hidden lg:block">
-              <RiyadhClock />
-            </div>
+            ) : (
+              <Link to="/" className="admin-entry-link" aria-label="العودة للموقع العام" title="العودة للموقع العام">
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden xl:inline">الموقع العام</span>
+              </Link>
+            )}
+            <div className="hidden lg:block"><RiyadhClock /></div>
             <div className="hidden md:block"><ViewerPreferences /></div>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-3 md:pb-8" key={location.pathname}>
-        <div className="content-container pt-3 md:pt-4">
+      <main className="app-main flex-1 min-h-0 overflow-y-auto custom-scrollbar" key={location.pathname}>
+        <div className="content-container app-main__inner">
           <Outlet />
-          {!isAdminArea ? <BrandFooter className="mt-5 md:hidden" /> : null}
+          {!isAdminArea ? <BrandFooter className="mt-6 md:hidden" /> : null}
         </div>
       </main>
 
