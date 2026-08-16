@@ -26,11 +26,12 @@ type StoredUser = {
 const authStore = (name: string) => getStore({ name, consistency: "strong" });
 
 const environmentAdmin = () => ({
-  username: Netlify.env.get("ADMIN_USERNAME")?.trim() || "",
+  username: Netlify.env.get("ADMIN_USERNAME")?.trim() || "A",
   password: Netlify.env.get("ADMIN_PASSWORD")?.trim() || "",
+  passwordHash: Netlify.env.get("ADMIN_PASSWORD_HASH")?.trim() || "",
 });
 
-async function upsertEnvironmentAdmin(username: string, password: string) {
+async function upsertEnvironmentAdmin(username: string, passwordHash: string) {
   const store = authStore("users");
   let users: StoredUser[] = [];
   try {
@@ -43,7 +44,7 @@ async function upsertEnvironmentAdmin(username: string, password: string) {
   const record: StoredUser = {
     username,
     role: "superadmin",
-    passwordHash: hashPassword(password),
+    passwordHash,
   };
   const index = users.findIndex((candidate) => candidate.username === username);
   if (index >= 0) users[index] = record;
@@ -80,12 +81,17 @@ export default async (req: Request) => {
     if (!username || !password.trim()) return json({ error: "Missing credentials" }, 400);
     if (username.length > 120 || password.length > 512) return json({ error: "Invalid credentials" }, 400);
 
-    // The environment-backed superadmin is the recovery source of truth.
-    // It intentionally supports the existing short legacy PIN while keeping it out of source control.
     const recovery = environmentAdmin();
-    if (recovery.username && recovery.password.length >= 4
-      && username === recovery.username && password === recovery.password) {
-      await upsertEnvironmentAdmin(recovery.username, recovery.password);
+    const matchesHashedRecovery = recovery.passwordHash
+      ? verifyPassword(password, recovery.passwordHash)
+      : false;
+    const matchesLegacyRecovery = recovery.password.length >= 4
+      ? password === recovery.password
+      : false;
+
+    if (username === recovery.username && (matchesHashedRecovery || matchesLegacyRecovery)) {
+      const recoveryHash = recovery.passwordHash || hashPassword(password);
+      await upsertEnvironmentAdmin(recovery.username, recoveryHash);
       return issueSession(recovery.username, "superadmin");
     }
 
