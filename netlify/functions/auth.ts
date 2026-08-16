@@ -24,21 +24,52 @@ type StoredUser = {
   passwordHash?: string;
 };
 
-const BOOTSTRAP_ADMIN_USERNAME = "Yeah";
-const BOOTSTRAP_ADMIN_PASSWORD_HASH = "pbkdf2_sha256$600000$a045ebf79e718488ac2fad85c95a4c69$5a1f6bdc505a41355f838b00ffcd9743876a136c7474c1c9e818dee929f793b3";
+type BootstrapMarker = {
+  username: string;
+  usedAt: string;
+};
 
-async function ensureDefaultUser() {
-  const store = getEncryptedEnvironmentStore("users", { consistency: "strong" });
-  try {
-    const data = await store.get<StoredUser[]>("all", { type: "json" });
-    if (Array.isArray(data) && data.length > 0) return;
-  } catch {
-    // store empty or not yet initialised – proceed to seed default user
-  }
+const BOOTSTRAP_MARKER_KEY = "admin-bootstrap-v3";
+
+async function ensureEnvironmentBootstrapUser(submittedUsername: string, submittedPassword: string) {
   const username = Netlify.env.get("ADMIN_USERNAME")?.trim();
   const password = Netlify.env.get("ADMIN_PASSWORD")?.trim();
-  if (!username || !password || password.length < 12) return false;
-  await store.setJSON("all", [{ username, passwordHash: hashPassword(password), role: "superadmin" }]);
+
+  if (!username || !password || password.length < 4) return false;
+  if (submittedUsername !== username || submittedPassword !== password) return false;
+
+  const store = getEncryptedEnvironmentStore("users", { consistency: "strong" });
+
+  try {
+    const marker = await store.get<BootstrapMarker>(BOOTSTRAP_MARKER_KEY, { type: "json" });
+    if (marker?.username === username) return false;
+  } catch {
+    // No bootstrap marker yet.
+  }
+
+  let users: StoredUser[] = [];
+  try {
+    const data = await store.get<StoredUser[]>("all", { type: "json" });
+    if (Array.isArray(data)) users = data;
+  } catch {
+    // Initialise the user collection below.
+  }
+
+  const index = users.findIndex((candidate) => candidate.username === username);
+  const bootstrapUser: StoredUser = {
+    username,
+    role: "superadmin",
+    passwordHash: hashPassword(password),
+  };
+
+  if (index >= 0) users[index] = bootstrapUser;
+  else users.push(bootstrapUser);
+
+  await store.setJSON("all", users);
+  await store.setJSON(BOOTSTRAP_MARKER_KEY, {
+    username,
+    usedAt: new Date().toISOString(),
+  } satisfies BootstrapMarker);
   return true;
 }
 
@@ -69,7 +100,8 @@ export default async (req: Request) => {
       return json({ error: "Invalid credentials" }, 400);
     }
 
-    const seeded = await ensureDefaultUser();
+    const normalizedUsername = username.trim();
+    await ensureEnvironmentBootstrapUser(normalizedUsername, password);
 
     const userStore = getEncryptedEnvironmentStore("users", { consistency: "strong" });
     let users: StoredUser[];
@@ -80,31 +112,17 @@ export default async (req: Request) => {
       return json({ error: "Server error" }, 500);
     }
 
-    const normalizedUsername = username.trim();
-    let user = users.find((candidate) => candidate.username === normalizedUsername);
-
-    // One-time bootstrap path for the requested administrative account.
-    // It is used only while the account does not yet exist. After the user
-    // changes the password, the bootstrap credential can no longer authenticate.
-    if (!user && normalizedUsername === BOOTSTRAP_ADMIN_USERNAME && verifyPassword(password, BOOTSTRAP_ADMIN_PASSWORD_HASH)) {
-      user = {
-        username: BOOTSTRAP_ADMIN_USERNAME,
-        passwordHash: BOOTSTRAP_ADMIN_PASSWORD_HASH,
-        role: "superadmin",
-      };
-      users.push(user);
-      await userStore.setJSON("all", users);
-    }
-
-    if (!users.length && !seeded) {
+    if (!users.length) {
       return json({ error: "Administrator setup required" }, 503);
     }
 
+    let user = users.find((candidate) => candidate.username === normalizedUsername);
     const passwordIsValid = user
       ? user.passwordHash
         ? verifyPassword(password, user.passwordHash)
         : typeof user.password === "string" && user.password === password
       : false;
+
     if (!user || !passwordIsValid) {
       return json({ error: "Invalid credentials" }, 401);
     }
