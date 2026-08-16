@@ -1,7 +1,15 @@
+import { getEnvironmentStore } from "./storage";
+
 export type OfficialSource = {
   title: string;
   url: string;
   snippet: string;
+};
+
+export type BranchKnowledgeIndex = {
+  updatedAt: string;
+  hotelCount: number;
+  hotels: Array<{ title: string; url: string }>;
 };
 
 const OFFICIAL_ROOTS = [
@@ -9,6 +17,7 @@ const OFFICIAL_ROOTS = [
   "https://boudl.com/ar/hotels",
   "https://boudl.com/ar/brands",
 ];
+const KNOWLEDGE_TTL_MS = 12 * 60 * 60 * 1000;
 
 const allowedOfficialHost = (hostname: string) => (
   hostname === "boudl.com"
@@ -51,7 +60,7 @@ const fetchOfficialHtml = async (url: string): Promise<string> => {
   const response = await fetch(parsed, {
     headers: {
       Accept: "text/html,application/xhtml+xml",
-      "User-Agent": "BHG-Central-Reservation-Knowledge/1.0",
+      "User-Agent": "BHG-Central-Reservation-Knowledge/1.1",
     },
     signal: AbortSignal.timeout(8_000),
   });
@@ -61,40 +70,42 @@ const fetchOfficialHtml = async (url: string): Promise<string> => {
 
 type HotelLink = { title: string; url: string; score: number };
 
-const extractHotelLinks = (html: string, query: string): HotelLink[] => {
-  const normalizedQuery = normalizeArabic(query);
-  const queryTokens = normalizedQuery.split(" ").filter((token) => token.length >= 2);
-  const links = new Map<string, HotelLink>();
+const allHotelLinks = (html: string): Array<{ title: string; url: string }> => {
+  const links = new Map<string, { title: string; url: string }>();
   const anchor = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let match: RegExpExecArray | null;
 
   while ((match = anchor.exec(html))) {
-    const rawHref = match[1];
-    if (!/\/hotel\//i.test(rawHref)) continue;
+    if (!/\/hotel\//i.test(match[1])) continue;
     let url: URL;
     try {
-      url = new URL(rawHref, "https://boudl.com");
+      url = new URL(match[1], "https://boudl.com");
     } catch {
       continue;
     }
     if (!allowedOfficialHost(url.hostname.toLowerCase())) continue;
+    url.hash = "";
+    const title = stripHtml(match[2]).slice(0, 160)
+      || decodeURIComponent(url.pathname.split("/").pop() || "فندق بودل");
+    links.set(url.toString(), { title, url: url.toString() });
+    if (links.size >= 180) break;
+  }
 
-    const title = stripHtml(match[2]).slice(0, 160) || decodeURIComponent(url.pathname.split("/").pop() || "فندق بودل");
-    const haystack = normalizeArabic(`${title} ${decodeURIComponent(url.pathname)}`);
+  return [...links.values()];
+};
+
+const rankHotelLinks = (links: Array<{ title: string; url: string }>, query: string): HotelLink[] => {
+  const normalizedQuery = normalizeArabic(query);
+  const queryTokens = normalizedQuery.split(" ").filter((token) => token.length >= 2);
+  return links.map((item) => {
+    const haystack = normalizeArabic(`${item.title} ${decodeURIComponent(new URL(item.url).pathname)}`);
     let score = 0;
     for (const token of queryTokens) {
       if (haystack.includes(token)) score += token.length >= 5 ? 4 : 2;
     }
     if (/بودل|boudl/i.test(haystack)) score += 1;
-    if (score <= 0) continue;
-
-    const existing = links.get(url.toString());
-    if (!existing || existing.score < score) {
-      links.set(url.toString(), { title, url: url.toString(), score });
-    }
-  }
-
-  return [...links.values()].sort((a, b) => b.score - a.score).slice(0, 3);
+    return { ...item, score };
+  }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
 };
 
 const snippetForQuery = (text: string, query: string) => {
@@ -107,8 +118,6 @@ const snippetForQuery = (text: string, query: string) => {
     if (index >= 0) break;
   }
   if (index < 0) return clean.slice(0, 1_800);
-
-  // The normalized string doesn't preserve exact offsets perfectly, so use a generous section.
   const roughStart = Math.max(0, Math.floor(index * (clean.length / Math.max(1, normalizedText.length))) - 500);
   return clean.slice(roughStart, roughStart + 2_400);
 };
@@ -122,17 +131,58 @@ export const isOfficialBoudlUrl = (value: string) => {
   }
 };
 
-export async function lookupOfficialBoudlSources(query: string): Promise<OfficialSource[]> {
-  const indexResults = await Promise.allSettled(OFFICIAL_ROOTS.map(async (url) => ({ url, html: await fetchOfficialHtml(url) })));
-  const successfulIndexes = indexResults
-    .filter((result): result is PromiseFulfilledResult<{ url: string; html: string }> => result.status === "fulfilled")
-    .map((result) => result.value);
+export async function refreshOfficialBoudlKnowledgeIndex(): Promise<BranchKnowledgeIndex> {
+  const rootResults = await Promise.allSettled(OFFICIAL_ROOTS.map(fetchOfficialHtml));
+  const links = new Map<string, { title: string; url: string }>();
+  for (const result of rootResults) {
+    if (result.status !== "fulfilled") continue;
+    for (const hotel of allHotelLinks(result.value)) links.set(hotel.url, hotel);
+  }
+  if (!links.size) throw new Error("BOUDL_INDEX_UNAVAILABLE");
 
-  const candidates = successfulIndexes
-    .flatMap((item) => extractHotelLinks(item.html, query))
-    .sort((a, b) => b.score - a.score)
-    .filter((item, index, all) => all.findIndex((candidate) => candidate.url === item.url) === index)
-    .slice(0, 3);
+  const index: BranchKnowledgeIndex = {
+    updatedAt: new Date().toISOString(),
+    hotelCount: links.size,
+    hotels: [...links.values()].sort((a, b) => a.title.localeCompare(b.title, "ar")),
+  };
+  await getEnvironmentStore("branch-knowledge", { consistency: "strong" }).setJSON("official-index", index);
+  return index;
+}
+
+export async function getOfficialBoudlKnowledgeStatus(): Promise<BranchKnowledgeIndex | null> {
+  const stored = await getEnvironmentStore("branch-knowledge", { consistency: "strong" })
+    .get("official-index", { type: "json" }) as BranchKnowledgeIndex | null;
+  if (!stored || !Array.isArray(stored.hotels)) return null;
+  return stored;
+}
+
+const getKnowledgeIndex = async (): Promise<BranchKnowledgeIndex | null> => {
+  try {
+    const cached = await getOfficialBoudlKnowledgeStatus();
+    if (cached) {
+      const age = Date.now() - new Date(cached.updatedAt).getTime();
+      if (Number.isFinite(age) && age >= 0 && age < KNOWLEDGE_TTL_MS) return cached;
+    }
+    return await refreshOfficialBoudlKnowledgeIndex();
+  } catch {
+    return getOfficialBoudlKnowledgeStatus().catch(() => null);
+  }
+};
+
+export async function lookupOfficialBoudlSources(query: string): Promise<OfficialSource[]> {
+  const index = await getKnowledgeIndex();
+  let candidates = index ? rankHotelLinks(index.hotels, query) : [];
+  let brandFallback: { url: string; html: string } | null = null;
+
+  if (!candidates.length) {
+    const indexResults = await Promise.allSettled(OFFICIAL_ROOTS.map(async (url) => ({ url, html: await fetchOfficialHtml(url) })));
+    const successfulIndexes = indexResults
+      .filter((result): result is PromiseFulfilledResult<{ url: string; html: string }> => result.status === "fulfilled")
+      .map((result) => result.value);
+    const liveLinks = successfulIndexes.flatMap((item) => allHotelLinks(item.html));
+    candidates = rankHotelLinks(liveLinks, query);
+    brandFallback = successfulIndexes.find((item) => item.url.includes("/brand/boudl")) || successfulIndexes[0] || null;
+  }
 
   const hotelResults = await Promise.allSettled(candidates.map(async (candidate) => {
     const html = await fetchOfficialHtml(candidate.url);
@@ -147,14 +197,19 @@ export async function lookupOfficialBoudlSources(query: string): Promise<Officia
   const sources = hotelResults
     .filter((result): result is PromiseFulfilledResult<OfficialSource> => result.status === "fulfilled")
     .map((result) => result.value);
-
   if (sources.length) return sources;
 
-  const brandPage = successfulIndexes.find((item) => item.url.includes("/brand/boudl")) || successfulIndexes[0];
-  if (!brandPage) return [];
+  if (!brandFallback) {
+    try {
+      const html = await fetchOfficialHtml(OFFICIAL_ROOTS[0]);
+      brandFallback = { url: OFFICIAL_ROOTS[0], html };
+    } catch {
+      return [];
+    }
+  }
   return [{
     title: "بودل - الموقع الرسمي",
-    url: brandPage.url,
-    snippet: snippetForQuery(stripHtml(brandPage.html), query),
+    url: brandFallback.url,
+    snippet: snippetForQuery(stripHtml(brandFallback.html), query),
   }];
 }
