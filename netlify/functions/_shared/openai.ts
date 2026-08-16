@@ -1,3 +1,5 @@
+import { getEncryptedEnvironmentStore } from "./storage";
+
 type UrlCitation = {
   type?: string;
   title?: string;
@@ -21,6 +23,13 @@ type OpenAiResponse = {
   output?: ResponseOutputItem[];
 };
 
+type StoredOpenAiConfig = {
+  apiKey?: string;
+  model?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+};
+
 export type OpenAiSource = {
   title: string;
   url: string;
@@ -33,17 +42,49 @@ export type OpenAiTextResult = {
   sources: OpenAiSource[];
 };
 
+const DEFAULT_MODEL = "gpt-5.6-sol";
+
 const configuredEnv = (key: string) => {
   const netlifyValue = typeof Netlify !== "undefined" ? Netlify.env.get(key) : undefined;
   return (netlifyValue || process.env[key] || "").trim();
 };
 
-const configuredModel = () => {
-  const value = configuredEnv("OPENAI_MODEL") || "gpt-5.6-sol";
-  return /^[a-zA-Z0-9._-]{2,80}$/.test(value) ? value : "gpt-5.6-sol";
+const safeModel = (value: string | undefined) => {
+  const candidate = String(value || "").trim();
+  return /^[a-zA-Z0-9._-]{2,80}$/.test(candidate) ? candidate : DEFAULT_MODEL;
 };
 
+const loadStoredOpenAiConfig = async (): Promise<StoredOpenAiConfig | null> => {
+  try {
+    const store = getEncryptedEnvironmentStore("ai-secrets", { consistency: "strong" });
+    return await store.get<StoredOpenAiConfig>("openai", { type: "json" });
+  } catch (error) {
+    console.error("[openai] encrypted config read failed", {
+      code: error instanceof Error ? error.message : "UNKNOWN",
+    });
+    return null;
+  }
+};
+
+const resolveOpenAiConfig = async () => {
+  const envKey = configuredEnv("OPENAI_API_KEY");
+  const envModel = configuredEnv("OPENAI_MODEL");
+  if (envKey) return { apiKey: envKey, model: safeModel(envModel || DEFAULT_MODEL) };
+
+  const stored = await loadStoredOpenAiConfig();
+  return {
+    apiKey: String(stored?.apiKey || "").trim(),
+    model: safeModel(envModel || stored?.model || DEFAULT_MODEL),
+  };
+};
+
+// Kept for legacy synchronous checks. New code should prefer isOpenAiAvailable().
 export const isOpenAiConfigured = () => Boolean(configuredEnv("OPENAI_API_KEY"));
+
+export const isOpenAiAvailable = async () => {
+  const config = await resolveOpenAiConfig();
+  return Boolean(config.apiKey);
+};
 
 const openAiEndpoint = () => {
   const configuredBaseUrl = configuredEnv("OPENAI_BASE_URL") || "https://api.openai.com";
@@ -94,17 +135,16 @@ export async function generateOpenAiText(options: {
   reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
   webSearchAllowedDomains?: string[];
 }): Promise<OpenAiTextResult> {
-  const apiKey = configuredEnv("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OPENAI_NOT_CONFIGURED");
+  const config = await resolveOpenAiConfig();
+  if (!config.apiKey) throw new Error("OPENAI_NOT_CONFIGURED");
 
-  const model = configuredModel();
   const allowedDomains = (options.webSearchAllowedDomains || [])
     .map((domain) => domain.trim().toLowerCase())
     .filter((domain) => /^[a-z0-9.-]+$/.test(domain))
     .slice(0, 20);
 
   const body: Record<string, unknown> = {
-    model,
+    model: config.model,
     instructions: options.instructions.slice(0, 16_000),
     input: options.input.slice(0, 32_000),
     reasoning: { effort: options.reasoningEffort || "low" },
@@ -123,7 +163,7 @@ export async function generateOpenAiText(options: {
   const response = await fetch(openAiEndpoint(), {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${config.apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -143,7 +183,7 @@ export async function generateOpenAiText(options: {
   if (!parsed.text) throw new Error("OPENAI_EMPTY_RESPONSE");
   return {
     text: parsed.text,
-    model: String(data.model || model),
+    model: String(data.model || config.model),
     responseId: data.id,
     sources: parsed.sources,
   };
