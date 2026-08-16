@@ -15,12 +15,10 @@ type EncryptedEnvelope = {
 
 const DATA_KEY_ENV = "DATA_ENCRYPTION_KEY";
 const SENSITIVE_STORES = new Set([
-  "analytics",
   "booking-phone-index",
   "bookings",
   "complaints",
   "contacts",
-  "error-logs",
   "sessions",
   "settings",
   "users",
@@ -37,6 +35,8 @@ const getRawEnvironmentStore = (name: string, options: StoreOptions = {}) => {
     ? getDeployStore({ name, deployID: deploy.id })
     : getDeployStore(name);
 };
+
+type RawStore = ReturnType<typeof getRawEnvironmentStore>;
 
 const isEncryptedEnvelope = (value: unknown): value is EncryptedEnvelope => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -113,8 +113,8 @@ export const getEncryptedEnvironmentStore = (name: string, options: StoreOptions
   };
 };
 
-export const getEnvironmentStore = (name: string, options: StoreOptions = {}) => (
+export const getEnvironmentStore = (name: string, options: StoreOptions = {}): RawStore => (
   SENSITIVE_STORES.has(name)
-    ? getEncryptedEnvironmentStore(name, options)
+    ? getEncryptedEnvironmentStore(name, options) as unknown as RawStore
     : getRawEnvironmentStore(name, options)
 );
