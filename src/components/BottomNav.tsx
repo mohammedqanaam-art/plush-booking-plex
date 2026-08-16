@@ -14,25 +14,29 @@ const BottomNav = () => {
   const navigate = useNavigate();
 
   return (
-    <nav className="mobile-tab-bar relative z-50 shrink-0 safe-area-bottom md:hidden">
-      <div className="mx-auto flex h-[58px] max-w-xl items-center justify-around gap-1 px-2">
-        {mainNavItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={`relative touch-target min-w-0 flex-1 flex flex-col items-center justify-center gap-1 px-1 py-1 interactive ${
-                isActive ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <item.icon className="h-[21px] w-[21px]" strokeWidth={isActive ? 2.1 : 1.7} />
-              <span className="text-[10px] font-semibold leading-none">{item.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </nav>
+    <div className="mobile-nav-wrap relative z-50 md:hidden">
+      <nav className="mobile-tab-bar safe-area-bottom" aria-label="التنقل الرئيسي">
+        <div className="mobile-tab-bar__inner">
+          {mainNavItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <button
+                key={item.path}
+                type="button"
+                onClick={() => navigate(item.path)}
+                className={`mobile-tab-item touch-target interactive ${isActive ? "is-active" : ""}`}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <span className="mobile-tab-item__icon">
+                  <item.icon className="h-[20px] w-[20px]" strokeWidth={isActive ? 2.2 : 1.8} />
+                </span>
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
   );
 };
 
