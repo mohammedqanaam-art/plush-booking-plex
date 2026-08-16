@@ -14,8 +14,19 @@ type EncryptedEnvelope = {
 };
 
 const DATA_KEY_ENV = "DATA_ENCRYPTION_KEY";
+const SENSITIVE_STORES = new Set([
+  "analytics",
+  "booking-phone-index",
+  "bookings",
+  "complaints",
+  "contacts",
+  "error-logs",
+  "sessions",
+  "settings",
+  "users",
+]);
 
-export const getEnvironmentStore = (name: string, options: StoreOptions = {}) => {
+const getRawEnvironmentStore = (name: string, options: StoreOptions = {}) => {
   const deploy = typeof Netlify === "undefined" ? undefined : Netlify.context?.deploy;
   if (deploy?.context === "production") {
     return options.consistency === "strong"
@@ -83,7 +94,7 @@ export const decryptStoredJson = <T>(envelope: EncryptedEnvelope, storeName: str
  * Existing readable JSON is migrated in place the first time it is read.
  */
 export const getEncryptedEnvironmentStore = (name: string, options: StoreOptions = {}) => {
-  const base = getEnvironmentStore(name, options);
+  const base = getRawEnvironmentStore(name, options);
   return {
     async get<T = unknown>(key: string, readOptions: { type?: "json" } = { type: "json" }): Promise<T | null> {
       if (readOptions.type && readOptions.type !== "json") throw new Error("Encrypted stores support JSON reads only.");
@@ -101,3 +112,9 @@ export const getEncryptedEnvironmentStore = (name: string, options: StoreOptions
     },
   };
 };
+
+export const getEnvironmentStore = (name: string, options: StoreOptions = {}) => (
+  SENSITIVE_STORES.has(name)
+    ? getEncryptedEnvironmentStore(name, options)
+    : getRawEnvironmentStore(name, options)
+);
