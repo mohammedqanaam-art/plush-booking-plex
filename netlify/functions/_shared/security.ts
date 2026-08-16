@@ -1,5 +1,5 @@
+import { getStore } from "@netlify/blobs";
 import { createHash, pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
-import { getEncryptedEnvironmentStore } from "./storage";
 
 export const VALID_ROLES = ["superadmin", "admin", "editor", "viewer"] as const;
 export type UserRole = (typeof VALID_ROLES)[number];
@@ -66,7 +66,10 @@ export function clearSessionCookie(): string {
 }
 
 function trustedRequestOrigins(req: Request): Set<string> {
-  const origins = new Set<string>();
+  const origins = new Set<string>([
+    "https://res-dashbord.com",
+    "https://www.res-dashbord.com",
+  ]);
   const addOrigin = (value?: string | null) => {
     if (!value) return;
     try {
@@ -107,7 +110,7 @@ export function isSameOriginRequest(req: Request): boolean {
   }
 
   const fetchSite = (req.headers.get("sec-fetch-site") || "").toLowerCase();
-  if (!fetchSite) return true; // Preserve trusted server-to-server clients that do not send browser fetch metadata.
+  if (!fetchSite) return true;
   return fetchSite === "same-origin" || fetchSite === "none";
 }
 
@@ -115,13 +118,15 @@ export function requireSameOrigin(req: Request): Response | null {
   return isSameOriginRequest(req) ? null : json({ error: "Cross-origin request rejected" }, 403);
 }
 
+const sessionStore = () => getStore({ name: "sessions", consistency: "strong" });
+
 export async function validateSession(req: Request): Promise<Session | null> {
   const token = getSessionToken(req);
   if (!token) return null;
 
-  const store = getEncryptedEnvironmentStore("sessions", { consistency: "strong" });
+  const store = sessionStore();
   try {
-    const raw = await store.get<Partial<Session>>(sessionStorageKey(token), { type: "json" });
+    const raw = await store.get(sessionStorageKey(token), { type: "json" }) as Partial<Session> | null;
     if (!raw?.username || !raw.role || !VALID_ROLES.includes(raw.role)) return null;
 
     const createdAt = Number(raw.createdAt || 0);
