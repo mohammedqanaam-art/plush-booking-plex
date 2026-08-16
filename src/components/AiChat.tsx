@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Code2, Play, Send, X } from "lucide-react";
+import { Bot, Code2, Play, RefreshCw, Send, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { runAgentCommand } from "@/lib/agentApi";
 
@@ -24,23 +24,16 @@ const AiChat = () => {
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
-
-    const userMsg: Message = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
     setInput("");
     setLoading(true);
-
     try {
-      const history = messages.map((m) => ({ role: m.role, content: m.content }));
+      const history = messages.map((message) => ({ role: message.role, content: message.content }));
       const data = await api.sendChatMessage(text, sessionId, history);
       if (data.sessionId) setSessionId(data.sessionId);
       appendResult(data.reply || "...");
-    } catch (err) {
-      console.error("[AiChat] sendChatMessage error:", err);
-      const errorMessage = err instanceof Error && err.message
-        ? err.message.slice(0, 240)
-        : "حدث خطأ أثناء الاتصال بالمساعد.";
-      appendResult(errorMessage);
+    } catch (error) {
+      appendResult(error instanceof Error ? error.message.slice(0, 240) : "حدث خطأ أثناء الاتصال بالمساعد.");
     } finally {
       setLoading(false);
     }
@@ -49,45 +42,52 @@ const AiChat = () => {
   const createDevelopmentRequest = async () => {
     const text = input.trim();
     if (!text || loading) return;
-    if (!window.confirm("إرسال هذا الطلب إلى n8n كطلب تطوير معتمد؟")) return;
-
+    if (!window.confirm("تسجيل هذا الطلب كطلب تطوير معتمد وإرساله لمسار Agent/n8n؟")) return;
     setMessages((prev) => [...prev, { role: "user", content: `طلب تطوير: ${text}` }]);
     setInput("");
     setLoading(true);
     try {
-      const result = await runAgentCommand({
-        action: "create_development_request",
-        reason: text,
-        payload: { request: text },
-        confirm: true,
-      });
+      const result = await runAgentCommand({ action: "create_development_request", reason: text, payload: { request: text }, confirm: true });
       appendResult(result.reply);
     } catch (error) {
-      appendResult(error instanceof Error ? error.message : "تعذر إرسال طلب التطوير إلى n8n.");
+      appendResult(error instanceof Error ? error.message : "تعذر تسجيل طلب التطوير.");
     } finally {
       setLoading(false);
     }
   };
 
   const runEmployeeSupportWorkflow = async () => {
-    const text = input.trim() || "تشغيل مسار دعم الموظفين ومراجعة آخر طلب تشغيلي.";
+    const text = input.trim() || "تشغيل مسار دعم الموظفين والتحقق من مصادر Boudl.com الرسمية.";
     if (loading) return;
-    if (!window.confirm("تشغيل Workflow دعم الموظفين في n8n الآن؟")) return;
-
-    setMessages((prev) => [...prev, { role: "user", content: `تشغيل Workflow: ${text}` }]);
+    if (!window.confirm("تشغيل Workflow دعم الموظفين الآن؟")) return;
+    setMessages((prev) => [...prev, { role: "user", content: `تشغيل دعم الموظفين: ${text}` }]);
     setInput("");
     setLoading(true);
     try {
+      const result = await runAgentCommand({ action: "run_workflow", workflowKey: "employee-support", reason: text, payload: { request: text }, confirm: true });
+      appendResult(result.reply);
+    } catch (error) {
+      appendResult(error instanceof Error ? error.message : "تعذر تشغيل مسار دعم الموظفين.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshBranchKnowledge = async () => {
+    if (loading) return;
+    if (!window.confirm("تحديث فهرس معلومات الفروع من موقع Boudl.com الرسمي الآن؟")) return;
+    setMessages((prev) => [...prev, { role: "user", content: "تحديث معرفة الفروع من Boudl.com" }]);
+    setLoading(true);
+    try {
       const result = await runAgentCommand({
-        action: "run_workflow",
-        workflowKey: "employee-support",
-        reason: text,
-        payload: { request: text },
+        action: "refresh_branch_knowledge",
+        workflowKey: "branch-knowledge-refresh",
+        reason: "تحديث فهرس معلومات الفروع من المصادر الرسمية.",
         confirm: true,
       });
       appendResult(result.reply);
     } catch (error) {
-      appendResult(error instanceof Error ? error.message : "تعذر تشغيل Workflow في n8n.");
+      appendResult(error instanceof Error ? error.message : "تعذر تحديث معرفة الفروع.");
     } finally {
       setLoading(false);
     }
@@ -104,81 +104,44 @@ const AiChat = () => {
       </button>
 
       {open && (
-        <div className="fixed bottom-36 left-4 z-50 w-80 sm:w-96 max-h-[66vh] flex flex-col rounded-2xl border border-border bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <div className="fixed bottom-36 left-4 z-50 w-80 sm:w-[420px] max-h-[70vh] flex flex-col rounded-2xl border border-border bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-border gold-gradient text-primary-foreground">
             <Bot className="w-5 h-5 shrink-0" />
-            <span className="font-semibold text-sm">المساعد الذكي · n8n</span>
+            <span className="font-semibold text-sm">BHG Agent · n8n</span>
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
             {messages.length === 0 && (
               <p className="text-center text-muted-foreground text-xs py-6">
-                اسأل عن التشغيل، أو اكتب طلب تطوير ثم استخدم زر «طلب تطوير» لإرساله إلى n8n.
+                استفسارات تشغيلية، معلومات الفروع الرسمية، أو أوامر Workflow معتمدة.
               </p>
             )}
             {messages.map((message, index) => (
               <div key={index} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[86%] px-3 py-2 rounded-xl whitespace-pre-wrap ${
-                    message.role === "user"
-                      ? "gold-gradient text-primary-foreground rounded-br-sm"
-                      : "bg-secondary text-foreground rounded-bl-sm"
-                  }`}
-                >
+                <div className={`max-w-[86%] px-3 py-2 rounded-xl whitespace-pre-wrap ${message.role === "user" ? "gold-gradient text-primary-foreground rounded-br-sm" : "bg-secondary text-foreground rounded-bl-sm"}`}>
                   {message.content}
                 </div>
               </div>
             ))}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="bg-secondary text-muted-foreground px-3 py-2 rounded-xl rounded-bl-sm text-xs animate-pulse">
-                  جارٍ التنفيذ...
-                </div>
-              </div>
-            )}
+            {loading && <div className="flex justify-start"><div className="bg-secondary text-muted-foreground px-3 py-2 rounded-xl text-xs animate-pulse">جارٍ التنفيذ...</div></div>}
             <div ref={bottomRef} />
           </div>
 
-          <div className="grid grid-cols-2 gap-2 px-3 pt-2 border-t border-border">
-            <button
-              type="button"
-              onClick={() => void createDevelopmentRequest()}
-              disabled={!input.trim() || loading}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary text-xs font-semibold disabled:opacity-40"
-            >
+          <div className="grid grid-cols-3 gap-2 px-3 pt-2 border-t border-border">
+            <button type="button" onClick={() => void createDevelopmentRequest()} disabled={!input.trim() || loading} className="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg border border-border bg-secondary px-2 text-[11px] font-semibold disabled:opacity-40">
               <Code2 className="w-4 h-4" /> طلب تطوير
             </button>
-            <button
-              type="button"
-              onClick={() => void runEmployeeSupportWorkflow()}
-              disabled={loading}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary text-xs font-semibold disabled:opacity-40"
-            >
-              <Play className="w-4 h-4" /> تشغيل دعم الموظفين
+            <button type="button" onClick={() => void runEmployeeSupportWorkflow()} disabled={loading} className="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg border border-border bg-secondary px-2 text-[11px] font-semibold disabled:opacity-40">
+              <Play className="w-4 h-4" /> دعم الموظفين
+            </button>
+            <button type="button" onClick={() => void refreshBranchKnowledge()} disabled={loading} className="inline-flex min-h-10 items-center justify-center gap-1 rounded-lg border border-border bg-secondary px-2 text-[11px] font-semibold disabled:opacity-40">
+              <RefreshCw className="w-4 h-4" /> تحديث الفروع
             </button>
           </div>
 
-          <form
-            className="flex items-center gap-2 px-3 py-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void send();
-            }}
-          >
-            <input
-              className="flex-1 h-9 rounded-lg bg-secondary border border-border px-3 text-sm focus:outline-none"
-              placeholder="اكتب سؤالك أو أمر التطوير..."
-              value={input}
-              onChange={(event) => setInput(event.target.value.slice(0, 4000))}
-              disabled={loading}
-              dir="auto"
-            />
-            <button
-              type="submit"
-              disabled={!input.trim() || loading}
-              aria-label="إرسال"
-              className="w-9 h-9 rounded-lg gold-gradient text-primary-foreground flex items-center justify-center disabled:opacity-40"
-            >
+          <form className="flex items-center gap-2 px-3 py-2" onSubmit={(event) => { event.preventDefault(); void send(); }}>
+            <input className="flex-1 h-9 rounded-lg bg-secondary border border-border px-3 text-sm focus:outline-none" placeholder="اكتب سؤالك أو أمر التطوير..." value={input} onChange={(event) => setInput(event.target.value.slice(0, 4000))} disabled={loading} dir="auto" />
+            <button type="submit" disabled={!input.trim() || loading} aria-label="إرسال" className="w-9 h-9 rounded-lg gold-gradient text-primary-foreground flex items-center justify-center disabled:opacity-40">
               <Send className="w-4 h-4" />
             </button>
           </form>
