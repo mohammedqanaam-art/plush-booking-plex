@@ -29,7 +29,7 @@ const Layout = () => {
           <Link to={isAdminArea ? "/admin" : "/"} className="app-brand" aria-label="إدارة الحجز المركزي">
             <span className="app-brand__copy">
               <strong>إدارة الحجز المركزي</strong>
-              <small>{isAdminArea ? "لوحة الإدارة والتشغيل" : "BHG · Central Reservation"}</small>
+              <small>{isAdminArea ? "BHG · Operations Console" : "BHG · Central Reservation"}</small>
             </span>
           </Link>
 
@@ -47,31 +47,33 @@ const Layout = () => {
               ))}
             </nav>
           ) : (
-            <div className="hidden md:inline-flex admin-context-pill">
+            <div className="hidden lg:inline-flex admin-context-pill">
               <ShieldCheck className="h-4 w-4" />
-              مساحة إدارية محمية
+              مساحة تشغيل محمية
             </div>
           )}
 
           <div className="app-topbar__actions">
             {!isAdminArea ? (
-              <Link
-                to="/admin"
-                className="admin-entry-link"
-                aria-label="لوحة مدير ومشرفين إدارة الحجز"
-                title="لوحة مدير ومشرفين إدارة الحجز"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                <span className="hidden xl:inline">الإدارة</span>
-              </Link>
+              <>
+                <Link
+                  to="/admin"
+                  className="admin-entry-link"
+                  aria-label="لوحة مدير ومشرفين إدارة الحجز"
+                  title="لوحة مدير ومشرفين إدارة الحجز"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  <span className="hidden xl:inline">الإدارة</span>
+                </Link>
+                <div className="hidden lg:block"><RiyadhClock /></div>
+                <div className="hidden md:block"><ViewerPreferences /></div>
+              </>
             ) : (
               <Link to="/" className="admin-entry-link" aria-label="العودة للموقع العام" title="العودة للموقع العام">
                 <LayoutDashboard className="h-4 w-4" />
-                <span className="hidden xl:inline">الموقع العام</span>
+                <span className="hidden sm:inline">الموقع العام</span>
               </Link>
             )}
-            <div className="hidden lg:block"><RiyadhClock /></div>
-            <div className="hidden md:block"><ViewerPreferences /></div>
           </div>
         </div>
       </header>
