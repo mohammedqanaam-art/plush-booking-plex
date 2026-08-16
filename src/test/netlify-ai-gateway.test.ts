@@ -1,6 +1,23 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { generateOpenAiText, isOpenAiConfigured } from "../../netlify/functions/_shared/openai";
 
+const responsesPayload = (text: string, model: string) => ({
+  id: `resp_${model.replace(/[^a-z0-9]/gi, "_")}`,
+  model,
+  output: [
+    {
+      type: "message",
+      content: [
+        {
+          type: "output_text",
+          text,
+          annotations: [],
+        },
+      ],
+    },
+  ],
+});
+
 describe("Netlify AI Gateway", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -8,7 +25,7 @@ describe("Netlify AI Gateway", () => {
     vi.restoreAllMocks();
   });
 
-  it("routes OpenAI requests through the Netlify-provided base URL", async () => {
+  it("routes OpenAI Responses requests through the Netlify-provided base URL", async () => {
     const values: Record<string, string> = {
       OPENAI_API_KEY: "netlify-gateway-key",
       OPENAI_BASE_URL: "https://gateway.example.test/openai",
@@ -16,9 +33,9 @@ describe("Netlify AI Gateway", () => {
     vi.stubGlobal("Netlify", {
       env: { get: vi.fn((key: string) => values[key]) },
     });
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      choices: [{ message: { content: "تم الاتصال" } }],
-    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(
+      responsesPayload("تم الاتصال", "gpt-5.6-sol"),
+    ), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
     expect(isOpenAiConfigured()).toBe(true);
@@ -26,30 +43,45 @@ describe("Netlify AI Gateway", () => {
       instructions: "تعليمات",
       input: "اختبار",
       maxOutputTokens: 300,
-    })).resolves.toEqual({ text: "تم الاتصال", model: "gpt-5-mini" });
+    })).resolves.toEqual({
+      text: "تم الاتصال",
+      model: "gpt-5.6-sol",
+      responseId: "resp_gpt_5_6_sol",
+      sources: [],
+    });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://gateway.example.test/openai/v1/chat/completions",
+      "https://gateway.example.test/openai/v1/responses",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({ Authorization: "Bearer netlify-gateway-key" }),
       }),
     );
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const body = JSON.parse(String(request.body));
+    expect(body).toEqual(expect.objectContaining({
+      model: "gpt-5.6-sol",
+      instructions: "تعليمات",
+      input: "اختبار",
+      reasoning: { effort: "low" },
+      max_output_tokens: 300,
+      store: false,
+    }));
   });
 
-  it("falls back to the direct OpenAI endpoint for local development", async () => {
+  it("falls back to the direct OpenAI Responses endpoint for local development", async () => {
     vi.stubGlobal("Netlify", {
       env: { get: vi.fn((key: string) => key === "OPENAI_API_KEY" ? "local-key" : undefined) },
     });
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      choices: [{ message: { content: "ok" } }],
-    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(
+      responsesPayload("ok", "gpt-5.6-sol"),
+    ), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
     await generateOpenAiText({ instructions: "test", input: "test" });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.openai.com/v1/chat/completions",
+      "https://api.openai.com/v1/responses",
       expect.any(Object),
     );
   });
@@ -59,16 +91,21 @@ describe("Netlify AI Gateway", () => {
     vi.stubEnv("OPENAI_API_KEY", "automatic-gateway-key");
     vi.stubEnv("OPENAI_BASE_URL", "https://gateway.netlify.test/openai");
     vi.stubEnv("OPENAI_MODEL", "gpt-5-mini");
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      choices: [{ message: { content: "يعمل" } }],
-    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(
+      responsesPayload("يعمل", "gpt-5-mini"),
+    ), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
     expect(isOpenAiConfigured()).toBe(true);
     await expect(generateOpenAiText({ instructions: "test", input: "test" }))
-      .resolves.toEqual({ text: "يعمل", model: "gpt-5-mini" });
+      .resolves.toEqual({
+        text: "يعمل",
+        model: "gpt-5-mini",
+        responseId: "resp_gpt_5_mini",
+        sources: [],
+      });
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://gateway.netlify.test/openai/v1/chat/completions",
+      "https://gateway.netlify.test/openai/v1/responses",
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: "Bearer automatic-gateway-key" }),
       }),
