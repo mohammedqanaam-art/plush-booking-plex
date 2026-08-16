@@ -20,6 +20,7 @@ const DATA_KEY_ENV = "DATA_ENCRYPTION_KEY";
 // They were briefly wrapped at application level; the compatibility store below decrypts those
 // existing envelopes once and restores normal JSON so the dashboard can read/write them reliably.
 const APP_ENCRYPTED_STORES = new Set([
+  "ai-secrets",
   "booking-phone-index",
   "complaints",
   "contacts",
