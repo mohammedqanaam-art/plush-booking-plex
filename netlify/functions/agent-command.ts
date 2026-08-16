@@ -18,12 +18,20 @@ const MUTATING = new Set<AgentAction>([
   "run_workflow",
 ]);
 
-const allowedWorkflowKeys = () => new Set(
-  (Netlify.env.get("N8N_ALLOWED_WORKFLOWS") || "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter((value) => /^[a-z0-9_-]{2,80}$/i.test(value)),
-);
+const CORE_WORKFLOWS = new Set<ExecutableWorkflowKey>([
+  "branch-knowledge-refresh",
+  "development-request",
+  "employee-support",
+]);
+
+const allowedWorkflowKeys = () => {
+  const allowed = new Set<string>(CORE_WORKFLOWS);
+  for (const value of (Netlify.env.get("N8N_ALLOWED_WORKFLOWS") || "").split(",")) {
+    const key = value.trim();
+    if (/^[a-z0-9_-]{2,80}$/i.test(key)) allowed.add(key);
+  }
+  return allowed;
+};
 
 const sanitizePayload = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -79,7 +87,7 @@ export default async (req: Request) => {
 
   const requestedWorkflow = String(body.workflowKey || "").trim();
   const workflowKey = workflowForAction(action, requestedWorkflow);
-  if (!allowedWorkflowKeys().has(workflowKey)) {
+  if (!CORE_WORKFLOWS.has(workflowKey) && !allowedWorkflowKeys().has(workflowKey)) {
     return json({ error: "Workflow is not allow-listed" }, 403);
   }
 
