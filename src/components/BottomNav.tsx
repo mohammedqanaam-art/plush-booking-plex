@@ -1,12 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { BarChart3, Building2, LayoutDashboard, PhoneCall, Search } from "lucide-react";
+import { BarChart3, Building2, LayoutDashboard, MessageCircle, Search } from "lucide-react";
 
 const mainNavItems = [
   { path: "/", label: "الرئيسية", icon: LayoutDashboard },
+  { path: "/assistant", label: "المساعد", icon: MessageCircle },
   { path: "/operations", label: "البحث", icon: Search },
   { path: "/branches", label: "الفروع", icon: Building2 },
   { path: "/booking-reports", label: "التقارير", icon: BarChart3 },
-  { path: "/contact-requests", label: "التواصل", icon: PhoneCall },
 ];
 
 const BottomNav = () => {
