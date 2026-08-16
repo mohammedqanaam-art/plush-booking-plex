@@ -1,0 +1,21 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile.railway",
+    "watchPatterns": [
+      "/services/whatsapp-web-bridge/**",
+      "/Dockerfile.railway",
+      "/railway.json"
+    ]
+  },
+  "deploy": {
+    "runtime": "V2",
+    "numReplicas": 1,
+    "sleepApplication": false,
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 120,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}
