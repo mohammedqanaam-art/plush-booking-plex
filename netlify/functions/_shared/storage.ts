@@ -14,15 +14,20 @@ type EncryptedEnvelope = {
 };
 
 const DATA_KEY_ENV = "DATA_ENCRYPTION_KEY";
-const SENSITIVE_STORES = new Set([
+
+// Small, sensitive JSON records keep application-layer encryption.
+// Large reservation reports deliberately use Netlify Blobs' platform encryption at rest/in transit:
+// wrapping multi-megabyte reports in base64 AES envelopes materially increases object size and can
+// make otherwise valid UNO/CRO reports fail to save. Existing encrypted booking blobs are migrated
+// back to normal JSON lazily on first successful read.
+const APP_ENCRYPTED_STORES = new Set([
   "booking-phone-index",
-  "bookings",
   "complaints",
   "contacts",
-  "sessions",
   "settings",
   "users",
 ]);
+const LEGACY_ENCRYPTED_PLAINTEXT_STORES = new Set(["bookings"]);
 
 const getRawEnvironmentStore = (name: string, options: StoreOptions = {}) => {
   const deploy = typeof Netlify === "undefined" ? undefined : Netlify.context?.deploy;
@@ -89,10 +94,7 @@ export const decryptStoredJson = <T>(envelope: EncryptedEnvelope, storeName: str
   return JSON.parse(plaintext) as T;
 };
 
-/**
- * Adds application-layer AES-256-GCM protection to sensitive JSON records.
- * Existing readable JSON is migrated in place the first time it is read.
- */
+/** Adds application-layer AES-256-GCM protection to small sensitive JSON records. */
 export const getEncryptedEnvironmentStore = (name: string, options: StoreOptions = {}) => {
   const base = getRawEnvironmentStore(name, options);
   return {
@@ -113,8 +115,36 @@ export const getEncryptedEnvironmentStore = (name: string, options: StoreOptions
   };
 };
 
-export const getEnvironmentStore = (name: string, options: StoreOptions = {}): RawStore => (
-  SENSITIVE_STORES.has(name)
-    ? getEncryptedEnvironmentStore(name, options) as unknown as RawStore
-    : getRawEnvironmentStore(name, options)
-);
+const getLegacyMigrationStore = (name: string, options: StoreOptions = {}) => {
+  const base = getRawEnvironmentStore(name, options);
+  return {
+    async get<T = unknown>(key: string, readOptions: { type?: "json" } = { type: "json" }): Promise<T | null> {
+      if (readOptions.type && readOptions.type !== "json") throw new Error("JSON reads only.");
+      const stored = await base.get(key, { type: "json" }) as unknown;
+      if (stored === null || stored === undefined) return null;
+      if (!isEncryptedEnvelope(stored)) return stored as T;
+
+      const decoded = decryptStoredJson<T>(stored, name, key);
+      // One-way compatibility migration: preserve the same logical value while removing the
+      // size-expanding application envelope for bulk report data.
+      await base.setJSON(key, decoded);
+      return decoded;
+    },
+    async setJSON(key: string, value: unknown) {
+      return base.setJSON(key, value);
+    },
+    async delete(key: string) {
+      return base.delete(key);
+    },
+  };
+};
+
+export const getEnvironmentStore = (name: string, options: StoreOptions = {}): RawStore => {
+  if (APP_ENCRYPTED_STORES.has(name)) {
+    return getEncryptedEnvironmentStore(name, options) as unknown as RawStore;
+  }
+  if (LEGACY_ENCRYPTED_PLAINTEXT_STORES.has(name)) {
+    return getLegacyMigrationStore(name, options) as unknown as RawStore;
+  }
+  return getRawEnvironmentStore(name, options);
+};
