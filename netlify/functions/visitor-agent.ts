@@ -1,7 +1,7 @@
 import type { Config } from "@netlify/functions";
 import { lookupOfficialBoudlSources, type OfficialSource } from "./_shared/boudl-knowledge";
 import { callN8nAgent, n8nAgentConfigured } from "./_shared/n8n";
-import { generateOpenAiText, isOpenAiConfigured, type OpenAiSource } from "./_shared/openai";
+import { generateOpenAiText, isOpenAiAvailable, type OpenAiSource } from "./_shared/openai";
 import { json, requireSameOrigin } from "./_shared/security";
 
 type ChatTurn = { role: "user" | "assistant"; content: string };
@@ -97,7 +97,7 @@ export default async (req: Request) => {
     });
   }
 
-  if (isOpenAiConfigured()) {
+  if (await isOpenAiAvailable()) {
     try {
       const transcript = history
         .map((item) => `${item.role === "user" ? "الزائر" : "المساعد"}: ${item.content}`)
