@@ -48,6 +48,47 @@ const extractText = (data: N8nAgentReply | string): string => {
   return "";
 };
 
+const compactSourceContext = (payload: N8nPayload) => {
+  const sources = Array.isArray(payload.officialSources)
+    ? payload.officialSources.slice(0, 5) as Array<Record<string, unknown>>
+    : [];
+  if (!sources.length) return "";
+  return sources.map((source, index) => {
+    const title = String(source.title || "Boudl.com").slice(0, 160);
+    const url = String(source.url || "").slice(0, 500);
+    const snippet = String(source.snippet || "").replace(/\s+/g, " ").slice(0, 1_500);
+    return `[${index + 1}] ${title}\n${url}\n${snippet}`;
+  }).join("\n\n");
+};
+
+const toChatInput = (payload: N8nPayload) => {
+  if (typeof payload.chatInput === "string" && payload.chatInput.trim()) return payload.chatInput.trim().slice(0, 14_000);
+
+  const type = String(payload.type || "assist");
+  const message = String(payload.message || "").trim();
+  const action = String(payload.action || "").trim();
+  const workflowKey = String(payload.workflowKey || "").trim();
+  const evidence = compactSourceContext(payload);
+
+  const instructions = [
+    "أنت Agent تشغيلي داخلي لإدارة الحجز المركزي BHG.",
+    "أجب بالعربية بشكل مهني ومختصر.",
+    "إذا أُرسلت مصادر رسمية من Boudl.com فاعتمد عليها فقط في معلومات الفروع والمرافق والسياسات ولا تخمن.",
+    "إذا كانت المعلومة غير مدعومة بمصدر رسمي فاذكر أنها غير مؤكدة.",
+    "لا تعرض أسرارًا أو كلمات مرور أو رموز تحقق أو بيانات بطاقات أو بيانات شخصية للضيوف.",
+    "طلبات التطوير أو تشغيل Workflow تُعامل كأمر منظم؛ لا تدّع التنفيذ إذا لم ترجع لك أداة تنفيذ فعلية.",
+  ].join(" ");
+
+  return [
+    instructions,
+    `نوع الطلب: ${type}`,
+    message ? `طلب المستخدم: ${message}` : "",
+    action ? `الإجراء: ${action}` : "",
+    workflowKey ? `Workflow key: ${workflowKey}` : "",
+    evidence ? `المصادر الرسمية المتاحة:\n${evidence}` : "",
+  ].filter(Boolean).join("\n\n").slice(0, 14_000);
+};
+
 export const n8nAgentConfigured = () => Boolean(Netlify.env.get("N8N_AGENT_WEBHOOK_URL")?.trim());
 
 export const callN8nAgent = async (
@@ -61,6 +102,11 @@ export const callN8nAgent = async (
   const requestId = typeof payload.requestId === "string" && payload.requestId
     ? payload.requestId
     : crypto.randomUUID();
+  const requestedSession = String(payload.sessionId || "").trim();
+  const sessionId = /^[a-zA-Z0-9_-]{8,100}$/.test(requestedSession)
+    ? requestedSession
+    : `bhg_${requestId.replace(/-/g, "")}`;
+
   const headers = new Headers({
     "Content-Type": "application/json",
     Accept: "application/json, text/plain;q=0.9",
@@ -70,11 +116,20 @@ export const callN8nAgent = async (
   const secret = requestSecret();
   if (secret) headers.set("X-BHG-Agent-Key", secret);
 
+  // The active n8n Website Chat workflow uses Chat Trigger. Chat Trigger expects the
+  // sendMessage envelope below; the BHG metadata is also retained for future upgraded workflows.
+  const body = {
+    action: "sendMessage",
+    sessionId,
+    chatInput: toChatInput(payload),
+    bhg: { ...payload, requestId, sessionId },
+  };
+
   const response = await fetch(url, {
     method: "POST",
     headers,
-    body: JSON.stringify({ ...payload, requestId }),
-    signal: AbortSignal.timeout(Math.min(45_000, Math.max(4_000, options.timeoutMs || 25_000))),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(Math.min(35_000, Math.max(4_000, options.timeoutMs || 18_000))),
   });
 
   const contentType = response.headers.get("content-type") || "";
@@ -85,10 +140,7 @@ export const callN8nAgent = async (
     data = await response.text();
   }
 
-  if (!response.ok) {
-    throw new Error(`N8N_UPSTREAM_${response.status}`);
-  }
-
+  if (!response.ok) throw new Error(`N8N_UPSTREAM_${response.status}`);
   return { data, reply: extractText(data), status: response.status };
 };
 
