@@ -23,6 +23,7 @@ const APP_ENCRYPTED_STORES = new Set([
   "booking-phone-index",
   "complaints",
   "contacts",
+  "development-requests",
   "users",
 ]);
 const LEGACY_ENCRYPTED_PLAINTEXT_STORES = new Set(["bookings", "settings"]);
