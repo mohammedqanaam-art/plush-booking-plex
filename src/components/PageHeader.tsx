@@ -8,7 +8,6 @@ type PageHeaderProps = {
   actions?: ReactNode;
   showBack?: boolean;
   onBack?: () => void;
-  subtitle?: string;
 };
 
 const fallbackForPath = (pathname: string) => {
@@ -17,7 +16,7 @@ const fallbackForPath = (pathname: string) => {
   return "/";
 };
 
-const PageHeader = ({ title, icon: Icon, actions, showBack = true, onBack: customBack, subtitle }: PageHeaderProps) => {
+const PageHeader = ({ title, icon: Icon, actions, showBack = true, onBack: customBack }: PageHeaderProps) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -49,7 +48,6 @@ const PageHeader = ({ title, icon: Icon, actions, showBack = true, onBack: custo
               {Icon ? <span className="page-heading__icon"><Icon className="h-5 w-5" strokeWidth={1.9} /></span> : null}
               <h1>{title}</h1>
             </div>
-            {subtitle ? <p className="page-heading__subtitle">{subtitle}</p> : null}
           </div>
         </div>
         {actions ? <div className="page-heading__actions">{actions}</div> : null}
