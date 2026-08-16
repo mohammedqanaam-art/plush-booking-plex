@@ -13,6 +13,15 @@ dist-ssr
 .netlify
 *.local
 
+# Secrets / runtime sessions
+.env
+.env.*
+!.env.example
+services/whatsapp-web-bridge/.env
+services/whatsapp-web-bridge/data/
+services/whatsapp-web-bridge/**/auth/
+data/auth/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
