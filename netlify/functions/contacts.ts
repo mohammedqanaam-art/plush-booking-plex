@@ -1,6 +1,6 @@
 import type { Config } from "@netlify/functions";
 import { randomUUID } from "node:crypto";
-import { json, validateSession } from "./_shared/security";
+import { json, requireSameOrigin, validateSession } from "./_shared/security";
 import { getEnvironmentStore } from "./_shared/storage";
 type ContactRequest = {
   id: string;
@@ -34,6 +34,11 @@ async function nextRequestNo() {
 export default async (req: Request) => {
   const method = req.method;
   const store = getEnvironmentStore("contacts", { consistency: "strong" });
+
+  if (["POST", "PATCH"].includes(method)) {
+    const originError = requireSameOrigin(req);
+    if (originError) return originError;
+  }
 
   if (method === "POST") {
     let body: Partial<ContactRequest>;
