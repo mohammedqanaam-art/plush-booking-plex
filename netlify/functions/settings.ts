@@ -1,4 +1,4 @@
-import { json, validateSession } from "./_shared/security";
+import { json, requireSameOrigin, validateSession } from "./_shared/security";
 import { getEnvironmentStore } from "./_shared/storage";
 type SiteSettings = {
   siteTitle: string;
@@ -81,6 +81,9 @@ export default async (req: Request) => {
   }
 
   if (req.method === "PUT") {
+    const originError = requireSameOrigin(req);
+    if (originError) return originError;
+
     const session = await validateSession(req);
     if (!session) return json({ error: "Unauthorized" }, 401);
     if (!["superadmin", "admin"].includes(session.role)) return json({ error: "Permission Denied" }, 403);
