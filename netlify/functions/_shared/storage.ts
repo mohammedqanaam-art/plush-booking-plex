@@ -15,19 +15,17 @@ type EncryptedEnvelope = {
 
 const DATA_KEY_ENV = "DATA_ENCRYPTION_KEY";
 
-// Small, sensitive JSON records keep application-layer encryption.
-// Large reservation reports deliberately use Netlify Blobs' platform encryption at rest/in transit:
-// wrapping multi-megabyte reports in base64 AES envelopes materially increases object size and can
-// make otherwise valid UNO/CRO reports fail to save. Existing encrypted booking blobs are migrated
-// back to normal JSON lazily on first successful read.
+// Small high-sensitivity records keep an application-layer AES envelope.
+// Operational settings and bulk reservation reports use Netlify Blobs' platform encryption instead.
+// They were briefly wrapped at application level; the compatibility store below decrypts those
+// existing envelopes once and restores normal JSON so the dashboard can read/write them reliably.
 const APP_ENCRYPTED_STORES = new Set([
   "booking-phone-index",
   "complaints",
   "contacts",
-  "settings",
   "users",
 ]);
-const LEGACY_ENCRYPTED_PLAINTEXT_STORES = new Set(["bookings"]);
+const LEGACY_ENCRYPTED_PLAINTEXT_STORES = new Set(["bookings", "settings"]);
 
 const getRawEnvironmentStore = (name: string, options: StoreOptions = {}) => {
   const deploy = typeof Netlify === "undefined" ? undefined : Netlify.context?.deploy;
@@ -63,7 +61,7 @@ const parseEncryptionKey = (raw: string): Buffer => {
 
 const getEncryptionKey = () => {
   const raw = typeof Netlify === "undefined" ? "" : (Netlify.env.get(DATA_KEY_ENV) || "");
-  if (!raw.trim()) throw new Error(`${DATA_KEY_ENV} is required for sensitive storage.`);
+  if (!raw.trim()) throw new Error(`${DATA_KEY_ENV} is required for encrypted legacy data.`);
   return parseEncryptionKey(raw);
 };
 
@@ -94,7 +92,6 @@ export const decryptStoredJson = <T>(envelope: EncryptedEnvelope, storeName: str
   return JSON.parse(plaintext) as T;
 };
 
-/** Adds application-layer AES-256-GCM protection to small sensitive JSON records. */
 export const getEncryptedEnvironmentStore = (name: string, options: StoreOptions = {}) => {
   const base = getRawEnvironmentStore(name, options);
   return {
@@ -125,8 +122,6 @@ const getLegacyMigrationStore = (name: string, options: StoreOptions = {}) => {
       if (!isEncryptedEnvelope(stored)) return stored as T;
 
       const decoded = decryptStoredJson<T>(stored, name, key);
-      // One-way compatibility migration: preserve the same logical value while removing the
-      // size-expanding application envelope for bulk report data.
       await base.setJSON(key, decoded);
       return decoded;
     },
