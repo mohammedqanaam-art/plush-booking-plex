@@ -70,6 +70,17 @@ describe("same-origin mutation protection", () => {
       headers: { origin: "https://attacker.example" },
     }))).toBe(false);
   });
+
+  it("accepts the public custom domain when Netlify forwards to an internal host", () => {
+    expect(isSameOriginRequest(new Request("https://internal-function-host.netlify.app/.netlify/functions/auth", {
+      method: "POST",
+      headers: {
+        origin: "https://www.res-dashbord.com",
+        "x-forwarded-host": "www.res-dashbord.com",
+        "x-forwarded-proto": "https",
+      },
+    }))).toBe(true);
+  });
 });
 
 describe("application-layer sensitive storage", () => {
