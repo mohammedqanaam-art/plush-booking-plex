@@ -25,8 +25,8 @@ export default async (req: Request, context: Context) => {
   if (body.action !== "dispatch-sync") return;
 
   const origin = context.site.url || new URL(req.url).origin;
-  const endpoint = new URL("/api/admin/uno", origin);
-  await fetch(endpoint, {
+  const endpoint = new URL("/api/admin/uno-report", origin);
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -34,5 +34,11 @@ export default async (req: Request, context: Context) => {
     },
     body: JSON.stringify({ action: "sync-system" }),
     signal: AbortSignal.timeout(55_000),
-  }).catch(() => undefined);
+  }).catch(() => null);
+
+  if (!response?.ok) {
+    console.warn("[uno-sync-background] reconciled report sync did not complete", {
+      status: response?.status || 0,
+    });
+  }
 };
