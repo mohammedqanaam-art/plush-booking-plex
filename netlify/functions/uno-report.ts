@@ -1,6 +1,6 @@
 import { getDeployStore, getStore } from "@netlify/blobs";
 import type { Config } from "@netlify/functions";
-import { createDecipheriv, createHash, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { saveBookingRecords, type BookingRecord } from "./_shared/bookingCsv";
 import { getSessionToken, json, requireSameOrigin, validateSession } from "./_shared/security";
 import {
@@ -12,7 +12,12 @@ import {
   type UnoReportFilters,
   type UnoReservationRecord,
 } from "./_shared/unoReportCore";
-import { currentMonthUnoSyncFilters, normalizeReservation, parseUnoReportFilters } from "./uno-connection";
+import {
+  currentMonthUnoSyncFilters,
+  isTrustedRateGainUrl,
+  normalizeReservation,
+  parseUnoReportFilters,
+} from "./uno-connection";
 
 const DEFAULT_UNO_API_BASE_URL = "https://uno-prod-ui-api-1087875874170.us-central1.run.app/api/";
 const DEFAULT_UNO_VOICE_API_BASE_URL = "https://ibe-prod-api-cpayzgdkqq-uc.a.run.app/api/";
@@ -65,12 +70,20 @@ const asRecord = (value: unknown): JsonRecord => value && typeof value === "obje
   ? value as JsonRecord
   : {};
 
-const readConfiguration = () => ({
-  apiBaseUrl: `${(trimmedEnv("UNO_API_BASE_URL") || DEFAULT_UNO_API_BASE_URL).replace(/\/+$/, "")}/`,
-  voiceApiBaseUrl: `${(trimmedEnv("UNO_VOICE_API_BASE_URL") || DEFAULT_UNO_VOICE_API_BASE_URL).replace(/\/+$/, "")}/`,
-  password: rawEnv("UNO_PASSWORD") || rawEnv("UNO_LOGIN_PASSWORD"),
-  appVersion: trimmedEnv("UNO_APP_VERSION") || DEFAULT_UNO_APP_VERSION,
-});
+const safeUnoUrl = (value: string, fallback: string) => isTrustedRateGainUrl(value) ? value : fallback;
+
+const readConfiguration = () => {
+  const configuredApi = trimmedEnv("UNO_API_BASE_URL");
+  const configuredVoice = trimmedEnv("UNO_VOICE_API_BASE_URL");
+  const api = safeUnoUrl(configuredApi, DEFAULT_UNO_API_BASE_URL);
+  const voice = safeUnoUrl(configuredVoice, DEFAULT_UNO_VOICE_API_BASE_URL);
+  return {
+    apiBaseUrl: `${api.replace(/\/+$/, "")}/`,
+    voiceApiBaseUrl: `${voice.replace(/\/+$/, "")}/`,
+    password: rawEnv("UNO_PASSWORD") || rawEnv("UNO_LOGIN_PASSWORD"),
+    appVersion: trimmedEnv("UNO_APP_VERSION") || DEFAULT_UNO_APP_VERSION,
+  };
+};
 
 const sessionStore = () => Netlify.context?.deploy.context === "production"
   ? getStore({ name: "uno-sessions", consistency: "strong" })
@@ -81,6 +94,17 @@ const snapshotStore = () => Netlify.context?.deploy.context === "production"
   : getDeployStore("uno-reservations");
 
 const encryptionKey = (password: string) => createHash("sha256").update(`uno-session:${password}`).digest();
+
+const encryptSession = (session: UnoSession, password: string): EncryptedValue => {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", encryptionKey(password), iv);
+  const data = Buffer.concat([cipher.update(JSON.stringify(session), "utf8"), cipher.final()]);
+  return {
+    iv: iv.toString("base64"),
+    tag: cipher.getAuthTag().toString("base64"),
+    data: data.toString("base64"),
+  };
+};
 
 const decryptSession = (encrypted: EncryptedValue, password: string): UnoSession | null => {
   try {
@@ -182,12 +206,12 @@ const refreshConnectedState = async (
       sessionId: asString(details.userSessionId || details.UserSessionID || details.sessionId) || session.sessionId,
       ipAddress: asString(details.ipAddress || details.IPAddress) || session.ipAddress,
     };
-    const nextState = {
+    const nextState: ConnectedState = {
       ...state,
       expiresAt: tokenExpiry(token, Date.now() + 12 * 60 * 60 * 1000),
+      encrypted: encryptSession(nextSession, configuration.password),
     };
-    // The legacy connector owns session encryption/writes. A successful refresh is used for this request;
-    // the next normal UNO interaction will persist its refreshed state through the legacy connector.
+    await sessionStore().setJSON(key, nextState);
     return { state: nextState, session: nextSession };
   } catch {
     return state.expiresAt > Date.now() ? { state, session } : null;
@@ -209,7 +233,15 @@ const propertyIds = (session: UnoSession, filters: UnoReportFilters) => filters.
 const searchPayload = (session: UnoSession, filters: UnoReportFilters) => ({
   ChainID: session.chainId,
   propertyIds: propertyIds(session, filters),
-  BookingStatus: filters.status === "confirmed" ? 1 : filters.status === "cancelled" ? -1 : filters.status === "modified" ? 3 : 0,
+  // Confirmed in the operational report includes Modified. Ask UNO for all statuses then
+  // apply the canonical local filter so status 3 is never lost before reconciliation.
+  BookingStatus: filters.status === "confirmed"
+    ? 0
+    : filters.status === "cancelled"
+      ? -1
+      : filters.status === "modified"
+        ? 3
+        : 0,
   Channel: "0",
   SourceType: "Voice",
   searchText: "",
@@ -305,8 +337,10 @@ const fetchFullReport = async (
   let pages = 1;
   let reportedTotal = unbounded.reportedTotal;
 
-  const suspiciousCap = unbounded.records.length > 0
-    && (unbounded.records.length >= 5_000 || (reportedTotal !== null && reportedTotal > unbounded.records.length));
+  // UNO has returned capped result sets in different builds. Any exact 1,000+ page-sized
+  // response is validated with server pagination before the report is accepted.
+  const suspiciousCap = unbounded.records.length >= PAGED_SIZE
+    || (reportedTotal !== null && reportedTotal > unbounded.records.length);
 
   if (suspiciousCap) {
     const paged: JsonRecord[] = [];
