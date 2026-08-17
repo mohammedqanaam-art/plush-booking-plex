@@ -439,7 +439,8 @@ const fetchPublicBookingReport = async (fresh = false): Promise<PublicBookingRep
 const authHeaders = (): Record<string, string> => ({});
 
 const unoAction = async <T>(payload: Record<string, unknown>): Promise<T> => {
-  const res = await fetch("/api/admin/uno", {
+  const endpoint = payload.action === "export" ? "/api/admin/uno-report" : "/api/admin/uno";
+  const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(payload),
