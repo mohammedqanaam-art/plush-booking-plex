@@ -27,12 +27,14 @@ describe("UNO integration boundary", () => {
     expect(isTrustedRateGainUrl("https://example.com/")).toBe(false);
   });
 
-  it("keeps UNO credentials and sessions server-side", () => {
+  it("keeps UNO credentials and sessions server-side and routes report sync through reconciliation", () => {
     const root = process.cwd();
     const page = fs.readFileSync(path.join(root, "src/pages/AdminUno.tsx"), "utf8");
     const fn = fs.readFileSync(path.join(root, "netlify/functions/uno-connection.ts"), "utf8");
+    const report = fs.readFileSync(path.join(root, "netlify/functions/uno-report.ts"), "utf8");
     const schedule = fs.readFileSync(path.join(root, "netlify/functions/uno-sync-scheduled.ts"), "utf8");
     const background = fs.readFileSync(path.join(root, "netlify/functions/uno-sync-background.ts"), "utf8");
+    const api = fs.readFileSync(path.join(root, "src/lib/api.ts"), "utf8");
     const app = fs.readFileSync(path.join(root, "src/App.tsx"), "utf8");
 
     expect(app).toContain('path="/admin/uno"');
@@ -79,7 +81,7 @@ describe("UNO integration boundary", () => {
     expect(schedule).toContain('schedule: "*/30 * * * *"');
     expect(schedule).toContain('/.netlify/functions/uno-sync-background');
     expect(schedule).not.toContain('new URL("/api/admin/uno"');
-    expect(background).toContain('new URL("/api/admin/uno"');
+    expect(background).toContain('new URL("/api/admin/uno-report"');
     expect(background).toContain('action: "sync-system"');
     expect(schedule).toContain('Netlify.env.get("UNO_PASSWORD")');
     expect(schedule).toContain('createHash("sha256").update(`uno-sync:${password}`).digest("hex")');
@@ -89,6 +91,14 @@ describe("UNO integration boundary", () => {
     expect(page).toContain("تحديث تقرير الإنتاجية من UNO");
     expect(page).toContain("navigator.clipboard.writeText");
     expect(page).toContain("تصدير OPERA");
+
+    expect(report).toContain('path: "/api/admin/uno-report"');
+    expect(report).toContain('const MAX_REPORT_ROWS = 50_000');
+    expect(report).toContain('const PAGED_SIZE = 1_000');
+    expect(report).toContain("deduplicateUnoReservations");
+    expect(report).toContain("summarizeUnoReservations");
+    expect(report).toContain("staleDataPreserved: true");
+    expect(api).toContain('payload.action === "export" ? "/api/admin/uno-report" : "/api/admin/uno"');
   });
 
   it("builds a property-scoped reservation lookup", () => {
