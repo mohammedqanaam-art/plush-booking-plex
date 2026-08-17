@@ -1,30 +1,22 @@
 import type { Config } from "@netlify/functions";
 import { json, validateSession } from "./_shared/security";
 import { getEnvironmentStore } from "./_shared/storage";
-
-type UnoReservation = {
-  unoNumber: string;
-  pmsNumber: string;
-  phone: string;
-  guestName: string;
-  agentName: string;
-  property: string;
-  city: string;
-  status: string;
-  checkIn: string;
-  checkOut: string;
-  bookingDate: string;
-  channel: string;
-  amount: string;
-  currency: string;
-};
+import {
+  riyadhDateKey,
+  summarizeUnoReservations,
+  unoStatusGroup,
+  type UnoReportSummary,
+  type UnoReservationRecord,
+} from "./_shared/unoReportCore";
 
 type UnoSnapshot = {
-  reservations?: UnoReservation[];
+  reservations?: UnoReservationRecord[];
   total?: number;
   syncedAt?: string;
   source?: "automatic" | "manual";
   sessionExpiresAt?: string;
+  summary?: UnoReportSummary;
+  quality?: Record<string, unknown>;
 };
 
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
@@ -32,21 +24,11 @@ const normalized = (value: string) => value.toLocaleLowerCase("ar").replace(/[\s
 const digits = (value: string) => value.replace(/\D/g, "");
 
 const statusGroup = (value: string) => {
-  const candidate = value.trim().toLocaleLowerCase("en");
-  if (["c", "ns"].includes(candidate) || /cancel|no[\s-]?show|ملغ|عدم حضور/.test(candidate)) return "cancelled";
-  if (["1", "3", "m", "o", "n", "i"].includes(candidate) || /confirm|modif|مؤكد|معدل|معدّل/.test(candidate)) return "confirmed";
-  return "other";
+  const group = unoStatusGroup(value);
+  return group === "modified" ? "confirmed" : group;
 };
 
-const dateKey = (value: string) => {
-  if (!value) return "";
-  const iso = value.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
-  if (iso) return iso;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
-};
-
-const queryMatches = (reservation: UnoReservation, field: string, query: string) => {
+const queryMatches = (reservation: UnoReservationRecord, field: string, query: string) => {
   if (!query) return true;
   if (field === "phone") {
     const expected = digits(query);
@@ -87,9 +69,8 @@ export default async (req: Request) => {
   const dateField = text(url.searchParams.get("dateField")) || "booking";
   const from = text(url.searchParams.get("from"));
   const to = text(url.searchParams.get("to"));
-  const requestedLimit = Number(url.searchParams.get("limit") || 1000);
+  const requestedLimit = Number(url.searchParams.get("limit") || 5000);
   const requestedOffset = Number(url.searchParams.get("offset") || 0);
-  const limit = Math.min(5000, Math.max(1, Number.isFinite(requestedLimit) ? Math.trunc(requestedLimit) : 1000));
   const offset = Math.max(0, Number.isFinite(requestedOffset) ? Math.trunc(requestedOffset) : 0);
 
   if (!["all", "phone", "pms", "uno", "guest"].includes(field)) return json({ error: "Invalid search field" }, 400);
@@ -98,6 +79,19 @@ export default async (req: Request) => {
   if ((from && !/^\d{4}-\d{2}-\d{2}$/.test(from)) || (to && !/^\d{4}-\d{2}-\d{2}$/.test(to))) {
     return json({ error: "Invalid date range" }, 400);
   }
+
+  const unfilteredWholeSnapshot = !query
+    && (!property || property === "all")
+    && (!status || status === "all")
+    && !from
+    && !to
+    && offset === 0;
+  const normalizedRequestedLimit = Number.isFinite(requestedLimit) ? Math.trunc(requestedLimit) : 5000;
+  // The admin UI historically requested 5,000 rows, which silently clipped larger monthly UNO reports.
+  // A whole-snapshot request now returns the complete reconciled month (up to the protected 50k ceiling).
+  const limit = unfilteredWholeSnapshot && normalizedRequestedLimit >= 5000
+    ? 50_000
+    : Math.min(50_000, Math.max(1, normalizedRequestedLimit));
 
   const store = getEnvironmentStore("uno-reservations", { consistency: "strong" });
   const snapshot = ((await store.get("latest", { type: "json" }).catch(() => null)) || {}) as UnoSnapshot;
@@ -108,7 +102,7 @@ export default async (req: Request) => {
     if (status && status !== "all" && statusGroup(reservation.status) !== status) return false;
     if (!queryMatches(reservation, field, query)) return false;
 
-    const value = dateKey(
+    const value = riyadhDateKey(
       dateField === "checkin"
         ? reservation.checkIn
         : dateField === "checkout"
@@ -122,14 +116,14 @@ export default async (req: Request) => {
 
   const properties = Array.from(new Set(reservations.map((reservation) => reservation.property).filter(Boolean)))
     .sort((left, right) => left.localeCompare(right, "ar"));
-  const summary = filtered.reduce((result, reservation) => {
-    const group = statusGroup(reservation.status);
-    result.total += 1;
-    if (group === "confirmed") result.confirmed += 1;
-    else if (group === "cancelled") result.cancelled += 1;
-    else result.other += 1;
-    return result;
-  }, { total: 0, confirmed: 0, cancelled: 0, other: 0 });
+  const detailedSummary = summarizeUnoReservations(filtered);
+  const summary = {
+    ...detailedSummary,
+    // Preserve the legacy shape while counting Modified as an active confirmed reservation.
+    confirmed: detailedSummary.confirmed,
+    cancelled: detailedSummary.cancelled,
+    other: detailedSummary.other,
+  };
 
   return json({
     reservations: filtered.slice(offset, offset + limit),
@@ -141,6 +135,8 @@ export default async (req: Request) => {
     sessionExpiresAt: snapshot.sessionExpiresAt || null,
     properties,
     summary,
+    quality: snapshot.quality || null,
+    snapshotSummary: snapshot.summary || null,
   });
 };
 
