@@ -1,8 +1,9 @@
 import { getEnvironmentStore } from "./storage";
 import {
-  lookupOfficialBoudlSources,
-  refreshOfficialBoudlKnowledgeIndex,
+  getOfficialBoudlKnowledgeStatus,
+  lookupBHGKnowledgeSources,
 } from "./boudl-knowledge";
+import { queueBranchKnowledgeRefresh } from "./knowledgeRefresh";
 
 export type ExecutableWorkflowKey = "employee-support" | "branch-knowledge-refresh" | "development-request";
 
@@ -67,13 +68,13 @@ export async function queueDevelopmentRequest(input: Omit<DispatchInput, "workfl
 export async function dispatchWorkflow(input: DispatchInput): Promise<WorkflowExecution> {
   if (input.workflowKey === "employee-support") {
     const query = input.reason.trim() || String(input.payload.request || "معلومات الفروع").trim();
-    const sources = await lookupOfficialBoudlSources(query);
+    const sources = await lookupBHGKnowledgeSources(query, { scope: "internal" });
     return {
       workflowKey: "employee-support",
       status: "completed",
       reply: sources.length
-        ? `تم تشغيل مسار دعم الموظفين والعثور على ${sources.length} مصدر رسمي من Boudl.com مرتبط بالطلب.`
-        : "تم تشغيل مسار دعم الموظفين، لكن لم يتم العثور على مصدر رسمي مطابق حاليًا.",
+        ? `تم تشغيل مسار دعم الموظفين والعثور على ${sources.length} مصدر BHG معتمد مرتبط بالطلب.`
+        : "تم تشغيل مسار دعم الموظفين، لكن لم يتم العثور على مصدر BHG معتمد مطابق حاليًا.",
       data: {
         sourceCount: sources.length,
         sources: sources.map((source) => ({ title: source.title, url: source.url })),
@@ -82,12 +83,17 @@ export async function dispatchWorkflow(input: DispatchInput): Promise<WorkflowEx
   }
 
   if (input.workflowKey === "branch-knowledge-refresh") {
-    const index = await refreshOfficialBoudlKnowledgeIndex();
+    const current = await getOfficialBoudlKnowledgeStatus().catch(() => null);
+    await queueBranchKnowledgeRefresh();
     return {
       workflowKey: "branch-knowledge-refresh",
-      status: "completed",
-      reply: `تم تحديث فهرس معرفة الفروع من موقع Boudl.com الرسمي: ${index.hotelCount} فرع/صفحة فندقية مفهرسة.`,
-      data: { hotelCount: index.hotelCount, updatedAt: index.updatedAt },
+      status: "queued",
+      reply: "تم وضع تحديث معرفة BHG في الخلفية. يظل المساعد سريعاً ويستمر باستخدام آخر فهرس موثوق أثناء التحديث.",
+      data: {
+        queued: true,
+        currentDocumentCount: current?.documentCount || 0,
+        currentUpdatedAt: current?.updatedAt || null,
+      },
     };
   }
 

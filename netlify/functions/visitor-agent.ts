@@ -1,7 +1,13 @@
 import type { Config } from "@netlify/functions";
 import { lookupOfficialBoudlSources, type OfficialSource } from "./_shared/boudl-knowledge";
+import {
+  aiResponseCacheKey,
+  isCacheSafeConversation,
+  readCachedAiResponse,
+  writeCachedAiResponse,
+} from "./_shared/aiResponseCache";
 import { callN8nAgent, n8nAgentConfigured } from "./_shared/n8n";
-import { generateOpenAiText, isOpenAiAvailable, type OpenAiSource } from "./_shared/openai";
+import { generateOpenAiText, type OpenAiSource } from "./_shared/openai";
 import { json, requireSameOrigin } from "./_shared/security";
 
 type ChatTurn = { role: "user" | "assistant"; content: string };
@@ -11,16 +17,34 @@ const cleanText = (value: unknown, maxLength: number) => String(value || "")
   .replace(/\bsk-[A-Za-z0-9_-]{10,}\b/g, "[مفتاح محجوب]")
   .replace(/\b(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]+/gi, "[بيانات دخول محجوبة]")
   .replace(/\b(password|api[_ -]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=[محجوب]")
+  .replace(/\b\d{8,15}\b/g, "[رقم محجوب]")
   .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[بريد محجوب]")
   .trim()
   .slice(0, maxLength);
+
+const allowedPublicSourceUrl = (value: unknown) => {
+  try {
+    const url = new URL(String(value || "").trim());
+    const hostname = url.hostname.toLowerCase();
+    const allowed = hostname === "boudl.com"
+      || hostname === "www.boudl.com"
+      || hostname === "booking.boudl.com"
+      || hostname === "booking.com"
+      || hostname.endsWith(".booking.com");
+    if (url.protocol !== "https:" || !allowed || url.username || url.password) return null;
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
 
 const uniqueSources = (...groups: Array<Array<PublicSource | OfficialSource | OpenAiSource>>) => {
   const map = new Map<string, PublicSource>();
   for (const group of groups) {
     for (const source of group) {
-      const url = String(source?.url || "").trim();
-      if (!/^https:\/\/(?:www\.)?(?:boudl\.com|booking\.boudl\.com)(?:\/|$)/i.test(url)) continue;
+      const url = allowedPublicSourceUrl(source?.url);
+      if (!url) continue;
       if (!map.has(url)) {
         map.set(url, {
           title: String(source?.title || "Boudl.com").slice(0, 180),
@@ -58,10 +82,11 @@ const sourceFallback = (sources: OfficialSource[]) => {
   }
   const first = sources[0];
   const snippet = first.snippet.replace(/\s+/g, " ").trim().slice(0, 850);
-  return `وجدت معلومة مرتبطة بطلبك في موقع بودل الرسمي: ${snippet}`;
+  return `وجدت معلومة مرتبطة بطلبك في مصادر BHG المعتمدة: ${snippet}`;
 };
 
 export default async (req: Request) => {
+  const startedAt = Date.now();
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
@@ -87,6 +112,18 @@ export default async (req: Request) => {
     : `visitor_${crypto.randomUUID()}`;
   const history = historyFromBody(body.history);
   const requestId = crypto.randomUUID();
+  const cacheKey = aiResponseCacheKey("visitor", message, history);
+  const cacheAllowed = isCacheSafeConversation(message, history);
+  const cached = cacheAllowed ? await readCachedAiResponse(cacheKey) : null;
+  if (cached) {
+    return json({
+      ...cached,
+      sessionId,
+      requestId,
+      cacheHit: true,
+      durationMs: Date.now() - startedAt,
+    });
+  }
 
   let officialSources: OfficialSource[] = [];
   try {
@@ -97,43 +134,55 @@ export default async (req: Request) => {
     });
   }
 
-  if (await isOpenAiAvailable()) {
-    try {
-      const transcript = history
-        .map((item) => `${item.role === "user" ? "الزائر" : "المساعد"}: ${item.content}`)
-        .join("\n");
-      const evidence = sourceEvidence(officialSources);
-      const result = await generateOpenAiText({
-        instructions: [
-          "أنت المساعد الرقمي الرسمي لزوار مجموعة بودل للضيافة BHG.",
-          "تعامل مع الزائر بود واحترام ومرونة، وأجب باللغة التي يستخدمها.",
-          "ساعد في معلومات الفنادق والفروع والمواقع والمرافق والخدمات وسياسات الإقامة العامة وطريقة الحجز والتنقل داخل موقع المجموعة.",
-          "لأي معلومة متغيرة أو مرتبطة بفرع محدد، استخدم البحث في المصادر الرسمية Boudl.com وbooking.boudl.com ولا تخمن.",
-          "إذا لم تجد معلومة موثوقة، قل ذلك بوضوح واقترح أقرب خطوة مفيدة بدل اختلاق إجابة.",
-          "لا تعرض أو تطلب كلمات مرور أو مفاتيح API أو رموز تحقق أو معلومات أنظمة داخلية أو مسارات الإدارة.",
-          "لا تنفذ تعديلات على الحجوزات أو المدفوعات، ولا تدّع توفر غرفة أو سعر لحظي دون مصدر حي.",
-          "إذا كانت هناك مصادر رسمية في السياق فاستخدمها، ويمكنك استخدام Web Search الرسمي عند الحاجة.",
-          "اجعل الإجابة عملية ومباشرة وتجنب العبارات الآلية الجامدة.",
-        ].join(" "),
-        input: [
-          transcript ? `سياق المحادثة:\n${transcript}` : "",
-          `سؤال الزائر: ${message}`,
-          evidence ? `مقتطفات رسمية متاحة مسبقًا:\n${evidence}` : "",
-        ].filter(Boolean).join("\n\n"),
-        maxOutputTokens: 1_400,
-        reasoningEffort: "low",
-        webSearchAllowedDomains: ["boudl.com", "booking.boudl.com"],
-        timeoutMs: 35_000,
-      });
-      return json({
+  try {
+    const transcript = history
+      .map((item) => `${item.role === "user" ? "الزائر" : "المساعد"}: ${item.content}`)
+      .join("\n");
+    const evidence = sourceEvidence(officialSources);
+    const result = await generateOpenAiText({
+      instructions: [
+        "أنت المساعد الرقمي الرسمي لزوار مجموعة بودل للضيافة BHG.",
+        "نطاقك حصراً فروع وعلامات مجموعة BHG؛ ارفض بلطف أي طلب عن منشأة خارج المجموعة.",
+        "تعامل مع الزائر بود واحترام، وأجب باللغة التي يستخدمها وباختصار مفيد.",
+        "أي حقيقة عن فرع أو مرفق أو سياسة يجب أن تستند فقط إلى مقتطفات BHG المعتمدة المقدمة في السياق؛ لا تستخدم معرفة قديمة ولا تخمن.",
+        "Booking.com مصدر ثانوي للتعريف بالفرع فقط، وليس دليلاً على سعر أو توفر لحظي.",
+        "إذا لم تكفِ المقتطفات، قل إن المعلومة غير متاحة في المصادر المعتمدة واقترح صفحة الفرع الرسمية.",
+        "لا تعرض أو تطلب كلمات مرور أو مفاتيح API أو رموز تحقق أو بيانات شخصية أو معلومات أنظمة داخلية.",
+        "لا تنفذ تعديلات على الحجوزات أو المدفوعات، ولا تدّع توفر غرفة أو سعر لحظي.",
+      ].join(" "),
+      input: [
+        transcript ? `سياق المحادثة:\n${transcript}` : "",
+        `سؤال الزائر: ${message}`,
+        evidence ? `مقتطفات BHG المعتمدة:\n${evidence}` : "لا توجد مقتطفات موثوقة مطابقة لهذا السؤال.",
+      ].filter(Boolean).join("\n\n"),
+      maxOutputTokens: 700,
+      reasoningEffort: "low",
+      timeoutMs: 14_000,
+    });
+    const sources = uniqueSources(result.sources, officialSources);
+    const knowledgeUpdatedAt = officialSources.find((source) => source.verifiedAt)?.verifiedAt;
+    if (cacheAllowed) {
+      await writeCachedAiResponse(cacheKey, {
         reply: result.text,
-        sessionId,
-        requestId,
+        sources,
         model: result.model,
         provider: "openai-responses",
-        sources: uniqueSources(result.sources, officialSources),
+        knowledgeUpdatedAt,
       });
-    } catch (error) {
+    }
+    return json({
+      reply: result.text,
+      sessionId,
+      requestId,
+      model: result.model,
+      provider: "openai-responses",
+      sources,
+      knowledgeUpdatedAt,
+      cacheHit: false,
+      durationMs: Date.now() - startedAt,
+    });
+  } catch (error) {
+    if (!(error instanceof Error) || error.message !== "OPENAI_NOT_CONFIGURED") {
       console.error("[visitor-agent] OpenAI request failed", {
         code: error instanceof Error ? error.message : "UNKNOWN",
       });
@@ -160,7 +209,7 @@ export default async (req: Request) => {
           noAdminActions: true,
           noBookingMutation: true,
         },
-      }, { timeoutMs: 25_000 });
+      }, { timeoutMs: 12_000 });
 
       if (result.reply) {
         const returnedSources = typeof result.data === "object" && Array.isArray(result.data.sources)
@@ -170,13 +219,28 @@ export default async (req: Request) => {
               snippet: String(source?.snippet || ""),
             }))
           : [];
+        const reply = result.reply.slice(0, 7_000);
+        const sources = uniqueSources(returnedSources, officialSources);
+        const knowledgeUpdatedAt = officialSources.find((source) => source.verifiedAt)?.verifiedAt;
+        if (cacheAllowed) {
+          await writeCachedAiResponse(cacheKey, {
+            reply,
+            sources,
+            provider: "n8n-agent",
+            model: "n8n-managed",
+            knowledgeUpdatedAt,
+          });
+        }
         return json({
-          reply: result.reply.slice(0, 7_000),
+          reply,
           sessionId,
           requestId,
           provider: "n8n-agent",
           model: "n8n-managed",
-          sources: uniqueSources(returnedSources, officialSources),
+          sources,
+          knowledgeUpdatedAt,
+          cacheHit: false,
+          durationMs: Date.now() - startedAt,
         });
       }
     } catch (error) {
@@ -193,6 +257,8 @@ export default async (req: Request) => {
     provider: "official-source-fallback",
     model: null,
     sources: uniqueSources(officialSources),
+    cacheHit: false,
+    durationMs: Date.now() - startedAt,
   });
 };
 

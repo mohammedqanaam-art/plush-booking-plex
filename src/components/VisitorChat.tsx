@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, ExternalLink, Hotel, Send, Sparkles, X } from "lucide-react";
 
 type Source = { title: string; url: string; snippet?: string };
-type ChatItem = { role: "user" | "assistant"; content: string; sources?: Source[] };
+type ChatItem = { role: "user" | "assistant"; content: string; sources?: Source[]; cacheHit?: boolean };
 type AgentResponse = {
   reply?: string;
   sources?: Source[];
   provider?: string;
   model?: string | null;
   sessionId?: string;
+  cacheHit?: boolean;
+  durationMs?: number;
   error?: string;
 };
 
@@ -27,7 +29,7 @@ const VisitorChat = () => {
   const [items, setItems] = useState<ChatItem[]>([
     {
       role: "assistant",
-      content: "أهلًا بك في مجموعة بودل للضيافة. اسألني عن الفروع، المواقع، الخدمات، المرافق أو طريقة الحجز، وسأبحث لك في المصادر الرسمية عند الحاجة.",
+      content: "أهلًا بك في مجموعة بودل للضيافة. اسألني عن فروع BHG ومواقعها وخدماتها، وسأجيب من المصادر المعتمدة للمجموعة فقط.",
     },
   ]);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -55,12 +57,14 @@ const VisitorChat = () => {
       const data = await response.json().catch(() => ({})) as AgentResponse;
       if (!response.ok) throw new Error(data.error || "تعذر تشغيل المساعد");
       if (data.sessionId) setSessionId(data.sessionId);
-      if (data.model?.toLowerCase().includes("gpt-5.6")) setModelLabel("GPT‑5.6 Sol");
+      if (data.cacheHit) setModelLabel("BHG سريع");
+      else if (data.model?.toLowerCase().includes("gpt-5.6")) setModelLabel("GPT‑5.6 Sol");
       else if (data.provider === "n8n-agent") setModelLabel("BHG AI");
       setItems((current) => [...current, {
         role: "assistant",
         content: data.reply || "تعذر الحصول على إجابة واضحة الآن.",
         sources: Array.isArray(data.sources) ? data.sources : [],
+        cacheHit: Boolean(data.cacheHit),
       }]);
     } catch {
       setItems((current) => [...current, {
@@ -93,7 +97,7 @@ const VisitorChat = () => {
                 <strong>مساعد بودل الذكي</strong>
                 <span className="visitor-chat-model">{modelLabel}</span>
               </div>
-              <small>متاح للزوار · بدون تسجيل دخول</small>
+              <small>مصادر عامة لفروع BHG فقط · بدون تسجيل دخول</small>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="visitor-chat-close" aria-label="إغلاق">
               <X className="h-4 w-4" />
@@ -113,6 +117,9 @@ const VisitorChat = () => {
               <div key={`${item.role}-${index}`} className={`visitor-message visitor-message--${item.role}`}>
                 <div className="visitor-message__bubble">
                   <div className="whitespace-pre-wrap">{item.content}</div>
+                  {item.role === "assistant" && item.cacheHit ? (
+                    <div className="mt-2 text-[10px] font-semibold text-emerald-700">إجابة من ذاكرة BHG السريعة</div>
+                  ) : null}
                   {item.role === "assistant" && item.sources?.length ? (
                     <div className="visitor-message__sources">
                       <span>مصادر رسمية</span>
@@ -130,7 +137,7 @@ const VisitorChat = () => {
             {loading ? (
               <div className="visitor-message visitor-message--assistant">
                 <div className="visitor-message__bubble visitor-chat-typing">
-                  <Hotel className="h-4 w-4" /> جارٍ البحث والإجابة…
+                  <Hotel className="h-4 w-4" /> جارٍ تجهيز الإجابة من فهرس BHG…
                 </div>
               </div>
             ) : null}

@@ -776,7 +776,16 @@ export const api = {
     message: string,
     sessionId?: string,
     history?: Array<{ role: string; content: string }>,
-  ): Promise<{ reply: string; sessionId?: string; model?: string; provider?: string }> {
+  ): Promise<{
+    reply: string;
+    sessionId?: string;
+    model?: string;
+    provider?: string;
+    sources?: Array<{ title: string; url: string; snippet?: string }>;
+    cacheHit?: boolean;
+    durationMs?: number;
+    knowledgeUpdatedAt?: string;
+  }> {
     const res = await fetch(`${API_BASE}/ai-chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -787,6 +796,10 @@ export const api = {
       sessionId?: string;
       model?: string;
       provider?: string;
+      sources?: Array<{ title: string; url: string; snippet?: string }>;
+      cacheHit?: boolean;
+      durationMs?: number;
+      knowledgeUpdatedAt?: string;
       error?: unknown;
     };
     if (!res.ok) {

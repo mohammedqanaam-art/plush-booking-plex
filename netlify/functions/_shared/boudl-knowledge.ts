@@ -1,28 +1,59 @@
 import { getEnvironmentStore } from "./storage";
 
+export type KnowledgeSourceKind = "boudl" | "sheet" | "booking";
+
 export type OfficialSource = {
   title: string;
   url: string;
   snippet: string;
+  sourceKind?: KnowledgeSourceKind;
+  verifiedAt?: string;
+};
+
+type KnowledgeDocument = {
+  title: string;
+  url: string;
+  content: string;
+  sourceKind: KnowledgeSourceKind;
 };
 
 export type BranchKnowledgeIndex = {
+  version?: number;
   updatedAt: string;
   hotelCount: number;
+  documentCount?: number;
+  sourceCounts?: Record<KnowledgeSourceKind, number>;
   hotels: Array<{ title: string; url: string }>;
+  documents?: KnowledgeDocument[];
 };
+
+export type KnowledgeScope = "public" | "internal";
 
 const OFFICIAL_ROOTS = [
   "https://boudl.com/ar/brand/boudl",
   "https://boudl.com/ar/hotels",
   "https://boudl.com/ar/brands",
 ];
-const KNOWLEDGE_TTL_MS = 12 * 60 * 60 * 1000;
+const INTERNAL_KNOWLEDGE_URL = "https://www.res-dashbord.com/admin/knowledge-bank";
+const MAX_SOURCE_BYTES = 1_200_000;
+const MAX_DOCUMENT_CHARS = 16_000;
+const MAX_HOTEL_PAGES = 140;
+const INDEX_MEMORY_TTL_MS = 5 * 60 * 1000;
+const QUERY_STOP_WORDS = new Set([
+  "الى", "إلى", "الي", "عن", "على", "علي", "في", "من", "ما", "هل", "كيف", "متى", "مع",
+  "هذا", "هذه", "ذلك", "التي", "الذي", "اي", "أي", "the", "and", "for", "from", "with",
+]);
 
-const allowedOfficialHost = (hostname: string) => (
+let memoryIndex: { value: BranchKnowledgeIndex; expiresAt: number } | null = null;
+
+const allowedBoudlHost = (hostname: string) => (
   hostname === "boudl.com"
   || hostname === "www.boudl.com"
   || hostname === "booking.boudl.com"
+);
+
+const allowedBookingHost = (hostname: string) => (
+  hostname === "booking.com" || hostname.endsWith(".booking.com")
 );
 
 const normalizeArabic = (value: string) => value
@@ -52,164 +83,378 @@ const stripHtml = (html: string) => htmlEntities(html
   .replace(/\s+/g, " ")
   .trim();
 
-const fetchOfficialHtml = async (url: string): Promise<string> => {
-  const parsed = new URL(url);
-  if (parsed.protocol !== "https:" || !allowedOfficialHost(parsed.hostname.toLowerCase())) {
-    throw new Error("UNTRUSTED_BOUDL_SOURCE");
-  }
-  const response = await fetch(parsed, {
-    headers: {
-      Accept: "text/html,application/xhtml+xml",
-      "User-Agent": "BHG-Central-Reservation-Knowledge/1.1",
-    },
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!response.ok) throw new Error(`BOUDL_SOURCE_${response.status}`);
-  return (await response.text()).slice(0, 1_200_000);
+const pageTitle = (html: string, fallback: string) => {
+  const matched = html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
+  return stripHtml(matched?.[1] || "").slice(0, 180) || fallback;
 };
 
-type HotelLink = { title: string; url: string; score: number };
+const fetchHtml = async (value: string, sourceKind: "boudl" | "booking") => {
+  const url = new URL(value);
+  const hostname = url.hostname.toLowerCase();
+  const trusted = sourceKind === "boudl" ? allowedBoudlHost(hostname) : allowedBookingHost(hostname);
+  if (url.protocol !== "https:" || !trusted || url.username || url.password) {
+    throw new Error("UNTRUSTED_BHG_SOURCE");
+  }
+  const response = await fetch(url, {
+    headers: {
+      Accept: "text/html,application/xhtml+xml",
+      "User-Agent": "BHG-Central-Reservation-Knowledge/2.0",
+    },
+    redirect: "follow",
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) throw new Error(`BHG_SOURCE_${response.status}`);
+  return (await response.text()).slice(0, MAX_SOURCE_BYTES);
+};
 
-const allHotelLinks = (html: string): Array<{ title: string; url: string }> => {
-  const links = new Map<string, { title: string; url: string }>();
+const configuredSheetCsvUrl = () => {
+  const raw = Netlify.env.get("BHG_BRANCH_SHEET_CSV_URL")?.trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (
+      url.protocol !== "https:"
+      || url.hostname.toLowerCase() !== "docs.google.com"
+      || !/^\/spreadsheets\/d\/[a-zA-Z0-9_-]+\/export$/i.test(url.pathname)
+      || url.searchParams.get("format") !== "csv"
+      || url.username
+      || url.password
+    ) return null;
+    url.hash = "";
+    return url;
+  } catch {
+    return null;
+  }
+};
+
+const configuredBookingUrls = () => {
+  const raw = Netlify.env.get("BHG_BOOKING_PROPERTY_URLS") || "";
+  const urls = new Map<string, URL>();
+  for (const value of raw.split(/[\n,]+/)) {
+    try {
+      const url = new URL(value.trim());
+      if (
+        url.protocol !== "https:"
+        || !allowedBookingHost(url.hostname.toLowerCase())
+        || url.username
+        || url.password
+      ) continue;
+      url.hash = "";
+      url.search = "";
+      urls.set(url.toString(), url);
+    } catch {
+      // Ignore malformed or unapproved entries.
+    }
+  }
+  return [...urls.values()].slice(0, 100);
+};
+
+type HotelLink = { title: string; url: string };
+
+const allHotelLinks = (html: string): HotelLink[] => {
+  const links = new Map<string, HotelLink>();
   const anchor = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let match: RegExpExecArray | null;
-
   while ((match = anchor.exec(html))) {
     if (!/\/hotel\//i.test(match[1])) continue;
-    let url: URL;
     try {
-      url = new URL(match[1], "https://boudl.com");
+      const url = new URL(match[1], "https://boudl.com");
+      if (!allowedBoudlHost(url.hostname.toLowerCase())) continue;
+      url.hash = "";
+      const title = stripHtml(match[2]).slice(0, 160)
+        || decodeURIComponent(url.pathname.split("/").pop() || "فندق BHG");
+      links.set(url.toString(), { title, url: url.toString() });
+      if (links.size >= MAX_HOTEL_PAGES) break;
     } catch {
-      continue;
+      // Ignore malformed links returned by a page.
     }
-    if (!allowedOfficialHost(url.hostname.toLowerCase())) continue;
-    url.hash = "";
-    const title = stripHtml(match[2]).slice(0, 160)
-      || decodeURIComponent(url.pathname.split("/").pop() || "فندق بودل");
-    links.set(url.toString(), { title, url: url.toString() });
-    if (links.size >= 180) break;
   }
-
   return [...links.values()];
 };
 
-const rankHotelLinks = (links: Array<{ title: string; url: string }>, query: string): HotelLink[] => {
-  const normalizedQuery = normalizeArabic(query);
-  const queryTokens = normalizedQuery.split(" ").filter((token) => token.length >= 2);
-  return links.map((item) => {
-    const haystack = normalizeArabic(`${item.title} ${decodeURIComponent(new URL(item.url).pathname)}`);
-    let score = 0;
-    for (const token of queryTokens) {
-      if (haystack.includes(token)) score += token.length >= 5 ? 4 : 2;
+const parseCsv = (csv: string) => {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let value = "";
+  let quoted = false;
+  for (let index = 0; index < csv.length; index += 1) {
+    const char = csv[index];
+    if (quoted) {
+      if (char === "\"" && csv[index + 1] === "\"") {
+        value += "\"";
+        index += 1;
+      } else if (char === "\"") quoted = false;
+      else value += char;
+      continue;
     }
-    if (/بودل|boudl/i.test(haystack)) score += 1;
-    return { ...item, score };
-  }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
+    if (char === "\"") quoted = true;
+    else if (char === ",") {
+      row.push(value.trim());
+      value = "";
+    } else if (char === "\n") {
+      row.push(value.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      value = "";
+    } else if (char !== "\r") value += char;
+  }
+  row.push(value.trim());
+  if (row.some(Boolean)) rows.push(row);
+  return rows;
 };
 
-const snippetForQuery = (text: string, query: string) => {
-  const clean = text.slice(0, 40_000);
-  const tokens = normalizeArabic(query).split(" ").filter((token) => token.length >= 3);
-  const normalizedText = normalizeArabic(clean);
-  let index = -1;
-  for (const token of tokens) {
-    index = normalizedText.indexOf(token);
-    if (index >= 0) break;
+const SAFE_SHEET_HEADERS = [
+  /الفروع|اسم الفرع/i,
+  /الإفطار|الافطار/i,
+  /مسبح/i,
+  /كوفي/i,
+  /المطعم/i,
+  /اطلالة|إطلالة|بلكونه|بلكونة/i,
+  /مواقف/i,
+  /قاعة/i,
+  /النادى|النادي/i,
+  /غسيل الملابس/i,
+  /جلسات خارجية/i,
+  /سبا/i,
+  /جاكوزي|بانيو/i,
+  /الأطفال|الاطفال/i,
+];
+
+const FORBIDDEN_SHEET_HEADER = /مدير|موظف|جوال|هاتف|رقم|بريد|ايميل|إيميل|كلمة|مرور|حجز|سعر|بكج|راتب|هوية|بطاقة|UNO|OPERA/i;
+const FORBIDDEN_SHEET_VALUE = /مدير|موظف|للتواصل|اتصال|جوال|هاتف|واتساب|whatsapp|password|api[_ -]?key|token|secret|https?:\/\/|@/i;
+
+const safeSheetValue = (value: unknown) => {
+  const normalized = String(value || "").replace(/\s+/g, " ").trim().slice(0, 500);
+  if (!normalized || /^[-_*\s]+$/.test(normalized)) return "";
+  if (FORBIDDEN_SHEET_VALUE.test(normalized)) return "";
+  if (/(?:\d[\s()+-]*){7,}/.test(normalized)) return "";
+  return normalized;
+};
+
+const sheetDocuments = (csv: string, verifiedAt: string): KnowledgeDocument[] => {
+  const rows = parseCsv(csv.slice(0, MAX_SOURCE_BYTES));
+  if (rows.length < 2) return [];
+  const headers = rows[0].map((header) => header.replace(/\s+/g, " ").trim());
+  const allowedColumns = headers
+    .map((header, index) => ({ header, index }))
+    .filter(({ header }) => !FORBIDDEN_SHEET_HEADER.test(header))
+    .filter(({ header }) => SAFE_SHEET_HEADERS.some((pattern) => pattern.test(header)));
+  const branchColumn = allowedColumns.find(({ header }) => /الفروع|اسم الفرع/i.test(header))?.index ?? 0;
+
+  return rows.slice(1, 500).flatMap((cells) => {
+    const title = safeSheetValue(cells[branchColumn]).slice(0, 140);
+    if (!title || /^[-_*\s]+$/.test(title)) return [];
+    const facts = allowedColumns
+      .filter(({ index }) => index !== branchColumn)
+      .map(({ header, index }) => ({
+        header,
+        value: safeSheetValue(cells[index]),
+      }))
+      .filter(({ value }) => value)
+      .map(({ header, value }) => `${header}: ${value}`);
+    if (!facts.length) return [];
+    return [{
+      title: `${title} · الشيت التشغيلي المعتمد`,
+      url: INTERNAL_KNOWLEDGE_URL,
+      content: `الفرع: ${title}. ${facts.join(". ")}. تاريخ التحقق: ${verifiedAt}.`.slice(0, MAX_DOCUMENT_CHARS),
+      sourceKind: "sheet" as const,
+    }];
+  });
+};
+
+const mapLimit = async <T, R>(items: T[], limit: number, task: (item: T) => Promise<R | null>) => {
+  const results: Array<R | null> = new Array(items.length).fill(null);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      try {
+        results[index] = await task(items[index]);
+      } catch {
+        results[index] = null;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results.filter((item): item is R => item !== null);
+};
+
+const sourceCounts = (documents: KnowledgeDocument[]) => ({
+  boudl: documents.filter((document) => document.sourceKind === "boudl").length,
+  sheet: documents.filter((document) => document.sourceKind === "sheet").length,
+  booking: documents.filter((document) => document.sourceKind === "booking").length,
+});
+
+const branchTokens = (titles: string[]) => {
+  const tokens = new Set<string>();
+  for (const title of titles) {
+    const normalized = normalizeArabic(title);
+    if (normalized.length >= 4) tokens.add(normalized);
   }
-  if (index < 0) return clean.slice(0, 1_800);
-  const roughStart = Math.max(0, Math.floor(index * (clean.length / Math.max(1, normalizedText.length))) - 500);
-  return clean.slice(roughStart, roughStart + 2_400);
+  return [...tokens];
+};
+
+const belongsToBHG = (text: string, knownBranchTokens: string[]) => {
+  const normalized = normalizeArabic(text.slice(0, MAX_DOCUMENT_CHARS));
+  return knownBranchTokens.some((branch) => normalized.includes(branch));
 };
 
 export const isOfficialBoudlUrl = (value: string) => {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" && allowedOfficialHost(url.hostname.toLowerCase());
+    return url.protocol === "https:" && allowedBoudlHost(url.hostname.toLowerCase());
   } catch {
     return false;
   }
 };
 
 export async function refreshOfficialBoudlKnowledgeIndex(): Promise<BranchKnowledgeIndex> {
-  const rootResults = await Promise.allSettled(OFFICIAL_ROOTS.map(fetchOfficialHtml));
-  const links = new Map<string, { title: string; url: string }>();
-  for (const result of rootResults) {
-    if (result.status !== "fulfilled") continue;
-    for (const hotel of allHotelLinks(result.value)) links.set(hotel.url, hotel);
+  const verifiedAt = new Date().toISOString();
+  const [rootResults, sheetResult] = await Promise.all([
+    Promise.allSettled(OFFICIAL_ROOTS.map(async (url) => ({ url, html: await fetchHtml(url, "boudl") }))),
+    (async () => {
+      const url = configuredSheetCsvUrl();
+      if (!url) return [] as KnowledgeDocument[];
+      const response = await fetch(url, {
+        headers: { Accept: "text/csv", "User-Agent": "BHG-Central-Reservation-Knowledge/2.0" },
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (!response.ok) throw new Error(`BHG_SHEET_${response.status}`);
+      return sheetDocuments(await response.text(), verifiedAt);
+    })().catch(() => [] as KnowledgeDocument[]),
+  ]);
+
+  const roots = rootResults
+    .filter((result): result is PromiseFulfilledResult<{ url: string; html: string }> => result.status === "fulfilled")
+    .map((result) => result.value);
+  const hotelMap = new Map<string, HotelLink>();
+  for (const root of roots) {
+    for (const hotel of allHotelLinks(root.html)) hotelMap.set(hotel.url, hotel);
   }
-  if (!links.size) throw new Error("BOUDL_INDEX_UNAVAILABLE");
+  const hotels = [...hotelMap.values()].slice(0, MAX_HOTEL_PAGES);
+
+  const rootDocuments: KnowledgeDocument[] = roots.map((root) => ({
+    title: pageTitle(root.html, "مجموعة بودل للضيافة"),
+    url: root.url,
+    content: stripHtml(root.html).slice(0, MAX_DOCUMENT_CHARS),
+    sourceKind: "boudl",
+  }));
+  const hotelDocuments = await mapLimit(hotels, 8, async (hotel) => {
+    const html = await fetchHtml(hotel.url, "boudl");
+    const text = stripHtml(html);
+    if (!text) return null;
+    return {
+      title: pageTitle(html, hotel.title),
+      url: hotel.url,
+      content: text.slice(0, MAX_DOCUMENT_CHARS),
+      sourceKind: "boudl" as const,
+    };
+  });
+
+  const knownTitles = [
+    ...hotels.map((hotel) => hotel.title),
+    ...sheetResult.map((document) => document.title.replace(/ ·.+$/, "")),
+  ];
+  const knownBranchTokens = branchTokens(knownTitles);
+  const bookingDocuments = await mapLimit(configuredBookingUrls(), 5, async (url) => {
+    const html = await fetchHtml(url.toString(), "booking");
+    const text = stripHtml(html);
+    if (!text || !belongsToBHG(text, knownBranchTokens)) return null;
+    return {
+      title: pageTitle(html, "Booking.com · فرع BHG"),
+      url: url.toString(),
+      content: text.slice(0, MAX_DOCUMENT_CHARS),
+      sourceKind: "booking" as const,
+    };
+  });
+
+  const documents = [...rootDocuments, ...hotelDocuments, ...sheetResult, ...bookingDocuments];
+  if (!documents.length) throw new Error("BHG_KNOWLEDGE_UNAVAILABLE");
 
   const index: BranchKnowledgeIndex = {
-    updatedAt: new Date().toISOString(),
-    hotelCount: links.size,
-    hotels: [...links.values()].sort((a, b) => a.title.localeCompare(b.title, "ar")),
+    version: 2,
+    updatedAt: verifiedAt,
+    hotelCount: hotels.length,
+    documentCount: documents.length,
+    sourceCounts: sourceCounts(documents),
+    hotels: hotels.sort((left, right) => left.title.localeCompare(right.title, "ar")),
+    documents,
   };
   await getEnvironmentStore("branch-knowledge", { consistency: "strong" }).setJSON("official-index", index);
+  memoryIndex = { value: index, expiresAt: Date.now() + INDEX_MEMORY_TTL_MS };
   return index;
 }
 
 export async function getOfficialBoudlKnowledgeStatus(): Promise<BranchKnowledgeIndex | null> {
-  const stored = await getEnvironmentStore("branch-knowledge", { consistency: "strong" })
+  if (memoryIndex && memoryIndex.expiresAt > Date.now()) return memoryIndex.value;
+  const stored = await getEnvironmentStore("branch-knowledge")
     .get("official-index", { type: "json" }) as BranchKnowledgeIndex | null;
   if (!stored || !Array.isArray(stored.hotels)) return null;
+  memoryIndex = { value: stored, expiresAt: Date.now() + INDEX_MEMORY_TTL_MS };
   return stored;
 }
 
-const getKnowledgeIndex = async (): Promise<BranchKnowledgeIndex | null> => {
-  try {
-    const cached = await getOfficialBoudlKnowledgeStatus();
-    if (cached) {
-      const age = Date.now() - new Date(cached.updatedAt).getTime();
-      if (Number.isFinite(age) && age >= 0 && age < KNOWLEDGE_TTL_MS) return cached;
-    }
-    return await refreshOfficialBoudlKnowledgeIndex();
-  } catch {
-    return getOfficialBoudlKnowledgeStatus().catch(() => null);
-  }
+const getKnowledgeIndex = async () => {
+  const cached = await getOfficialBoudlKnowledgeStatus().catch(() => null);
+  return cached?.documents?.length ? cached : null;
 };
 
-export async function lookupOfficialBoudlSources(query: string): Promise<OfficialSource[]> {
+const rankDocuments = (
+  documents: KnowledgeDocument[],
+  query: string,
+  scope: KnowledgeScope,
+) => {
+  const normalizedQuery = normalizeArabic(query);
+  const queryTokens = normalizedQuery
+    .split(" ")
+    .filter((token) => token.length >= 3 && !QUERY_STOP_WORDS.has(token));
+  if (!queryTokens.length) return [];
+  return documents
+    .filter((document) => scope === "internal" || document.sourceKind !== "sheet")
+    .map((document) => {
+      const title = normalizeArabic(document.title);
+      const haystack = normalizeArabic(`${document.title} ${document.content}`);
+      let score = 0;
+      if (title && normalizedQuery.includes(title)) score += 24;
+      for (const token of queryTokens) {
+        if (title.includes(token)) score += token.length >= 5 ? 8 : 4;
+        else if (haystack.includes(token)) score += token.length >= 5 ? 3 : 1;
+      }
+      if (document.sourceKind === "sheet" && scope === "internal") score += 2;
+      return { document, score };
+    })
+    .filter((item) => item.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 5);
+};
+
+const snippetForQuery = (content: string, query: string) => {
+  const clean = content.slice(0, MAX_DOCUMENT_CHARS);
+  const tokens = normalizeArabic(query).split(" ").filter((token) => token.length >= 3);
+  const normalized = normalizeArabic(clean);
+  let index = tokens.reduce((found, token) => found >= 0 ? found : normalized.indexOf(token), -1);
+  if (index < 0) index = 0;
+  const start = Math.max(0, Math.floor(index * (clean.length / Math.max(1, normalized.length))) - 350);
+  return clean.slice(start, start + 2_200).trim();
+};
+
+export async function lookupBHGKnowledgeSources(
+  query: string,
+  options: { scope?: KnowledgeScope } = {},
+): Promise<OfficialSource[]> {
   const index = await getKnowledgeIndex();
-  let candidates = index ? rankHotelLinks(index.hotels, query) : [];
-  let brandFallback: { url: string; html: string } | null = null;
-
-  if (!candidates.length) {
-    const indexResults = await Promise.allSettled(OFFICIAL_ROOTS.map(async (url) => ({ url, html: await fetchOfficialHtml(url) })));
-    const successfulIndexes = indexResults
-      .filter((result): result is PromiseFulfilledResult<{ url: string; html: string }> => result.status === "fulfilled")
-      .map((result) => result.value);
-    const liveLinks = successfulIndexes.flatMap((item) => allHotelLinks(item.html));
-    candidates = rankHotelLinks(liveLinks, query);
-    brandFallback = successfulIndexes.find((item) => item.url.includes("/brand/boudl")) || successfulIndexes[0] || null;
-  }
-
-  const hotelResults = await Promise.allSettled(candidates.map(async (candidate) => {
-    const html = await fetchOfficialHtml(candidate.url);
-    const text = stripHtml(html);
-    return {
-      title: candidate.title || text.match(/(?:فندق|بودل)\s+[^|]{2,80}/)?.[0] || "مصدر بودل الرسمي",
-      url: candidate.url,
-      snippet: snippetForQuery(text, query),
-    } satisfies OfficialSource;
+  const documents = index?.documents || [];
+  const scope = options.scope || "public";
+  return rankDocuments(documents, query, scope).map(({ document }) => ({
+    title: document.title,
+    url: document.url,
+    snippet: snippetForQuery(document.content, query),
+    sourceKind: document.sourceKind,
+    verifiedAt: index?.updatedAt,
   }));
+}
 
-  const sources = hotelResults
-    .filter((result): result is PromiseFulfilledResult<OfficialSource> => result.status === "fulfilled")
-    .map((result) => result.value);
-  if (sources.length) return sources;
-
-  if (!brandFallback) {
-    try {
-      const html = await fetchOfficialHtml(OFFICIAL_ROOTS[0]);
-      brandFallback = { url: OFFICIAL_ROOTS[0], html };
-    } catch {
-      return [];
-    }
-  }
-  return [{
-    title: "بودل - الموقع الرسمي",
-    url: brandFallback.url,
-    snippet: snippetForQuery(stripHtml(brandFallback.html), query),
-  }];
+export async function lookupOfficialBoudlSources(query: string): Promise<OfficialSource[]> {
+  return lookupBHGKnowledgeSources(query, { scope: "public" });
 }
