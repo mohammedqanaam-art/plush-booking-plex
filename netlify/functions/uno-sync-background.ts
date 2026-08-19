@@ -1,6 +1,9 @@
 import type { Context } from "@netlify/functions";
 import { createHash, timingSafeEqual } from "node:crypto";
 
+// Background Functions can run for 15 minutes. Leave one minute for clean shutdown/logging.
+const REPORT_SYNC_TIMEOUT_MS = 14 * 60 * 1000;
+
 const secretValue = () => {
   const configured = Netlify.env.get("UNO_SYNC_SECRET")?.trim();
   if (configured) return configured;
@@ -33,8 +36,13 @@ export default async (req: Request, context: Context) => {
       "X-UNO-Sync-Key": secret,
     },
     body: JSON.stringify({ action: "sync-system" }),
-    signal: AbortSignal.timeout(55_000),
-  }).catch(() => null);
+    signal: AbortSignal.timeout(REPORT_SYNC_TIMEOUT_MS),
+  }).catch((error) => {
+    console.warn("[uno-sync-background] report request failed", {
+      code: error instanceof Error ? error.name : "UNKNOWN",
+    });
+    return null;
+  });
 
   if (!response?.ok) {
     console.warn("[uno-sync-background] reconciled report sync did not complete", {
