@@ -114,40 +114,6 @@ option {
   gap: 11px !important;
 }
 
-.app-brand__mark {
-  position: relative;
-  display: grid !important;
-  width: 50px !important;
-  height: 44px !important;
-  flex: 0 0 auto;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(173, 135, 65, 0.36) !important;
-  border-radius: 14px !important;
-  background:
-    radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.2), transparent 45%),
-    linear-gradient(145deg, var(--bhg-green), var(--bhg-green-deep)) !important;
-  color: var(--bhg-porcelain);
-  box-shadow: 0 8px 20px rgba(3, 62, 48, 0.18) !important;
-}
-
-.app-brand__mark::after {
-  position: absolute;
-  inset: 4px;
-  content: "";
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 10px;
-}
-
-.app-brand__mark span {
-  position: relative;
-  z-index: 1;
-  font-family: Arial, sans-serif;
-  font-size: 13px;
-  font-weight: 950;
-  letter-spacing: 0.04em;
-}
-
 .app-brand__copy strong {
   color: var(--bhg-green-deep) !important;
   font-weight: 900 !important;
@@ -406,15 +372,6 @@ option {
     background-size: auto, auto, 190px 190px;
   }
 
-  .app-brand__mark {
-    width: 43px !important;
-    height: 39px !important;
-    border-radius: 12px !important;
-  }
-
-  .app-brand__mark span {
-    font-size: 11px;
-  }
 
   .page-heading--executive {
     border-radius: 18px !important;
