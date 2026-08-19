@@ -1,0 +1,331 @@
+/* BHG Damask — light hospitality identity with restrained dark ornament. */
+:root {
+  --bhg-ivory: #fbf8f1;
+  --bhg-porcelain: #fffdf9;
+  --bhg-mist: #f1f5f2;
+  --bhg-forest: #063f32;
+  --bhg-pine: #0a5c46;
+  --bhg-sage: #dfeae5;
+  --bhg-antique-gold: #b49350;
+  --bhg-gold-pale: #f6eedc;
+  --bhg-damask-ink: rgba(6, 63, 50, .105);
+  --bhg-damask-faint: rgba(6, 63, 50, .045);
+  --bhg-damask-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' viewBox='0 0 112 112'%3E%3Cg fill='none' stroke='%23063f32' stroke-opacity='.16' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M56 8c-4 12-15 17-15 29 0 8 6 14 15 18 9-4 15-10 15-18 0-12-11-17-15-29Z'/%3E%3Cpath d='M56 19c-1 11-8 17-8 24 0 5 3 9 8 12 5-3 8-7 8-12 0-7-7-13-8-24Z'/%3E%3Cpath d='M8 56c12-4 17-15 29-15 8 0 14 6 18 15-4 9-10 15-18 15-12 0-17-11-29-15Z'/%3E%3Cpath d='M104 56c-12-4-17-15-29-15-8 0-14 6-18 15 4 9 10 15 18 15 12 0 17-11 29-15Z'/%3E%3Cpath d='M56 104c-4-12-15-17-15-29 0-8 6-14 15-18 9 4 15 10 15 18 0 12-11 17-15 29Z'/%3E%3Cpath d='M24 24c9 2 15 8 17 17M88 24c-9 2-15 8-17 17M24 88c9-2 15-8 17-17M88 88c-9-2-15-8-17-17'/%3E%3Ccircle cx='56' cy='56' r='3.5'/%3E%3C/g%3E%3C/svg%3E");
+  --bhg-damask-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='180' viewBox='0 0 280 180'%3E%3Cg fill='none' stroke='%23063f32' stroke-opacity='.14' stroke-linecap='round'%3E%3Cpath d='M275 7C218 14 179 42 161 86c-13 31-37 54-75 68'/%3E%3Cpath d='M278 32c-39 8-66 28-80 59-13 29-35 48-66 61'/%3E%3Cpath d='M218 42c-5 21 3 35 25 43-22 5-36-3-43-24'/%3E%3Cpath d='M171 84c-3 18 6 30 26 35-19 7-33 1-42-17'/%3E%3Cpath d='M123 132c0 14 9 22 25 25-14 7-26 4-35-8'/%3E%3Cpath d='M253 14c2 13 10 21 23 24M197 56c-9-2-17 1-24 9M151 108c-10-1-18 3-24 11'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+html,
+body {
+  background-color: var(--bhg-ivory) !important;
+  background-image:
+    var(--bhg-damask-pattern),
+    linear-gradient(rgba(251, 248, 241, .965), rgba(251, 248, 241, .965)) !important;
+  background-size: 112px 112px, auto !important;
+}
+
+.app-shell {
+  overflow: clip;
+  border-color: rgba(6, 63, 50, .11) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 249, .985), rgba(247, 249, 247, .985)) !important;
+  box-shadow: 0 24px 72px rgba(22, 57, 46, .105) !important;
+}
+
+.app-shell::before {
+  height: 330px !important;
+  background:
+    var(--bhg-damask-pattern),
+    linear-gradient(180deg, rgba(255, 253, 249, .06), rgba(255, 253, 249, .94)),
+    radial-gradient(circle at 91% 5%, rgba(180, 147, 80, .15), transparent 26rem) !important;
+  background-size: 112px 112px, auto, auto !important;
+  opacity: .72;
+}
+
+.app-shell::after {
+  position: absolute;
+  inset: 68px 0 auto auto;
+  z-index: -1;
+  width: min(35vw, 360px);
+  height: 230px;
+  content: "";
+  pointer-events: none;
+  background: var(--bhg-damask-corner) top right / contain no-repeat;
+  opacity: .62;
+}
+
+.app-topbar {
+  border-top: 2px solid rgba(180, 147, 80, .82) !important;
+  border-bottom-color: rgba(6, 63, 50, .13) !important;
+  background:
+    linear-gradient(90deg, rgba(255, 253, 249, .97), rgba(247, 250, 248, .95)) !important;
+  box-shadow: 0 10px 32px rgba(12, 53, 40, .055) !important;
+}
+
+.app-topbar::after {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  content: "";
+  background: linear-gradient(90deg, transparent, rgba(6, 63, 50, .58), rgba(180, 147, 80, .78), transparent);
+}
+
+.app-brand__mark {
+  width: 51px;
+  height: 45px;
+  border-color: rgba(6, 63, 50, .14) !important;
+  background: var(--bhg-porcelain) !important;
+  box-shadow: 0 7px 20px rgba(6, 63, 50, .075), inset 0 0 0 3px rgba(180, 147, 80, .055) !important;
+}
+
+.app-brand__mark img {
+  width: 86px !important;
+  transform: translateY(-17%);
+}
+
+.app-brand__copy strong {
+  color: var(--bhg-forest) !important;
+  font-size: 14.5px;
+}
+
+.app-brand__copy small {
+  color: #8a7040 !important;
+  font-size: 8px;
+  letter-spacing: .085em;
+}
+
+.page-heading--executive,
+.app-shell--admin .page-heading--executive {
+  position: relative;
+  overflow: hidden;
+  min-height: 86px;
+  border: 1px solid rgba(6, 63, 50, .105);
+  border-radius: 18px;
+  padding: 15px 17px 12px !important;
+  background:
+    var(--bhg-damask-corner) top left / 280px 180px no-repeat,
+    linear-gradient(103deg, rgba(255, 253, 249, .985) 0 58%, rgba(239, 246, 242, .95)) !important;
+  box-shadow: 0 12px 34px rgba(6, 63, 50, .055);
+}
+
+.page-heading--executive::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: min(38%, 320px);
+  content: "";
+  background: var(--bhg-damask-corner) top left / cover no-repeat;
+  opacity: .52;
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+.page-heading--executive::after {
+  position: absolute;
+  inset: auto 17px 0;
+  height: 2px;
+  content: "";
+  background: linear-gradient(90deg, var(--bhg-antique-gold), var(--bhg-pine) 64%, transparent);
+  opacity: .78;
+}
+
+.page-heading__row,
+.page-heading__rule {
+  position: relative;
+  z-index: 1;
+}
+
+.page-heading__rule {
+  width: 118px !important;
+  margin-top: 9px !important;
+}
+
+.glass-card,
+.page-surface,
+.ios-panel,
+.compact-card,
+.employee-public-card,
+.metric-card,
+.admin-tool-card,
+.service-card {
+  border-color: rgba(6, 63, 50, .105) !important;
+  background-color: rgba(255, 253, 249, .97) !important;
+  background-image:
+    var(--bhg-damask-corner),
+    linear-gradient(115deg, rgba(255, 253, 249, .98) 0 74%, rgba(236, 244, 240, .82)) !important;
+  background-position: top left, center !important;
+  background-size: 220px 142px, auto !important;
+  background-repeat: no-repeat !important;
+  box-shadow: 0 1px 2px rgba(6, 63, 50, .025), 0 14px 36px rgba(6, 63, 50, .06) !important;
+}
+
+.card-hover:hover,
+.admin-tool-card:hover,
+.service-card:hover {
+  border-color: rgba(6, 63, 50, .22) !important;
+  box-shadow: 0 19px 42px rgba(6, 63, 50, .105) !important;
+}
+
+.home-overview {
+  background:
+    var(--bhg-damask-corner) top left / 230px 148px no-repeat,
+    linear-gradient(112deg, rgba(237, 246, 242, .98), rgba(253, 248, 238, .98)) !important;
+}
+
+.table-scroll,
+.employee-report-list {
+  border-color: rgba(6, 63, 50, .13) !important;
+  background: var(--bhg-porcelain) !important;
+}
+
+.table-scroll table thead tr,
+.glass-card table thead tr,
+.page-surface table thead tr {
+  background: linear-gradient(90deg, #e9f2ee, #f7f0e2) !important;
+  color: var(--bhg-forest) !important;
+}
+
+.table-scroll th,
+.glass-card th,
+.page-surface th {
+  border-bottom: 2px solid rgba(6, 63, 50, .18) !important;
+}
+
+.table-scroll table tbody tr:nth-child(even),
+.glass-card table tbody tr:nth-child(even),
+.page-surface table tbody tr:nth-child(even) {
+  background: rgba(239, 245, 242, .48);
+}
+
+input,
+select,
+textarea,
+option {
+  background: var(--bhg-porcelain) !important;
+  color: #173d32 !important;
+}
+
+.app-shell--admin .app-topbar {
+  border-color: rgba(6, 63, 50, .12) !important;
+  background: linear-gradient(90deg, rgba(255, 253, 249, .97), rgba(241, 247, 244, .96)) !important;
+}
+
+.app-shell--admin .page-surface,
+.app-shell--admin .compact-card,
+.app-shell--admin .admin-tool-card {
+  border-color: rgba(6, 63, 50, .12) !important;
+  background-color: rgba(255, 253, 249, .97) !important;
+  background-image:
+    var(--bhg-damask-corner),
+    linear-gradient(115deg, rgba(255, 253, 249, .98) 0 74%, rgba(236, 244, 240, .82)) !important;
+  background-position: top left, center !important;
+  background-size: 220px 142px, auto !important;
+  background-repeat: no-repeat !important;
+}
+
+.brand-footer {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid rgba(6, 63, 50, .13) !important;
+  background:
+    var(--bhg-damask-pattern),
+    linear-gradient(90deg, rgba(255, 253, 249, .965), rgba(241, 246, 243, .96)) !important;
+  background-size: 112px 112px, auto !important;
+}
+
+.brand-footer::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  content: "";
+  background: linear-gradient(90deg, transparent, var(--bhg-pine), var(--bhg-antique-gold), transparent);
+}
+
+.brand-footer__inner {
+  position: relative;
+  z-index: 1;
+}
+
+.brand-footer__copy {
+  display: grid;
+  gap: 2px;
+  color: var(--bhg-forest);
+  text-align: left;
+}
+
+.brand-footer__copy strong {
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.brand-footer__copy span {
+  color: #8a7040;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: .08em;
+}
+
+.mobile-tab-bar {
+  border-color: rgba(6, 63, 50, .14) !important;
+  background:
+    var(--bhg-damask-pattern),
+    linear-gradient(90deg, rgba(255, 253, 249, .97), rgba(241, 246, 243, .96)) !important;
+  background-size: 112px 112px, auto !important;
+}
+
+@media (max-width: 767px) {
+  .app-shell::after {
+    top: 61px;
+    width: 240px;
+    opacity: .42;
+  }
+
+  .app-brand__mark {
+    width: 41px;
+    height: 38px;
+  }
+
+  .app-brand__mark img {
+    width: 70px !important;
+  }
+
+  .page-heading--executive,
+  .app-shell--admin .page-heading--executive {
+    min-height: 76px;
+    border-radius: 15px;
+    padding: 12px 13px 10px !important;
+  }
+
+  .page-heading--executive::before {
+    width: 58%;
+    opacity: .38;
+  }
+
+  .brand-footer__copy span {
+    display: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .app-shell,
+  .page-heading--executive,
+  .glass-card,
+  .page-surface,
+  .compact-card,
+  .table-scroll {
+    border-color: rgba(6, 63, 50, .34) !important;
+  }
+}
+
+@media print {
+  html,
+  body,
+  .app-shell {
+    background: #fff !important;
+  }
+
+  .app-shell::before,
+  .app-shell::after,
+  .page-heading--executive::before,
+  .page-heading--executive::after {
+    display: none !important;
+  }
+}
