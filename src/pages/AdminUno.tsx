@@ -131,7 +131,6 @@ const AdminUno = () => {
       .then((snapshot) => {
         setSnapshotSyncedAt(snapshot.syncedAt);
         setSnapshotTotal(snapshot.summary.total);
-      setPmsMetrics({ linked: snapshot.summary.pmsLinked, pending: snapshot.summary.pmsPending, rate: snapshot.summary.pmsLinkRate });
         setPmsMetrics({ linked: snapshot.summary.pmsLinked, pending: snapshot.summary.pmsPending, rate: snapshot.summary.pmsLinkRate });
         setSnapshotSource(snapshot.source);
       })
@@ -181,7 +180,6 @@ const AdminUno = () => {
         setResults(snapshot.reservations);
         setSnapshotSyncedAt(snapshot.syncedAt);
         setSnapshotTotal(snapshot.summary.total);
-      setPmsMetrics({ linked: snapshot.summary.pmsLinked, pending: snapshot.summary.pmsPending, rate: snapshot.summary.pmsLinkRate });
         setPmsMetrics({ linked: snapshot.summary.pmsLinked, pending: snapshot.summary.pmsPending, rate: snapshot.summary.pmsLinkRate });
         setSnapshotSource(snapshot.source);
         if (next.productivityReady) {
