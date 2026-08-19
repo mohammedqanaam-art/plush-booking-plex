@@ -8,7 +8,10 @@ const BrandFooter = ({ className = "" }: BrandFooterProps) => (
       <div className="brand-footer__logo" aria-label="مجموعة بودل للضيافة">
         <img src="/bhg-hospitality-group.jpg" alt="مجموعة بودل للضيافة" />
       </div>
-      <p>إدارة الحجز المركزي</p>
+      <div className="brand-footer__copy">
+        <strong>إدارة الحجز المركزي</strong>
+        <span>BHG · BOUDL HOSPITALITY GROUP · EST. 1959</span>
+      </div>
     </div>
   </footer>
 );
