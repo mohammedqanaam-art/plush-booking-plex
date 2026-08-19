@@ -93,6 +93,7 @@ const AdminUno = () => {
   const [results, setResults] = useState<UnoReservation[] | null>(null);
   const [snapshotSyncedAt, setSnapshotSyncedAt] = useState<string | null>(null);
   const [snapshotTotal, setSnapshotTotal] = useState(0);
+  const [pmsMetrics, setPmsMetrics] = useState({ linked: 0, pending: 0, rate: 0 });
   const [snapshotSource, setSnapshotSource] = useState<"automatic" | "manual" | null>(null);
   const reportToday = riyadhToday();
   const [reportDateType, setReportDateType] = useState<UnoReportFilters["dateType"]>("booking");
@@ -130,6 +131,8 @@ const AdminUno = () => {
       .then((snapshot) => {
         setSnapshotSyncedAt(snapshot.syncedAt);
         setSnapshotTotal(snapshot.summary.total);
+      setPmsMetrics({ linked: snapshot.summary.pmsLinked, pending: snapshot.summary.pmsPending, rate: snapshot.summary.pmsLinkRate });
+        setPmsMetrics({ linked: snapshot.summary.pmsLinked, pending: snapshot.summary.pmsPending, rate: snapshot.summary.pmsLinkRate });
         setSnapshotSource(snapshot.source);
       })
       .catch(() => undefined);
@@ -178,6 +181,8 @@ const AdminUno = () => {
         setResults(snapshot.reservations);
         setSnapshotSyncedAt(snapshot.syncedAt);
         setSnapshotTotal(snapshot.summary.total);
+      setPmsMetrics({ linked: snapshot.summary.pmsLinked, pending: snapshot.summary.pmsPending, rate: snapshot.summary.pmsLinkRate });
+        setPmsMetrics({ linked: snapshot.summary.pmsLinked, pending: snapshot.summary.pmsPending, rate: snapshot.summary.pmsLinkRate });
         setSnapshotSource(snapshot.source);
         if (next.productivityReady) {
           setMessage(`تم التحقق من OTP وتحديث تقرير الإنتاجية من UNO: ${(next.productivityRecords ?? snapshot.summary.total).toLocaleString("ar-SA")} سجل · ${(next.productivityEmployees ?? 0).toLocaleString("ar-SA")} موظف.`);
@@ -232,6 +237,7 @@ const AdminUno = () => {
       });
       setSnapshotSyncedAt(snapshot.syncedAt);
       setSnapshotTotal(snapshot.summary.total);
+      setPmsMetrics({ linked: snapshot.summary.pmsLinked, pending: snapshot.summary.pmsPending, rate: snapshot.summary.pmsLinkRate });
       setSnapshotSource(snapshot.source);
       resetResultFilters();
 
@@ -261,6 +267,7 @@ const AdminUno = () => {
       setResults(snapshot.reservations);
       setSnapshotSyncedAt(snapshot.syncedAt);
       setSnapshotTotal(snapshot.summary.total);
+      setPmsMetrics({ linked: snapshot.summary.pmsLinked, pending: snapshot.summary.pmsPending, rate: snapshot.summary.pmsLinkRate });
       setSnapshotSource(snapshot.source);
       resetResultFilters();
       setMessage(snapshot.total ? "" : "لا توجد بيانات UNO متزامنة حتى الآن.");
@@ -615,7 +622,7 @@ const AdminUno = () => {
               {syncLabel}
             </span>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
             {[
               {
                 step: "01",
@@ -639,6 +646,14 @@ const AdminUno = () => {
               },
               {
                 step: "04",
+                title: "مؤشر الربط مع PMS",
+                value: snapshotTotal
+                  ? `${pmsMetrics.linked.toLocaleString("ar-SA")} مرتبط · ${pmsMetrics.pending.toLocaleString("ar-SA")} بانتظار رقم PMS · ${pmsMetrics.rate.toLocaleString("ar-SA")}%`
+                  : "لا توجد لقطة مزامنة لقياس الربط بعد",
+                done: snapshotTotal > 0 && pmsMetrics.pending === 0,
+              },
+              {
+                step: "05",
                 title: "تقرير الإنتاجية",
                 value: status.productivityReady
                   ? `${(status.productivityRecords ?? 0).toLocaleString("ar-SA")} سجل · ${(status.productivityEmployees ?? 0).toLocaleString("ar-SA")} موظف · ${displayTimestamp(status.productivityUpdatedAt)}`
@@ -663,6 +678,8 @@ const AdminUno = () => {
           ) : null}
           <p className="text-[11px] leading-5 text-muted-foreground">
             المزامنة العامة تستخدم تلقائيًا حجوزات الشهر الحالي لجميع المنشآت والحالات. الفلاتر أدناه للتصدير اليدوي ولا تغيّر النسخة العامة إلا عند اختيار نطاق الشهر الحالي كاملًا.
+            مؤشر PMS يعتمد على وجود رقم PMS داخل سجل UNO؛ لذلك يحدد أين يظهر التأخير، لكنه لا يثبت وحده زمن المعالجة داخل PMS.
+            {status.lastSyncDurationMs ? ` مدة آخر مزامنة: ${Math.max(1, Math.round(status.lastSyncDurationMs / 1000)).toLocaleString("ar-SA")} ثانية.` : ""}
           </p>
           <div className="grid gap-2 rounded-2xl border border-border/50 bg-secondary/15 p-3 md:grid-cols-2 xl:grid-cols-5" aria-label="فلاتر تقرير UNO">
             <label className="text-xs font-bold">
