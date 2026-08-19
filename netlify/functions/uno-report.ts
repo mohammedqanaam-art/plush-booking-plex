@@ -589,7 +589,7 @@ const executeReport = async (
   }
 };
 
-export default async (req: Request) => {
+export const handleUnoReport = async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   const configuration = readConfiguration();
   const internal = internalAuthorized(req, configuration.password);
@@ -616,6 +616,8 @@ export default async (req: Request) => {
 
   return executeReport(req, filters, internal ? "automatic" : "manual", internal);
 };
+
+export default handleUnoReport;
 
 export const config: Config = {
   path: "/api/admin/uno-report",
