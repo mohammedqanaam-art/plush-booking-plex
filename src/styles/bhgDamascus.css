@@ -1,0 +1,458 @@
+/*
+ * BHG Damascus Light Identity
+ * A restrained hospitality layer: warm light surfaces, dark Damascene linework,
+ * BHG green and antique gold. Loaded last so it unifies legacy page styles.
+ */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bhg-porcelain: #fffdf8;
+  --bhg-ivory: #f8f3e9;
+  --bhg-sand: #eee5d4;
+  --bhg-green: #07533f;
+  --bhg-green-deep: #033e30;
+  --bhg-green-soft: #e9f2ee;
+  --bhg-gold: #ad8741;
+  --bhg-gold-soft: #f4ead6;
+  --bhg-ink: #17372e;
+  --bhg-muted: #687972;
+  --bhg-line: rgba(7, 83, 63, 0.14);
+  --bhg-line-soft: rgba(7, 83, 63, 0.08);
+  --bhg-surface: rgba(255, 253, 248, 0.94);
+  --bhg-shadow: 0 1px 1px rgba(3, 62, 48, 0.03), 0 14px 36px rgba(3, 62, 48, 0.07);
+  --bhg-shadow-raised: 0 20px 48px rgba(3, 62, 48, 0.11);
+
+  --background: 40 38% 96%;
+  --foreground: 161 41% 15%;
+  --card: 42 100% 99%;
+  --card-foreground: 161 41% 15%;
+  --popover: 42 100% 99%;
+  --popover-foreground: 161 41% 15%;
+  --primary: 162 85% 18%;
+  --primary-foreground: 42 100% 99%;
+  --secondary: 40 38% 93%;
+  --secondary-foreground: 161 41% 15%;
+  --muted: 39 27% 91%;
+  --muted-foreground: 158 8% 43%;
+  --accent: 40 45% 47%;
+  --accent-foreground: 42 100% 99%;
+  --border: 160 24% 78%;
+  --input: 42 43% 97%;
+  --ring: 162 85% 18%;
+  --gold: 40 45% 47%;
+  --gold-dim: 40 42% 39%;
+  --gold-glow: 40 45% 47%;
+  --surface-glass: rgba(255, 253, 248, 0.92);
+  --surface-glass-strong: rgba(255, 253, 248, 0.98);
+  --line-gold: rgba(173, 135, 65, 0.18);
+  --shadow-soft: var(--bhg-shadow);
+}
+
+html,
+body {
+  background-color: var(--bhg-ivory) !important;
+  background-image:
+    radial-gradient(circle at 88% -8%, rgba(173, 135, 65, 0.13), transparent 31rem),
+    radial-gradient(circle at 4% 18%, rgba(7, 83, 63, 0.08), transparent 34rem),
+    url("/bhg-damascus-pattern.svg") !important;
+  background-attachment: fixed, fixed, fixed;
+  background-position: center, center, top center;
+  background-size: auto, auto, 240px 240px;
+  color: var(--bhg-ink) !important;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+}
+
+option {
+  background: var(--bhg-porcelain) !important;
+  color: var(--bhg-ink) !important;
+}
+
+.app-shell {
+  border-color: var(--bhg-line-soft) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.91), rgba(248, 243, 233, 0.96)) !important;
+  box-shadow: 0 24px 72px rgba(3, 62, 48, 0.11) !important;
+}
+
+.app-shell::before,
+.app-shell--admin::before {
+  height: 350px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.15), rgba(255, 253, 248, 0.94)),
+    linear-gradient(115deg, rgba(7, 83, 63, 0.08), transparent 52%),
+    linear-gradient(245deg, rgba(173, 135, 65, 0.11), transparent 48%),
+    url("/bhg-damascus-pattern.svg") center top / 240px 240px repeat !important;
+}
+
+.app-topbar {
+  position: relative;
+  overflow: visible;
+  border-bottom: 0 !important;
+  background: rgba(255, 253, 248, 0.92) !important;
+  box-shadow: 0 10px 34px rgba(3, 62, 48, 0.07) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+}
+
+.app-topbar::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  content: "";
+  background:
+    linear-gradient(90deg, transparent, var(--bhg-gold) 18%, var(--bhg-green) 50%, var(--bhg-gold) 82%, transparent);
+  opacity: 0.74;
+}
+
+.app-brand {
+  gap: 11px !important;
+}
+
+.app-brand__mark {
+  position: relative;
+  display: grid !important;
+  width: 50px !important;
+  height: 44px !important;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(173, 135, 65, 0.36) !important;
+  border-radius: 14px !important;
+  background:
+    radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.2), transparent 45%),
+    linear-gradient(145deg, var(--bhg-green), var(--bhg-green-deep)) !important;
+  color: var(--bhg-porcelain);
+  box-shadow: 0 8px 20px rgba(3, 62, 48, 0.18) !important;
+}
+
+.app-brand__mark::after {
+  position: absolute;
+  inset: 4px;
+  content: "";
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+}
+
+.app-brand__mark span {
+  position: relative;
+  z-index: 1;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+}
+
+.app-brand__copy strong {
+  color: var(--bhg-green-deep) !important;
+  font-weight: 900 !important;
+}
+
+.app-brand__copy small {
+  color: #87714a !important;
+  letter-spacing: 0.09em !important;
+}
+
+.app-desktop-nav {
+  border-color: var(--bhg-line-soft) !important;
+  background: rgba(255, 255, 255, 0.62) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+}
+
+.app-desktop-nav__item {
+  color: #66766f !important;
+}
+
+.app-desktop-nav__item:hover {
+  background: var(--bhg-green-soft) !important;
+  color: var(--bhg-green) !important;
+}
+
+.app-desktop-nav__item.is-active {
+  background: linear-gradient(145deg, var(--bhg-green), #0a674f) !important;
+  color: #fffdf8 !important;
+  box-shadow: 0 7px 18px rgba(7, 83, 63, 0.2) !important;
+}
+
+.admin-entry-link,
+.admin-context-pill,
+.riyadh-clock {
+  border-color: var(--bhg-line) !important;
+  background: rgba(255, 253, 248, 0.82) !important;
+  color: var(--bhg-green) !important;
+}
+
+.page-heading--executive {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--bhg-line) !important;
+  border-radius: 22px !important;
+  background:
+    linear-gradient(100deg, rgba(255, 253, 248, 0.96), rgba(255, 253, 248, 0.86)),
+    url("/bhg-damascus-pattern.svg") center / 190px 190px repeat !important;
+  box-shadow: var(--bhg-shadow) !important;
+}
+
+.page-heading--executive::after {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -1;
+  width: min(34%, 280px);
+  content: "";
+  background:
+    linear-gradient(90deg, transparent, rgba(7, 83, 63, 0.07)),
+    url("/bhg-damascus-pattern.svg") center / 170px 170px repeat;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 42%);
+  mask-image: linear-gradient(90deg, transparent, #000 42%);
+}
+
+.page-heading__title-line h1,
+.section-title {
+  color: var(--bhg-green-deep) !important;
+}
+
+.page-heading__rule {
+  width: 92px !important;
+  height: 3px !important;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--bhg-gold), var(--bhg-green), var(--bhg-gold)) !important;
+}
+
+.page-heading__icon,
+.icon-chip,
+.admin-tool-card__icon {
+  border-color: rgba(173, 135, 65, 0.2) !important;
+  background: linear-gradient(145deg, var(--bhg-gold-soft), var(--bhg-green-soft)) !important;
+  color: var(--bhg-green) !important;
+  box-shadow: 0 7px 18px rgba(3, 62, 48, 0.06) !important;
+}
+
+.glass-card,
+.page-surface,
+.ios-panel,
+.compact-card,
+.employee-public-card,
+.public-home .page-surface,
+.app-shell--admin .page-surface,
+.app-shell--admin .compact-card,
+.app-shell--admin .admin-tool-card {
+  border-color: var(--bhg-line-soft) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.93), rgba(255, 253, 248, 0.88)) !important;
+  color: var(--bhg-ink) !important;
+  box-shadow: var(--bhg-shadow) !important;
+}
+
+.card-hover:hover,
+.app-shell--admin .admin-tool-card:hover {
+  border-color: rgba(173, 135, 65, 0.27) !important;
+  background: var(--bhg-porcelain) !important;
+  box-shadow: var(--bhg-shadow-raised) !important;
+}
+
+.kpi-value,
+.app-shell--admin .compact-card .kpi-value,
+.app-shell--admin .compact-card p[class*="text-2xl"],
+.app-shell--admin .compact-card p[class*="text-xl"] {
+  color: var(--bhg-green-deep) !important;
+}
+
+.table-scroll,
+.glass-card:has(table),
+.page-surface:has(table) {
+  border: 1px solid var(--bhg-line-soft);
+  background: var(--bhg-surface);
+}
+
+.app-shell table {
+  width: 100%;
+  background: rgba(255, 253, 248, 0.72);
+}
+
+.app-shell table thead tr,
+.table-scroll table thead tr,
+.glass-card table thead tr,
+.page-surface table thead tr {
+  background: linear-gradient(180deg, #edf4f1, #e6efeb) !important;
+  color: var(--bhg-green-deep) !important;
+}
+
+.app-shell table th {
+  border-bottom: 1px solid rgba(7, 83, 63, 0.18) !important;
+  color: var(--bhg-green-deep) !important;
+  font-weight: 850 !important;
+}
+
+.app-shell table tbody tr:nth-child(even) {
+  background: rgba(244, 234, 214, 0.24);
+}
+
+.app-shell table tbody tr:hover,
+.table-scroll table tbody tr:hover,
+.glass-card table tbody tr:hover,
+.page-surface table tbody tr:hover {
+  background: rgba(233, 242, 238, 0.76) !important;
+}
+
+.app-shell input,
+.app-shell select,
+.app-shell textarea,
+.app-shell--admin input,
+.app-shell--admin select,
+.app-shell--admin textarea {
+  border: 1px solid rgba(7, 83, 63, 0.15) !important;
+  background: rgba(255, 253, 248, 0.96) !important;
+  color: var(--bhg-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.app-shell input:focus,
+.app-shell select:focus,
+.app-shell textarea:focus {
+  border-color: rgba(7, 83, 63, 0.48) !important;
+  box-shadow: 0 0 0 4px rgba(7, 83, 63, 0.09) !important;
+}
+
+.app-shell button[class*="bg-primary"],
+.app-shell a[class*="bg-primary"],
+.app-shell--admin nav[aria-label="أقسام لوحة الإدارة"] button[class*="bg-primary"] {
+  border-color: transparent !important;
+  background: linear-gradient(145deg, var(--bhg-green), #0a674f) !important;
+  color: #fffdf8 !important;
+  box-shadow: 0 8px 20px rgba(7, 83, 63, 0.18) !important;
+}
+
+.status-success {
+  border-color: rgba(31, 132, 92, 0.25) !important;
+  background: #e8f5ef !important;
+  color: #126444 !important;
+}
+
+.status-warning {
+  border-color: rgba(173, 135, 65, 0.3) !important;
+  background: #f8efdd !important;
+  color: #78591f !important;
+}
+
+.status-error {
+  border-color: rgba(164, 55, 65, 0.24) !important;
+  background: #f9e9eb !important;
+  color: #8b2f39 !important;
+}
+
+.brand-footer {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-top: 1px solid var(--bhg-line) !important;
+  background:
+    linear-gradient(90deg, rgba(255, 253, 248, 0.97), rgba(248, 243, 233, 0.94)),
+    url("/bhg-damascus-pattern.svg") center / 200px 200px repeat !important;
+}
+
+.brand-footer::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background:
+    linear-gradient(90deg, rgba(7, 83, 63, 0.05), transparent 38%, rgba(173, 135, 65, 0.07));
+}
+
+.brand-footer__inner {
+  position: relative;
+}
+
+.brand-footer__inner::after {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border: 1px solid rgba(173, 135, 65, 0.22);
+  border-radius: 999px;
+  padding: 0 10px;
+  content: "BHG · EST. 1959";
+  background: rgba(255, 253, 248, 0.76);
+  color: #876829;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.brand-footer p {
+  color: var(--bhg-green-deep) !important;
+  font-weight: 850 !important;
+}
+
+.warning-document {
+  border-color: var(--bhg-line) !important;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.965), rgba(255, 255, 255, 0.965)),
+    url("/bhg-damascus-pattern.svg") top center / 190px 190px repeat !important;
+}
+
+.warning-document__rule {
+  background: linear-gradient(90deg, var(--bhg-gold), var(--bhg-green) 52%, var(--bhg-gold)) !important;
+}
+
+@media (max-width: 767px) {
+  html,
+  body {
+    background-size: auto, auto, 190px 190px;
+  }
+
+  .app-brand__mark {
+    width: 43px !important;
+    height: 39px !important;
+    border-radius: 12px !important;
+  }
+
+  .app-brand__mark span {
+    font-size: 11px;
+  }
+
+  .page-heading--executive {
+    border-radius: 18px !important;
+  }
+
+  .page-heading--executive::after {
+    width: 42%;
+    opacity: 0.72;
+  }
+
+  .brand-footer__inner::after {
+    min-height: 25px;
+    font-size: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media print {
+  html,
+  body,
+  #root,
+  .app-shell,
+  main {
+    background: #fff !important;
+  }
+
+  .warning-document {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

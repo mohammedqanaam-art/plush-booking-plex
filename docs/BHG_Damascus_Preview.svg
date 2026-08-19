@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFDF8"/><stop offset="1" stop-color="#F4ECDD"/></linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07533F"/><stop offset="1" stop-color="#033E30"/></linearGradient>
+    <linearGradient id="goldline" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#AD8741" stop-opacity="0"/><stop offset=".22" stop-color="#AD8741"/><stop offset=".5" stop-color="#07533F"/><stop offset=".78" stop-color="#AD8741"/><stop offset="1" stop-color="#AD8741" stop-opacity="0"/></linearGradient>
+    <pattern id="damask" width="220" height="220" patternUnits="userSpaceOnUse">
+      <g fill="none" stroke="#064D3B" stroke-width="1.4" opacity=".09" stroke-linecap="round">
+        <path d="M110 8C95 26 76 31 70 48c-6 17 4 30 18 39 9 6 16 13 22 25 6-12 13-19 22-25 14-9 24-22 18-39-6-17-25-22-40-40Z"/>
+        <path d="M110 28c-8 11-20 16-24 27-3 10 4 19 13 25 5 3 9 8 11 14 2-6 6-11 11-14 9-6 16-15 13-25-4-11-16-16-24-27Z"/>
+        <path d="M8 110c18-15 22-34 40-40 17-6 30 4 39 18 6 9 13 16 25 22-12 6-19 13-25 22-9 14-22 24-39 18-18-6-22-25-40-40Z"/>
+        <path d="M212 110c-18-15-22-34-40-40-17-6-30 4-39 18-6 9-13 16-25 22 12 6 19 13 25 22 9 14 22 24 39 18 18-6 22-25 40-40Z"/>
+        <circle cx="110" cy="110" r="11"/><circle cx="110" cy="110" r="4"/>
+      </g>
+      <g fill="#AD8741" opacity=".14"><circle cx="110" cy="10" r="2"/><circle cx="110" cy="210" r="2"/><circle cx="10" cy="110" r="2"/><circle cx="210" cy="110" r="2"/></g>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#033E30" flood-opacity=".10"/></filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="7" stdDeviation="10" flood-color="#033E30" flood-opacity=".08"/></filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <rect width="1600" height="1000" fill="url(#damask)"/>
+  <rect x="80" y="45" width="1440" height="910" rx="32" fill="#FBF8F1" fill-opacity=".94" stroke="#07533F" stroke-opacity=".12" filter="url(#shadow)"/>
+
+  <g transform="translate(80 45)">
+    <rect width="1440" height="92" rx="32" fill="#FFFDF8" fill-opacity=".96"/>
+    <rect y="89" width="1440" height="3" fill="url(#goldline)"/>
+    <g transform="translate(1328 20)">
+      <rect width="54" height="52" rx="15" fill="url(#green)" stroke="#AD8741" stroke-opacity=".55"/>
+      <rect x="5" y="5" width="44" height="42" rx="11" fill="none" stroke="#FFFDF8" stroke-opacity=".2"/>
+      <text x="27" y="31" fill="#FFFDF8" font-family="Arial" font-size="14" font-weight="900" text-anchor="middle">BHG</text>
+    </g>
+    <text x="1314" y="39" fill="#033E30" font-family="Tahoma, Arial" font-size="20" font-weight="800" text-anchor="end">إدارة الحجز المركزي</text>
+    <text x="1314" y="61" fill="#8A7448" font-family="Arial" font-size="10" font-weight="700" letter-spacing="1.5" text-anchor="end">BHG · CENTRAL RESERVATION</text>
+
+    <g transform="translate(468 24)" font-family="Tahoma, Arial" font-size="14" font-weight="700">
+      <rect width="425" height="45" rx="14" fill="#FFFFFF" stroke="#07533F" stroke-opacity=".09"/>
+      <rect x="337" y="4" width="84" height="37" rx="11" fill="url(#green)"/>
+      <text x="379" y="28" text-anchor="middle" fill="#FFFDF8">الرئيسية</text>
+      <text x="293" y="28" text-anchor="middle" fill="#687972">البحث</text>
+      <text x="210" y="28" text-anchor="middle" fill="#687972">الفروع</text>
+      <text x="122" y="28" text-anchor="middle" fill="#687972">التقارير</text>
+      <text x="42" y="28" text-anchor="middle" fill="#687972">المساعد</text>
+    </g>
+
+    <g transform="translate(48 116)">
+      <rect width="1344" height="126" rx="24" fill="#FFFDF8" fill-opacity=".94" stroke="#07533F" stroke-opacity=".14" filter="url(#soft)"/>
+      <rect width="1344" height="126" rx="24" fill="url(#damask)" opacity=".65"/>
+      <path d="M1040 0h304v126h-304c52-29 69-85 0-126Z" fill="#07533F" opacity=".045"/>
+      <text x="1287" y="52" fill="#033E30" font-family="Tahoma, Arial" font-size="28" font-weight="900" text-anchor="end">لوحة متابعة الحجوزات</text>
+      <text x="1287" y="83" fill="#687972" font-family="Tahoma, Arial" font-size="15" font-weight="600" text-anchor="end">مؤشرات تشغيلية واضحة بتوقيع مجموعة بودل للضيافة</text>
+      <rect x="1195" y="101" width="92" height="4" rx="2" fill="url(#goldline)"/>
+      <g transform="translate(51 38)">
+        <rect width="170" height="48" rx="15" fill="#E9F2EE" stroke="#07533F" stroke-opacity=".14"/>
+        <text x="85" y="30" fill="#07533F" font-family="Tahoma, Arial" font-size="15" font-weight="800" text-anchor="middle">تحديث البيانات</text>
+      </g>
+    </g>
+
+    <g transform="translate(48 268)" font-family="Tahoma, Arial">
+      <g transform="translate(1026 0)">
+        <rect width="318" height="142" rx="22" fill="#FFFDF8" stroke="#07533F" stroke-opacity=".11" filter="url(#soft)"/>
+        <circle cx="272" cy="35" r="18" fill="#E9F2EE"/><path d="M264 35l6 6 11-13" fill="none" stroke="#07533F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="252" y="42" fill="#687972" font-size="15" font-weight="700" text-anchor="end">الحجوزات المؤكدة</text>
+        <text x="278" y="102" fill="#033E30" font-family="Arial" font-size="42" font-weight="900" text-anchor="end">7,842</text>
+        <rect x="0" y="136" width="318" height="6" rx="3" fill="#07533F" opacity=".76"/>
+      </g>
+      <g transform="translate(684 0)">
+        <rect width="318" height="142" rx="22" fill="#FFFDF8" stroke="#07533F" stroke-opacity=".11" filter="url(#soft)"/>
+        <circle cx="272" cy="35" r="18" fill="#F4EAD6"/><circle cx="272" cy="35" r="7" fill="none" stroke="#AD8741" stroke-width="3"/>
+        <text x="252" y="42" fill="#687972" font-size="15" font-weight="700" text-anchor="end">نسبة الإلغاء</text>
+        <text x="278" y="102" fill="#033E30" font-family="Arial" font-size="42" font-weight="900" text-anchor="end">8.4%</text>
+        <rect x="0" y="136" width="318" height="6" rx="3" fill="#AD8741" opacity=".82"/>
+      </g>
+      <g transform="translate(342 0)">
+        <rect width="318" height="142" rx="22" fill="#FFFDF8" stroke="#07533F" stroke-opacity=".11" filter="url(#soft)"/>
+        <circle cx="272" cy="35" r="18" fill="#E9F2EE"/><path d="M262 39h20M266 33h12M270 27h4" stroke="#07533F" stroke-width="2.5" stroke-linecap="round"/>
+        <text x="252" y="42" fill="#687972" font-size="15" font-weight="700" text-anchor="end">إيراد مؤكد</text>
+        <text x="278" y="102" fill="#033E30" font-family="Arial" font-size="42" font-weight="900" text-anchor="end">2.91M</text>
+        <rect x="0" y="136" width="318" height="6" rx="3" fill="#07533F" opacity=".76"/>
+      </g>
+      <g>
+        <rect width="318" height="142" rx="22" fill="#FFFDF8" stroke="#07533F" stroke-opacity=".11" filter="url(#soft)"/>
+        <circle cx="272" cy="35" r="18" fill="#F7E9EB"/><path d="M272 25v12m0 7v1" stroke="#8B2F39" stroke-width="3" stroke-linecap="round"/>
+        <text x="252" y="42" fill="#687972" font-size="15" font-weight="700" text-anchor="end">حالات تحتاج متابعة</text>
+        <text x="278" y="102" fill="#8B2F39" font-family="Arial" font-size="42" font-weight="900" text-anchor="end">24</text>
+        <rect x="0" y="136" width="318" height="6" rx="3" fill="#8B2F39" opacity=".72"/>
+      </g>
+    </g>
+
+    <g transform="translate(48 436)">
+      <rect width="1344" height="332" rx="24" fill="#FFFDF8" stroke="#07533F" stroke-opacity=".11" filter="url(#soft)"/>
+      <text x="1294" y="48" fill="#033E30" font-family="Tahoma, Arial" font-size="20" font-weight="900" text-anchor="end">أداء موظفي الحجز المركزي</text>
+      <rect x="48" y="72" width="1248" height="55" rx="12" fill="#E8F1ED"/>
+      <g fill="#033E30" font-family="Tahoma, Arial" font-size="14" font-weight="800" text-anchor="middle">
+        <text x="1170" y="106">الموظف</text><text x="882" y="106">المؤكد</text><text x="650" y="106">الملغي</text><text x="410" y="106">نسبة الإلغاء</text><text x="150" y="106">الحالة</text>
+      </g>
+      <g font-family="Tahoma, Arial" font-size="14" text-anchor="middle">
+        <rect x="48" y="136" width="1248" height="52" fill="#FFFDF8"/>
+        <text x="1170" y="168" fill="#17372E" font-weight="700">هشام المطيري</text><text x="882" y="168" fill="#17372E" font-family="Arial">342</text><text x="650" y="168" fill="#17372E" font-family="Arial">21</text><text x="410" y="168" fill="#17372E" font-family="Arial">5.8%</text>
+        <rect x="99" y="148" width="102" height="28" rx="14" fill="#E8F5EF"/><text x="150" y="167" fill="#126444" font-size="12" font-weight="800">ممتاز</text>
+        <rect x="48" y="188" width="1248" height="52" fill="#F9F3E8"/>
+        <text x="1170" y="220" fill="#17372E" font-weight="700">جابر مجرشي</text><text x="882" y="220" fill="#17372E" font-family="Arial">318</text><text x="650" y="220" fill="#17372E" font-family="Arial">29</text><text x="410" y="220" fill="#17372E" font-family="Arial">8.4%</text>
+        <rect x="99" y="200" width="102" height="28" rx="14" fill="#F8EFDD"/><text x="150" y="219" fill="#78591F" font-size="12" font-weight="800">متابعة</text>
+        <rect x="48" y="240" width="1248" height="52" fill="#FFFDF8"/>
+        <text x="1170" y="272" fill="#17372E" font-weight="700">معن الصانع</text><text x="882" y="272" fill="#17372E" font-family="Arial">297</text><text x="650" y="272" fill="#17372E" font-family="Arial">18</text><text x="410" y="272" fill="#17372E" font-family="Arial">5.7%</text>
+        <rect x="99" y="252" width="102" height="28" rx="14" fill="#E8F5EF"/><text x="150" y="271" fill="#126444" font-size="12" font-weight="800">جيد جداً</text>
+      </g>
+    </g>
+
+    <g transform="translate(48 804)">
+      <rect width="1344" height="66" rx="18" fill="#FFFDF8" fill-opacity=".9" stroke="#07533F" stroke-opacity=".11"/>
+      <text x="1255" y="41" fill="#033E30" font-family="Tahoma, Arial" font-size="14" font-weight="800" text-anchor="end">مجموعة بودل للضيافة · إدارة الحجز المركزي</text>
+      <rect x="50" y="19" width="150" height="29" rx="15" fill="#FFFDF8" stroke="#AD8741" stroke-opacity=".34"/>
+      <text x="125" y="38" fill="#876829" font-family="Arial" font-size="10" font-weight="900" letter-spacing="1" text-anchor="middle">BHG · EST. 1959</text>
+    </g>
+  </g>
+</svg>
