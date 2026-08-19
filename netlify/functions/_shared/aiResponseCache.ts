@@ -40,6 +40,12 @@ export const aiResponseCacheKey = (
     .digest("hex")}`;
 };
 
+export const isCacheSafeConversation = (
+  message: string,
+  history: Array<{ content: string }> = [],
+) => ![message, ...history.map((item) => item.content)]
+  .some((value) => /\[[^\]]*محجوب\]/u.test(value));
+
 export const readCachedAiResponse = async (key: string): Promise<CachedAiResponse | null> => {
   try {
     const value = await cacheStore().get(key, { type: "json" }) as CachedAiResponse | null;

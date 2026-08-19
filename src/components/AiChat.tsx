@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Code2, Play, RefreshCw, Send, Sparkles, X } from "lucide-react";
+import { Bot, Code2, ExternalLink, Play, RefreshCw, Send, Sparkles, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { runAgentCommand } from "@/lib/agentApi";
 
-type Message = { role: "user" | "assistant"; content: string };
+type Source = { title: string; url: string; snippet?: string };
+type Message = { role: "user" | "assistant"; content: string; sources?: Source[]; cacheHit?: boolean };
 
 const friendlyError = (error: unknown, fallback: string) => {
   if (!(error instanceof Error)) return fallback;
@@ -24,8 +25,13 @@ const AiChat = () => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open]);
 
-  const appendResult = (reply: string) => {
-    setMessages((prev) => [...prev, { role: "assistant", content: reply || "تم استلام الطلب." }]);
+  const appendResult = (reply: string, sources: Source[] = [], cacheHit = false) => {
+    setMessages((prev) => [...prev, {
+      role: "assistant",
+      content: reply || "تم استلام الطلب.",
+      sources,
+      cacheHit,
+    }]);
   };
 
   const send = async () => {
@@ -38,7 +44,7 @@ const AiChat = () => {
       const history = messages.map((message) => ({ role: message.role, content: message.content }));
       const data = await api.sendChatMessage(text, sessionId, history);
       if (data.sessionId) setSessionId(data.sessionId);
-      appendResult(data.reply || "...");
+      appendResult(data.reply || "...", Array.isArray(data.sources) ? data.sources : [], Boolean(data.cacheHit));
     } catch (error) {
       appendResult(friendlyError(error, "حدث خطأ أثناء الاتصال بالمساعد."));
     } finally {
@@ -64,7 +70,7 @@ const AiChat = () => {
   };
 
   const runEmployeeSupportWorkflow = async () => {
-    const text = input.trim() || "تشغيل مسار دعم الموظفين والتحقق من مصادر Boudl.com الرسمية.";
+    const text = input.trim() || "تشغيل مسار دعم الموظفين والتحقق من مصادر BHG المعتمدة.";
     if (loading) return;
     if (!window.confirm("تشغيل مسار دعم الموظفين والتحقق من المصادر الرسمية الآن؟")) return;
     setMessages((prev) => [...prev, { role: "user", content: `دعم الموظفين: ${text}` }]);
@@ -82,14 +88,14 @@ const AiChat = () => {
 
   const refreshBranchKnowledge = async () => {
     if (loading) return;
-    if (!window.confirm("تحديث فهرس معلومات الفروع من موقع Boudl.com الرسمي الآن؟")) return;
-    setMessages((prev) => [...prev, { role: "user", content: "تحديث معرفة الفروع من Boudl.com" }]);
+    if (!window.confirm("تحديث فهرس معلومات الفروع من مصادر BHG المعتمدة في الخلفية الآن؟")) return;
+    setMessages((prev) => [...prev, { role: "user", content: "تحديث معرفة فروع BHG" }]);
     setLoading(true);
     try {
       const result = await runAgentCommand({
         action: "refresh_branch_knowledge",
         workflowKey: "branch-knowledge-refresh",
-        reason: "تحديث فهرس معلومات الفروع من المصادر الرسمية.",
+        reason: "تحديث فهرس معلومات الفروع من مصادر BHG المعتمدة.",
         confirm: true,
       });
       appendResult(result.reply);
@@ -118,7 +124,7 @@ const AiChat = () => {
               <span className="bhg-agent-header__icon"><Bot className="h-5 w-5" /></span>
               <div>
                 <strong>BHG Operations Agent</strong>
-                <small>n8n · Boudl.com · Secure Dispatcher</small>
+                <small>Boudl.com · شيت BHG المنقّح · Booking المعتمد</small>
               </div>
             </div>
             <span className="bhg-agent-status">بوابة تشغيل</span>
@@ -129,20 +135,41 @@ const AiChat = () => {
               <div className="bhg-agent-empty">
                 <div>
                   <Bot className="mx-auto mb-3 h-7 w-7 text-primary/70" />
-                  استفسر عن الفروع، شغّل دعم الموظفين، حدّث معرفة Boudl.com، أو سجّل طلب تطوير.
+                  استفسر عن فروع BHG، شغّل دعم الموظفين، حدّث المعرفة المعتمدة، أو سجّل طلب تطوير.
                 </div>
               </div>
             ) : null}
 
             {messages.map((message, index) => (
               <div key={`${message.role}-${index}`} className={`bhg-agent-message-row bhg-agent-message-row--${message.role}`}>
-                <div className={`bhg-agent-message bhg-agent-message--${message.role}`}>{message.content}</div>
+                <div className={`bhg-agent-message bhg-agent-message--${message.role}`}>
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  {message.role === "assistant" && message.cacheHit ? (
+                    <div className="mt-2 text-[10px] font-semibold text-emerald-700">إجابة من ذاكرة BHG السريعة</div>
+                  ) : null}
+                  {message.role === "assistant" && message.sources?.length ? (
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-primary/10 pt-2">
+                      {message.sources.slice(0, 4).map((source) => (
+                        <a
+                          key={source.url}
+                          href={source.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {source.title || "مصدر BHG"}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ))}
 
             {loading ? (
               <div className="bhg-agent-message-row bhg-agent-message-row--assistant">
-                <div className="bhg-agent-message bhg-agent-message--assistant animate-pulse">جارٍ التنفيذ والتحقق…</div>
+                <div className="bhg-agent-message bhg-agent-message--assistant animate-pulse">جارٍ تجهيز الإجابة والتحقق…</div>
               </div>
             ) : null}
             <div ref={bottomRef} />

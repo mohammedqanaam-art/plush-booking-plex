@@ -38,6 +38,13 @@ const INTERNAL_KNOWLEDGE_URL = "https://www.res-dashbord.com/admin/knowledge-ban
 const MAX_SOURCE_BYTES = 1_200_000;
 const MAX_DOCUMENT_CHARS = 16_000;
 const MAX_HOTEL_PAGES = 140;
+const INDEX_MEMORY_TTL_MS = 5 * 60 * 1000;
+const QUERY_STOP_WORDS = new Set([
+  "الى", "إلى", "الي", "عن", "على", "علي", "في", "من", "ما", "هل", "كيف", "متى", "مع",
+  "هذا", "هذه", "ذلك", "التي", "الذي", "اي", "أي", "the", "and", "for", "from", "with",
+]);
+
+let memoryIndex: { value: BranchKnowledgeIndex; expiresAt: number } | null = null;
 
 const allowedBoudlHost = (hostname: string) => (
   hostname === "boudl.com"
@@ -133,6 +140,7 @@ const configuredBookingUrls = () => {
         || url.password
       ) continue;
       url.hash = "";
+      url.search = "";
       urls.set(url.toString(), url);
     } catch {
       // Ignore malformed or unapproved entries.
@@ -213,6 +221,15 @@ const SAFE_SHEET_HEADERS = [
 ];
 
 const FORBIDDEN_SHEET_HEADER = /مدير|موظف|جوال|هاتف|رقم|بريد|ايميل|إيميل|كلمة|مرور|حجز|سعر|بكج|راتب|هوية|بطاقة|UNO|OPERA/i;
+const FORBIDDEN_SHEET_VALUE = /مدير|موظف|للتواصل|اتصال|جوال|هاتف|واتساب|whatsapp|password|api[_ -]?key|token|secret|https?:\/\/|@/i;
+
+const safeSheetValue = (value: unknown) => {
+  const normalized = String(value || "").replace(/\s+/g, " ").trim().slice(0, 500);
+  if (!normalized || /^[-_*\s]+$/.test(normalized)) return "";
+  if (FORBIDDEN_SHEET_VALUE.test(normalized)) return "";
+  if (/(?:\d[\s()+-]*){7,}/.test(normalized)) return "";
+  return normalized;
+};
 
 const sheetDocuments = (csv: string, verifiedAt: string): KnowledgeDocument[] => {
   const rows = parseCsv(csv.slice(0, MAX_SOURCE_BYTES));
@@ -225,15 +242,15 @@ const sheetDocuments = (csv: string, verifiedAt: string): KnowledgeDocument[] =>
   const branchColumn = allowedColumns.find(({ header }) => /الفروع|اسم الفرع/i.test(header))?.index ?? 0;
 
   return rows.slice(1, 500).flatMap((cells) => {
-    const title = String(cells[branchColumn] || "").replace(/\s+/g, " ").trim().slice(0, 140);
+    const title = safeSheetValue(cells[branchColumn]).slice(0, 140);
     if (!title || /^[-_*\s]+$/.test(title)) return [];
     const facts = allowedColumns
       .filter(({ index }) => index !== branchColumn)
       .map(({ header, index }) => ({
         header,
-        value: String(cells[index] || "").replace(/\s+/g, " ").trim(),
+        value: safeSheetValue(cells[index]),
       }))
-      .filter(({ value }) => value && !/^[-_*\s]+$/.test(value))
+      .filter(({ value }) => value)
       .map(({ header, value }) => `${header}: ${value}`);
     if (!facts.length) return [];
     return [{
@@ -365,20 +382,22 @@ export async function refreshOfficialBoudlKnowledgeIndex(): Promise<BranchKnowle
     documents,
   };
   await getEnvironmentStore("branch-knowledge", { consistency: "strong" }).setJSON("official-index", index);
+  memoryIndex = { value: index, expiresAt: Date.now() + INDEX_MEMORY_TTL_MS };
   return index;
 }
 
 export async function getOfficialBoudlKnowledgeStatus(): Promise<BranchKnowledgeIndex | null> {
-  const stored = await getEnvironmentStore("branch-knowledge", { consistency: "strong" })
+  if (memoryIndex && memoryIndex.expiresAt > Date.now()) return memoryIndex.value;
+  const stored = await getEnvironmentStore("branch-knowledge")
     .get("official-index", { type: "json" }) as BranchKnowledgeIndex | null;
   if (!stored || !Array.isArray(stored.hotels)) return null;
+  memoryIndex = { value: stored, expiresAt: Date.now() + INDEX_MEMORY_TTL_MS };
   return stored;
 }
 
 const getKnowledgeIndex = async () => {
   const cached = await getOfficialBoudlKnowledgeStatus().catch(() => null);
-  if (cached?.documents?.length) return cached;
-  return refreshOfficialBoudlKnowledgeIndex().catch(() => cached);
+  return cached?.documents?.length ? cached : null;
 };
 
 const rankDocuments = (
@@ -387,7 +406,10 @@ const rankDocuments = (
   scope: KnowledgeScope,
 ) => {
   const normalizedQuery = normalizeArabic(query);
-  const queryTokens = normalizedQuery.split(" ").filter((token) => token.length >= 2);
+  const queryTokens = normalizedQuery
+    .split(" ")
+    .filter((token) => token.length >= 3 && !QUERY_STOP_WORDS.has(token));
+  if (!queryTokens.length) return [];
   return documents
     .filter((document) => scope === "internal" || document.sourceKind !== "sheet")
     .map((document) => {
