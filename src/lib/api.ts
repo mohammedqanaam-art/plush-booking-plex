@@ -178,6 +178,9 @@ export type UnoSnapshotResponse = {
     confirmed: number;
     cancelled: number;
     other: number;
+    pmsLinked: number;
+    pmsPending: number;
+    pmsLinkRate: number;
   };
 };
 
