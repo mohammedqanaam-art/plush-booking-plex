@@ -54,6 +54,13 @@ const MAX_REQUEST_BYTES = 4_500_000;
 const MAX_REPORT_RANGES = 180;
 const STORE_NAME = "avaya_reports";
 const CATALOG_KEY = "catalog";
+const BRIDGE_HEALTH_KEY = "bridge-health";
+const BRIDGE_HEALTHY_MS = 4 * 60 * 60 * 1000;
+
+type AvayaBridgeHealth = {
+  lastSeenAt: string;
+  version?: string;
+};
 
 function avayaStore(context: Context) {
   if (context.deploy.context === "production") {
@@ -76,6 +83,27 @@ function safeTokenEquals(supplied: string | null, expected: string | undefined) 
 function syncToken(req: Request) {
   const header = req.headers.get("Authorization") || "";
   return header.startsWith("Bearer ") ? header.slice(7).trim() : null;
+}
+
+const bridgeVersion = (req: Request) => {
+  const value = req.headers.get("x-avaya-bridge-version")?.trim() || "";
+  return /^[a-zA-Z0-9._-]{1,32}$/.test(value) ? value : undefined;
+};
+
+export const isAvayaBridgeHealthy = (lastSeenAt: unknown, now = Date.now()) => {
+  if (typeof lastSeenAt !== "string") return false;
+  const timestamp = Date.parse(lastSeenAt);
+  return Number.isFinite(timestamp) && timestamp <= now + 60_000 && now - timestamp <= BRIDGE_HEALTHY_MS;
+};
+
+async function touchBridgeHealth(store: ReturnType<typeof avayaStore>, req: Request) {
+  const previous = (await store.get(BRIDGE_HEALTH_KEY, { type: "json" })) as AvayaBridgeHealth | null;
+  const next: AvayaBridgeHealth = {
+    lastSeenAt: new Date().toISOString(),
+    version: bridgeVersion(req) || previous?.version,
+  };
+  await store.setJSON(BRIDGE_HEALTH_KEY, next);
+  return next;
 }
 
 function cleanFileName(value: unknown) {
@@ -221,7 +249,10 @@ async function getLatest(req: Request, context: Context) {
     return json({ error: "اختر تاريخ بداية ونهاية صحيحين." }, 400);
   }
 
-  const latest = (await store.get("latest", { type: "json" })) as StoredAvayaReport | null;
+  const [latest, bridgeHealth] = await Promise.all([
+    store.get("latest", { type: "json" }) as Promise<StoredAvayaReport | null>,
+    store.get(BRIDGE_HEALTH_KEY, { type: "json" }) as Promise<AvayaBridgeHealth | null>,
+  ]);
   let report = latest;
   if (from && to) {
     const pointer = (await store.get(`ranges/${from}__${to}`, { type: "json" })) as { reportId?: string } | null;
@@ -250,6 +281,9 @@ async function getLatest(req: Request, context: Context) {
     sync: {
       configured: Boolean(Netlify.env.get("AVAYA_SYNC_KEY")),
       updatedAt: latest?.syncedAt || null,
+      bridgeLastSeenAt: bridgeHealth?.lastSeenAt || null,
+      bridgeVersion: bridgeHealth?.version || null,
+      bridgeHealthy: isAvayaBridgeHealthy(bridgeHealth?.lastSeenAt),
     },
   });
 }
@@ -257,6 +291,12 @@ async function getLatest(req: Request, context: Context) {
 async function uploadWorkbook(req: Request, context: Context) {
   const expectedToken = Netlify.env.get("AVAYA_SYNC_KEY");
   if (!safeTokenEquals(syncToken(req), expectedToken)) return json({ error: "Unauthorized" }, 401);
+
+  const store = avayaStore(context);
+  await touchBridgeHealth(store, req);
+  if (req.headers.get("x-avaya-agent-event")?.trim().toLowerCase() === "heartbeat") {
+    return json({ ok: true, status: "online" });
+  }
 
   const contentLength = Number(req.headers.get("content-length") || 0);
   if (contentLength > MAX_REQUEST_BYTES) return json({ error: "Request exceeds the upload limit" }, 413);
@@ -281,7 +321,6 @@ async function uploadWorkbook(req: Request, context: Context) {
     return json({ error: "Workbook checksum mismatch" }, 400);
   }
 
-  const store = avayaStore(context);
   const processed = (await store.get(`processed/${fileHash}`, { type: "json" })) as { reportId?: string } | null;
   if (processed?.reportId) {
     return json({ ok: true, duplicate: true, status: "processed", reportId: processed.reportId });
