@@ -96,6 +96,7 @@ export type UnoConnectionStatus = {
   lastSyncAttemptAt?: string;
   lastSyncSuccessAt?: string;
   lastSyncSuccessSource?: "automatic" | "manual";
+  lastSyncDurationMs?: number;
   syncConsecutiveFailures?: number;
   syncRequiresOtp?: boolean;
   syncError?: string;
@@ -178,6 +179,9 @@ export type UnoSnapshotResponse = {
     confirmed: number;
     cancelled: number;
     other: number;
+    pmsLinked: number;
+    pmsPending: number;
+    pmsLinkRate: number;
   };
 };
 

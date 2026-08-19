@@ -1,5 +1,5 @@
-import type { Context } from "@netlify/functions";
 import { createHash, timingSafeEqual } from "node:crypto";
+import { handleUnoReport } from "./uno-report";
 
 const secretValue = () => {
   const configured = Netlify.env.get("UNO_SYNC_SECRET")?.trim();
@@ -17,28 +17,34 @@ const authorized = (req: Request, expected: string) => {
   );
 };
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request) => {
   const secret = secretValue();
   if (req.method !== "POST" || !authorized(req, secret)) return;
 
   const body = await req.json().catch(() => ({})) as { action?: string };
   if (body.action !== "dispatch-sync") return;
 
-  const origin = context.site.url || new URL(req.url).origin;
-  const endpoint = new URL("/api/admin/uno-report", origin);
-  const response = await fetch(endpoint, {
+  // Execute inside the Background Function's 15-minute window. Calling the public
+  // synchronous function over HTTP would reintroduce the shorter request timeout.
+  const internalRequest = new Request(new URL("/api/admin/uno-report", req.url), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-UNO-Sync-Key": secret,
     },
     body: JSON.stringify({ action: "sync-system" }),
-    signal: AbortSignal.timeout(55_000),
-  }).catch(() => null);
+  });
 
-  if (!response?.ok) {
-    console.warn("[uno-sync-background] reconciled report sync did not complete", {
-      status: response?.status || 0,
+  try {
+    const response = await handleUnoReport(internalRequest);
+    if (!response.ok) {
+      console.warn("[uno-sync-background] reconciled report sync did not complete", {
+        status: response.status,
+      });
+    }
+  } catch (error) {
+    console.warn("[uno-sync-background] report execution failed", {
+      code: error instanceof Error ? error.name : "UNKNOWN",
     });
   }
 };

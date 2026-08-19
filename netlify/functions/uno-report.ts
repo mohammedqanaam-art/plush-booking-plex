@@ -29,6 +29,9 @@ const MAX_REPORT_ROWS = 50_000;
 const PAGED_SIZE = 1_000;
 const MAX_PAGES = 50;
 const REFRESH_WINDOW_MS = 45 * 60 * 1000;
+// A report can legitimately run for up to 15 minutes. This lease prevents overlapping
+// scheduled runs and self-recovers if a function is interrupted before writing completion.
+const SYNC_LEASE_MS = 20 * 60 * 1000;
 
 type JsonRecord = Record<string, unknown>;
 type EncryptedValue = { iv: string; tag: string; data: string };
@@ -435,10 +438,40 @@ const publishProductivity = async (reservations: UnoReservationRecord[], filters
   }
 };
 
+const beginSyncAttempt = async (
+  filters: UnoReportFilters,
+  source: "automatic" | "manual",
+) => {
+  if (!isCanonicalFilters(filters)) return { started: true as const, startedAt: Date.now() };
+  const store = snapshotStore();
+  const previous = await store.get(SYNC_HEALTH_KEY, { type: "json" }).catch(() => null) as JsonRecord | null;
+  const previousAttemptMs = Date.parse(asString(previous?.lastAttemptAt));
+  const runningLeaseActive = source === "automatic"
+    && previous?.state === "running"
+    && Number.isFinite(previousAttemptMs)
+    && Date.now() - previousAttemptMs < SYNC_LEASE_MS;
+  if (runningLeaseActive) {
+    return {
+      started: false as const,
+      retryAfterMs: Math.max(0, SYNC_LEASE_MS - (Date.now() - previousAttemptMs)),
+    };
+  }
+  const startedAt = Date.now();
+  await store.setJSON(SYNC_HEALTH_KEY, {
+    ...(previous || {}),
+    state: "running",
+    lastAttemptAt: new Date(startedAt).toISOString(),
+    lastError: undefined,
+    requiresOtp: false,
+    reportFilters: filters,
+  });
+  return { started: true as const, startedAt };
+};
+
 const updateSyncHealth = async (
   ok: boolean,
   filters: UnoReportFilters,
-  options: { source: "automatic" | "manual"; total?: number; error?: string; requiresOtp?: boolean },
+  options: { source: "automatic" | "manual"; total?: number; error?: string; requiresOtp?: boolean; durationMs?: number },
 ) => {
   const store = snapshotStore();
   const previous = await store.get(SYNC_HEALTH_KEY, { type: "json" }).catch(() => null) as JsonRecord | null;
@@ -452,6 +485,7 @@ const updateSyncHealth = async (
     consecutiveFailures: 0,
     requiresOtp: false,
     reportFilters: filters,
+    lastDurationMs: options.durationMs,
   } : {
     ...(previous || {}),
     state: options.requiresOtp ? "verification_required" : "failed",
@@ -460,6 +494,7 @@ const updateSyncHealth = async (
     consecutiveFailures: Number(previous?.consecutiveFailures || 0) + 1,
     requiresOtp: options.requiresOtp === true,
     reportFilters: filters,
+    lastDurationMs: options.durationMs,
   });
 };
 
@@ -471,9 +506,21 @@ const executeReport = async (
 ) => {
   const configuration = readConfiguration();
   if (!configuration.password) return json({ error: "إعدادات UNO غير مكتملة." }, 503);
+  const attempt = await beginSyncAttempt(filters, source).catch(() => ({
+    started: true as const,
+    startedAt: Date.now(),
+  }));
+  if (!attempt.started) {
+    return json({
+      ok: true,
+      skipped: "already-running",
+      retryAfterMs: attempt.retryAfterMs,
+    }, 202);
+  }
+  const startedAt = attempt.startedAt;
   const active = await activeSession(req, internal, configuration);
   if (!active) {
-    await updateSyncHealth(false, filters, { source, error: "انتهت جلسة UNO وتحتاج OTP.", requiresOtp: true }).catch(() => undefined);
+    await updateSyncHealth(false, filters, { source, error: "انتهت جلسة UNO وتحتاج OTP.", requiresOtp: true, durationMs: Date.now() - startedAt }).catch(() => undefined);
     return json({ error: "UNO verification required", requiresOtp: true, staleDataPreserved: true }, 409);
   }
 
@@ -506,7 +553,7 @@ const executeReport = async (
           error: "skipped" in productivity ? undefined : productivity.error,
         },
       });
-      await updateSyncHealth(true, filters, { source, total: fetched.reservations.length }).catch(() => undefined);
+      await updateSyncHealth(true, filters, { source, total: fetched.reservations.length, durationMs: Date.now() - startedAt }).catch(() => undefined);
     }
 
     return json({
@@ -536,13 +583,13 @@ const executeReport = async (
           ? `رفض UNO طلب التقرير (${code.replace("UNO_REPORT_", "")}).`
           : "تعذر جلب تقرير UNO الكامل. تم الحفاظ على آخر تقرير ناجح.";
     if (isCanonicalFilters(filters)) {
-      await updateSyncHealth(false, filters, { source, error: message, requiresOtp }).catch(() => undefined);
+      await updateSyncHealth(false, filters, { source, error: message, requiresOtp, durationMs: Date.now() - startedAt }).catch(() => undefined);
     }
     return json({ error: message, staleDataPreserved: true, requiresOtp }, requiresOtp ? 409 : 502);
   }
 };
 
-export default async (req: Request) => {
+export const handleUnoReport = async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   const configuration = readConfiguration();
   const internal = internalAuthorized(req, configuration.password);
@@ -569,6 +616,8 @@ export default async (req: Request) => {
 
   return executeReport(req, filters, internal ? "automatic" : "manual", internal);
 };
+
+export default handleUnoReport;
 
 export const config: Config = {
   path: "/api/admin/uno-report",
