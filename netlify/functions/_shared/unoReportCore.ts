@@ -35,6 +35,9 @@ export type UnoReportSummary = {
   missingReservationNumber: number;
   missingAgent: number;
   missingAmount: number;
+  pmsLinked: number;
+  pmsPending: number;
+  pmsLinkRate: number;
   confirmedRevenueByCurrency: Record<string, number>;
   cancelledRevenueByCurrency: Record<string, number>;
 };
@@ -191,6 +194,9 @@ export const summarizeUnoReservations = (
     missingReservationNumber: metadata.missingReservationNumber || 0,
     missingAgent: 0,
     missingAmount: 0,
+    pmsLinked: 0,
+    pmsPending: 0,
+    pmsLinkRate: 0,
     confirmedRevenueByCurrency: {},
     cancelledRevenueByCurrency: {},
   };
@@ -203,6 +209,8 @@ export const summarizeUnoReservations = (
     else summary.other += 1;
 
     if (!clean(reservation.agentName)) summary.missingAgent += 1;
+    if (clean(reservation.pmsNumber)) summary.pmsLinked += 1;
+    else summary.pmsPending += 1;
     const amount = parseReservationAmount(reservation.amount);
     if (amount === null) {
       summary.missingAmount += 1;
@@ -214,5 +222,8 @@ export const summarizeUnoReservations = (
 
   // For operational reporting, modified reservations are still active/confirmed reservations.
   summary.confirmed += summary.modified;
+  summary.pmsLinkRate = summary.total
+    ? Number(((summary.pmsLinked / summary.total) * 100).toFixed(2))
+    : 0;
   return summary;
 };
