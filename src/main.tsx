@@ -6,6 +6,7 @@ import "./styles/boudlExecutiveTheme.css";
 import "./styles/bhg2026.css";
 import "./styles/admin2026.css";
 import "./styles/visitorChat.css";
+import "./styles/bhgDamascus.css";
 
 createRoot(document.getElementById("root")!).render(
   <AppErrorBoundary>
