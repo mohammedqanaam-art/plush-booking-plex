@@ -96,6 +96,7 @@ export type UnoConnectionStatus = {
   lastSyncAttemptAt?: string;
   lastSyncSuccessAt?: string;
   lastSyncSuccessSource?: "automatic" | "manual";
+  lastSyncDurationMs?: number;
   syncConsecutiveFailures?: number;
   syncRequiresOtp?: boolean;
   syncError?: string;
