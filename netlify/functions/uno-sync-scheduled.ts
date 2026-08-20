@@ -9,6 +9,7 @@ export default async (req: Request, context: Context) => {
 
   const origin = context.site.url || new URL(req.url).origin;
   const endpoint = new URL("/.netlify/functions/uno-sync-background", origin);
+  const fullSync = new Date().getUTCMinutes() % 30 === 0;
 
   try {
     const response = await fetch(endpoint, {
@@ -17,7 +18,7 @@ export default async (req: Request, context: Context) => {
         "Content-Type": "application/json",
         "X-UNO-Sync-Key": secret,
       },
-      body: JSON.stringify({ action: "dispatch-sync" }),
+      body: JSON.stringify({ action: fullSync ? "dispatch-sync" : "dispatch-keepalive" }),
       signal: AbortSignal.timeout(10_000),
     });
 
@@ -31,5 +32,5 @@ export default async (req: Request, context: Context) => {
 };
 
 export const config: Config = {
-  schedule: "*/30 * * * *",
+  schedule: "*/10 * * * *",
 };

@@ -12,11 +12,14 @@ describe("UNO-only live reservation synchronization", () => {
     const scheduled = readFileSync("netlify/functions/uno-sync-scheduled.ts", "utf8");
     const background = readFileSync("netlify/functions/uno-sync-background.ts", "utf8");
     const connection = readFileSync("netlify/functions/uno-connection.ts", "utf8");
-    expect(scheduled).toContain('schedule: "*/30 * * * *"');
-    expect(scheduled).toContain('action: "dispatch-sync"');
-    expect(background).toContain('action: "sync-system"');
+    expect(scheduled).toContain('schedule: "*/10 * * * *"');
+    expect(scheduled).toContain('"dispatch-sync"');
+    expect(scheduled).toContain('"dispatch-keepalive"');
+    expect(background).toContain('"sync-system"');
+    expect(background).toContain('"keepalive-system"');
     expect(connection).toContain("const canonicalFilters = currentMonthUnoSyncFilters()");
     expect(connection).toContain("await setState(key, nextState)");
+    expect(connection).toContain("readSharedActiveState");
     expect(connection).not.toContain("setState(SYSTEM_STATE_KEY, nextState)");
   });
 

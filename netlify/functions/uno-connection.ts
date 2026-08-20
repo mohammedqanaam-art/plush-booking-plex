@@ -585,6 +585,17 @@ const readActiveState = async (
   return { state, phase: "connected" as const, session };
 };
 
+const readSharedActiveState = async (
+  key: string,
+  configuration: ReturnType<typeof readConfiguration>,
+) => {
+  const personal = await readActiveState(key, configuration);
+  if (personal.phase !== "idle" || key === SYSTEM_STATE_KEY) return personal;
+
+  const system = await readActiveState(SYSTEM_STATE_KEY, configuration);
+  return system.phase === "connected" ? system : personal;
+};
+
 const safeIpAddress = (context: Context) => {
   const candidate = (context.ip || "").trim();
   return /^[a-f0-9:.]{3,64}$/i.test(candidate) ? candidate : "0.0.0.0";
@@ -1551,6 +1562,26 @@ const syncSystemSnapshot = async (
   }
 };
 
+const keepSystemSessionAlive = async (
+  configuration: ReturnType<typeof readConfiguration>,
+) => {
+  const active = await readActiveState(SYSTEM_STATE_KEY, configuration);
+  if (active.phase !== "connected" || active.state?.phase !== "connected" || !active.session) {
+    await markSyncFailure("انتهت جلسة UNO وتحتاج إلى تحقق OTP جديد.", true).catch(() => undefined);
+    return json({
+      error: "UNO verification required",
+      requiresOtp: true,
+      staleDataPreserved: true,
+    }, 409);
+  }
+
+  return json({
+    ok: true,
+    connected: true,
+    expiresAt: new Date(active.state.expiresAt).toISOString(),
+  });
+};
+
 const searchReservations = async (
   key: string,
   configuration: ReturnType<typeof readConfiguration>,
@@ -1567,7 +1598,7 @@ const searchReservations = async (
     return json({ error: "أدخل رقم بحث صحيحًا." }, 400);
   }
 
-  const active = await readActiveState(key, configuration);
+  const active = await readSharedActiveState(key, configuration);
   if (active.phase !== "connected" || !active.session) {
     return json({ error: "اتصل بـ UNO أولًا.", ...publicStatus(configuration, "idle") }, 409);
   }
@@ -1594,7 +1625,7 @@ const listReservations = async (
   configuration: ReturnType<typeof readConfiguration>,
   requestedFilters?: unknown,
 ) => {
-  const active = await readActiveState(key, configuration);
+  const active = await readSharedActiveState(key, configuration);
   if (active.phase !== "connected" || !active.session) {
     return json({ error: "اتصل بـ UNO أولًا.", ...publicStatus(configuration, "idle") }, 409);
   }
@@ -1655,8 +1686,10 @@ export default async (req: Request, context: Context) => {
 
   if (req.method === "POST" && isInternalSyncRequest(req, configuration)) {
     const body = asRecord(await req.json().catch(() => ({})));
-    if (asString(body.action) !== "sync-system") return json({ error: "Permission Denied" }, 403);
-    return syncSystemSnapshot(configuration);
+    const action = asString(body.action);
+    if (action === "sync-system") return syncSystemSnapshot(configuration);
+    if (action === "keepalive-system") return keepSystemSessionAlive(configuration);
+    return json({ error: "Permission Denied" }, 403);
   }
 
   const session = await validateSession(req);
@@ -1667,7 +1700,7 @@ export default async (req: Request, context: Context) => {
   if (!key) return json({ error: "Unauthorized" }, 401);
 
   if (req.method === "GET") {
-    const active = await readActiveState(key, configuration);
+    const active = await readSharedActiveState(key, configuration);
     return json(await statusWithSnapshot(configuration, active.phase, active.state, active.session));
   }
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);

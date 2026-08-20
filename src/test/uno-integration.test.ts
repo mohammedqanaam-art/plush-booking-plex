@@ -78,11 +78,15 @@ describe("UNO integration boundary", () => {
     expect(schedule).toContain('"X-UNO-Sync-Key": secret');
     expect(`${fn}\n${background}\n${schedule}`).not.toContain("X-UNO-Sync-Secret");
     expect(`${fn}\n${background}\n${schedule}`).not.toContain("x-uno-sync-secret");
-    expect(schedule).toContain('schedule: "*/30 * * * *"');
+    expect(schedule).toContain('schedule: "*/10 * * * *"');
+    expect(schedule).toContain('"dispatch-keepalive"');
     expect(schedule).toContain('/.netlify/functions/uno-sync-background');
     expect(schedule).not.toContain('new URL("/api/admin/uno"');
-    expect(background).toContain('new URL("/api/admin/uno-report"');
-    expect(background).toContain('action: "sync-system"');
+    expect(background).toContain('"/api/admin/uno-report"');
+    expect(background).toContain('"sync-system"');
+    expect(background).toContain('"keepalive-system"');
+    expect(fn).toContain('action === "keepalive-system"');
+    expect(fn).toContain("readSharedActiveState");
     expect(schedule).toContain('Netlify.env.get("UNO_PASSWORD")');
     expect(schedule).toContain('createHash("sha256").update(`uno-sync:${password}`).digest("hex")');
     expect(fn).not.toContain('trimmedEnv("UNO_BOOKING_URL")');

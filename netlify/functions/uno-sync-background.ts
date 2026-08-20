@@ -22,22 +22,24 @@ export default async (req: Request, context: Context) => {
   if (req.method !== "POST" || !authorized(req, secret)) return;
 
   const body = await req.json().catch(() => ({})) as { action?: string };
-  if (body.action !== "dispatch-sync") return;
+  if (!["dispatch-sync", "dispatch-keepalive"].includes(body.action || "")) return;
 
   const origin = context.site.url || new URL(req.url).origin;
-  const endpoint = new URL("/api/admin/uno-report", origin);
+  const fullSync = body.action === "dispatch-sync";
+  const endpoint = new URL(fullSync ? "/api/admin/uno-report" : "/api/admin/uno", origin);
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-UNO-Sync-Key": secret,
     },
-    body: JSON.stringify({ action: "sync-system" }),
+    body: JSON.stringify({ action: fullSync ? "sync-system" : "keepalive-system" }),
     signal: AbortSignal.timeout(55_000),
   }).catch(() => null);
 
   if (!response?.ok) {
-    console.warn("[uno-sync-background] reconciled report sync did not complete", {
+    console.warn("[uno-sync-background] UNO maintenance request did not complete", {
+      action: body.action,
       status: response?.status || 0,
     });
   }
