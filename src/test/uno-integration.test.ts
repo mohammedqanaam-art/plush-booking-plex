@@ -1,16 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import {
   createReservationSearchPayload,
   currentMonthUnoSyncFilters,
+  fetchWithUnoVersionFallback,
   filterReservationsForReport,
   isCanonicalUnoSyncFilters,
   isTrustedRateGainUrl,
   normalizeReservation,
   parseUnoReportFilters,
   reservationToBookingRecord,
+  unoAuthenticationHeaders,
 } from "../../netlify/functions/uno-connection";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("UNO integration boundary", () => {
   it("allows only approved HTTPS UNO endpoints", () => {
@@ -62,7 +68,7 @@ describe("UNO integration boundary", () => {
     expect(fn).toContain('const DEFAULT_UNO_RESERVATIONS_URL = "https://unolive-voice.rategain.com/view-reservations?brandId=3868248c-c053-43f2-b9c8-3188c74dfeb5&chainId=cdcc2737-a6b9-45bc-9d91-b1a760fb8026"');
     expect(fn).toContain('trimmedEnv("UNO_RESERVATIONS_URL")');
     expect(fn).toContain('trimmedEnv("UNO_LOGIN_URL")');
-    expect(fn).toContain('const DEFAULT_UNO_APP_VERSION = "29.2"');
+    expect(fn).toContain('const DEFAULT_UNO_APP_VERSION = "29.3"');
     expect(fn).toContain('const DEFAULT_UNO_VOICE_API_BASE_URL = "https://ibe-prod-api-cpayzgdkqq-uc.a.run.app/api/"');
     expect(fn).toContain('const VOICE_SEARCH_PATH = "voice/allreservaions"');
     expect(fn).toContain('trimmedEnv("UNO_VOICE_API_BASE_URL")');
@@ -103,6 +109,39 @@ describe("UNO integration boundary", () => {
     expect(report).toContain("summarizeUnoReservations");
     expect(report).toContain("staleDataPreserved: true");
     expect(api).toContain('payload.action === "export" ? "/api/admin/uno-report" : "/api/admin/uno"');
+  });
+
+  it("does not send a version header during UNO authentication", () => {
+    const headers = unoAuthenticationHeaders();
+    expect(headers).toEqual({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    });
+    expect(headers).not.toHaveProperty("AppVersion");
+  });
+
+  it("retries authenticated UNO requests without a stale version header", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response("version mismatch", { status: 409 }))
+      .mockResolvedValueOnce(new Response("ok", { status: 200 }));
+
+    const response = await fetchWithUnoVersionFallback(
+      new URL("https://uno-prod-ui-api-cpayzgdkqq-uc.a.run.app/api/probe"),
+      {
+        method: "POST",
+        headers: {
+          AppVersion: "29.2",
+          "Content-Type": "application/json",
+        },
+        body: "{}",
+      },
+      1_000,
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("AppVersion")).toBe("29.2");
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).has("AppVersion")).toBe(false);
   });
 
   it("builds a property-scoped reservation lookup", () => {
