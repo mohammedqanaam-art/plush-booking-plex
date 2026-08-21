@@ -1,7 +1,12 @@
 import type { Config } from "@netlify/functions";
+import {
+  BHG_ASSISTANT_SCOPE,
+  boudlScopeReply,
+  classifyBoudlAssistantScope,
+} from "./_shared/boudlAssistantScope";
 import { lookupOfficialBoudlSources, isOfficialBoudlUrl, type OfficialSource } from "./_shared/boudl-knowledge";
 import { callN8nAgent, n8nAgentConfigured, type N8nAgentReply } from "./_shared/n8n";
-import { generateOpenAiText, isOpenAiConfigured } from "./_shared/openai";
+import { generateOpenAiText, isOpenAiAvailable } from "./_shared/openai";
 import { json, requireSameOrigin } from "./_shared/security";
 
 const cleanMessage = (value: unknown) => String(value || "")
@@ -60,14 +65,27 @@ export default async (req: Request) => {
     : `emp_${crypto.randomUUID()}`;
   const requestId = crypto.randomUUID();
 
-  let sources: OfficialSource[] = [];
-  try {
-    sources = await lookupOfficialBoudlSources(message);
-  } catch (error) {
-    console.error("[employee-agent] Boudl lookup failed", {
-      code: error instanceof Error ? error.message : "UNKNOWN",
+  const scope = classifyBoudlAssistantScope(message);
+  if (scope !== "in_scope") {
+    return json({
+      reply: boudlScopeReply(scope),
+      sources: [],
+      sessionId,
+      requestId,
+      provider: "bhg-scope-fast-path",
+      scope: BHG_ASSISTANT_SCOPE,
     });
   }
+
+  const [sources, openAiAvailable] = await Promise.all([
+    lookupOfficialBoudlSources(message).catch((error) => {
+      console.error("[employee-agent] Boudl lookup failed", {
+        code: error instanceof Error ? error.message : "UNKNOWN",
+      });
+      return [] as OfficialSource[];
+    }),
+    isOpenAiAvailable().catch(() => false),
+  ]);
 
   if (n8nAgentConfigured()) {
     try {
@@ -86,7 +104,7 @@ export default async (req: Request) => {
         officialSources: sources,
         allowedActions: ["answer", "branch_lookup", "policy_lookup", "create_support_request"],
         forbiddenActions: ["deploy", "run_code", "change_credentials", "modify_booking", "delete_data"],
-      });
+      }, { timeoutMs: 12_000 });
       const safeSources = safeReturnedSources(result.data, sources);
       if (result.reply) {
         return json({
@@ -95,6 +113,7 @@ export default async (req: Request) => {
           sessionId,
           requestId,
           provider: "n8n",
+          scope: BHG_ASSISTANT_SCOPE,
         });
       }
     } catch (error) {
@@ -104,7 +123,7 @@ export default async (req: Request) => {
     }
   }
 
-  if (isOpenAiConfigured() && sources.length) {
+  if (openAiAvailable && sources.length) {
     try {
       const evidence = sources
         .map((source, index) => `[${index + 1}] ${source.title}\n${source.url}\n${source.snippet}`)
@@ -112,6 +131,7 @@ export default async (req: Request) => {
       const result = await generateOpenAiText({
         instructions: [
           "أنت مساعد موظفي الحجز المركزي في مجموعة بودل للضيافة.",
+          "نطاقك حصريًا فنادق وعلامات المجموعة: بودل، بريرا، عابر، نارسيس وزمن. ارفض أي موضوع خارج هذا النطاق.",
           "مهمتك الإجابة عن معلومات الفروع والخدمات والموقع والسياسات العامة فقط.",
           "اعتمد فقط على النصوص الرسمية المرسلة لك من boudl.com أو booking.boudl.com.",
           "إذا لم تدعم المصادر الإجابة، قل بوضوح إن المعلومة غير مؤكدة ولا تخمن.",
@@ -119,8 +139,9 @@ export default async (req: Request) => {
           "أجب بالعربية بوضوح واختصار واذكر اسم المصدر الرسمي في نهاية الإجابة.",
         ].join(" "),
         input: `سؤال الموظف: ${message}\n\nالمصادر الرسمية:\n${evidence}`,
-        maxOutputTokens: 900,
-        timeoutMs: 20_000,
+        maxOutputTokens: 700,
+        reasoningEffort: "none",
+        timeoutMs: 18_000,
       });
       return json({
         reply: result.text,
@@ -128,6 +149,7 @@ export default async (req: Request) => {
         sessionId,
         requestId,
         provider: "openai-fallback",
+        scope: BHG_ASSISTANT_SCOPE,
       });
     } catch (error) {
       console.error("[employee-agent] OpenAI fallback failed", {
@@ -142,6 +164,7 @@ export default async (req: Request) => {
     sessionId,
     requestId,
     provider: "official-source-fallback",
+    scope: BHG_ASSISTANT_SCOPE,
   });
 };
 
