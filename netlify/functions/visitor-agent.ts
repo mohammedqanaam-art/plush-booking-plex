@@ -1,4 +1,9 @@
-import type { Config } from "@netlify/functions";
+import type { Config, Context } from "@netlify/functions";
+import {
+  isCacheableBoudlQuestion,
+  readCachedBoudlAnswer,
+  writeCachedBoudlAnswer,
+} from "./_shared/boudlAssistantCache";
 import {
   BHG_ASSISTANT_SCOPE,
   boudlScopeReply,
@@ -66,7 +71,7 @@ const sourceFallback = (sources: OfficialSource[]) => {
   return `وجدت معلومة مرتبطة بطلبك في موقع بودل الرسمي: ${snippet}`;
 };
 
-export default async (req: Request) => {
+export default async (req: Request, context?: Context) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
@@ -109,6 +114,23 @@ export default async (req: Request) => {
     });
   }
 
+  const hasConversationContext = history.some((item) => item.role === "user");
+  const cacheable = isCacheableBoudlQuestion(message, hasConversationContext);
+  if (cacheable) {
+    const cached = await readCachedBoudlAnswer(message);
+    if (cached) {
+      return json({
+        reply: cached.reply,
+        sessionId,
+        requestId,
+        provider: "bhg-answer-cache",
+        model: cached.model,
+        sources: cached.sources,
+        scope: BHG_ASSISTANT_SCOPE,
+      });
+    }
+  }
+
   const [officialSources, openAiAvailable] = await Promise.all([
     lookupOfficialBoudlSources(message).catch((error) => {
       console.error("[visitor-agent] official source lookup failed", {
@@ -148,13 +170,23 @@ export default async (req: Request) => {
         webSearchAllowedDomains: officialSources.length ? undefined : ["boudl.com", "booking.boudl.com"],
         timeoutMs: 22_000,
       });
+      const responseSources = uniqueSources(result.sources, officialSources);
+      if (cacheable && responseSources.length) {
+        const write = writeCachedBoudlAnswer(message, {
+          reply: result.text,
+          model: result.model,
+          sources: responseSources,
+        });
+        if (context) context.waitUntil(write);
+        else await write;
+      }
       return json({
         reply: result.text,
         sessionId,
         requestId,
         model: result.model,
         provider: "openai-responses",
-        sources: uniqueSources(result.sources, officialSources),
+        sources: responseSources,
         scope: BHG_ASSISTANT_SCOPE,
       });
     } catch (error) {
@@ -194,13 +226,24 @@ export default async (req: Request) => {
               snippet: String(source?.snippet || ""),
             }))
           : [];
+        const reply = result.reply.slice(0, 7_000);
+        const responseSources = uniqueSources(returnedSources, officialSources);
+        if (cacheable && responseSources.length) {
+          const write = writeCachedBoudlAnswer(message, {
+            reply,
+            model: "n8n-managed",
+            sources: responseSources,
+          });
+          if (context) context.waitUntil(write);
+          else await write;
+        }
         return json({
-          reply: result.reply.slice(0, 7_000),
+          reply,
           sessionId,
           requestId,
           provider: "n8n-agent",
           model: "n8n-managed",
-          sources: uniqueSources(returnedSources, officialSources),
+          sources: responseSources,
           scope: BHG_ASSISTANT_SCOPE,
         });
       }
