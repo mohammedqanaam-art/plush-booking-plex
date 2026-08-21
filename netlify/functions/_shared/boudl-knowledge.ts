@@ -1,4 +1,5 @@
 import { getEnvironmentStore } from "./storage";
+import { createHash } from "node:crypto";
 
 export type OfficialSource = {
   title: string;
@@ -17,7 +18,7 @@ const OFFICIAL_ROOTS = [
   "https://boudl.com/ar/hotels",
   "https://boudl.com/ar/brands",
 ];
-const KNOWLEDGE_TTL_MS = 12 * 60 * 60 * 1000;
+const KNOWLEDGE_PAGE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const allowedOfficialHost = (hostname: string) => (
   hostname === "boudl.com"
@@ -62,7 +63,7 @@ const fetchOfficialHtml = async (url: string): Promise<string> => {
       Accept: "text/html,application/xhtml+xml",
       "User-Agent": "BHG-Central-Reservation-Knowledge/1.1",
     },
-    signal: AbortSignal.timeout(8_000),
+    signal: AbortSignal.timeout(5_000),
   });
   if (!response.ok) throw new Error(`BOUDL_SOURCE_${response.status}`);
   return (await response.text()).slice(0, 1_200_000);
@@ -159,57 +160,70 @@ export async function getOfficialBoudlKnowledgeStatus(): Promise<BranchKnowledge
 const getKnowledgeIndex = async (): Promise<BranchKnowledgeIndex | null> => {
   try {
     const cached = await getOfficialBoudlKnowledgeStatus();
-    if (cached) {
-      const age = Date.now() - new Date(cached.updatedAt).getTime();
-      if (Number.isFinite(age) && age >= 0 && age < KNOWLEDGE_TTL_MS) return cached;
-    }
+    // Index refresh runs separately. Serving the last verified official index avoids
+    // making a visitor wait for three website downloads whenever the TTL expires.
+    if (cached) return cached;
     return await refreshOfficialBoudlKnowledgeIndex();
   } catch {
     return getOfficialBoudlKnowledgeStatus().catch(() => null);
   }
 };
 
+type CachedOfficialPage = OfficialSource & { fetchedAt: string; text: string };
+
+const officialPageCacheKey = (url: string) => `page-${createHash("sha256").update(url).digest("hex")}`;
+
+const officialSourceForUrl = async (url: string, title: string, query: string): Promise<OfficialSource> => {
+  const store = getEnvironmentStore("branch-knowledge", { consistency: "strong" });
+  const key = officialPageCacheKey(url);
+  const cached = await store.get(key, { type: "json" }).catch(() => null) as CachedOfficialPage | null;
+  const cachedAge = cached ? Date.now() - new Date(cached.fetchedAt).getTime() : Number.POSITIVE_INFINITY;
+  if (cached?.text && Number.isFinite(cachedAge) && cachedAge >= 0 && cachedAge < KNOWLEDGE_PAGE_TTL_MS) {
+    return { title: cached.title || title, url, snippet: snippetForQuery(cached.text, query) };
+  }
+
+  try {
+    const text = stripHtml(await fetchOfficialHtml(url));
+    const page: CachedOfficialPage = {
+      title: title || text.match(/(?:فندق|بودل)\s+[^|]{2,80}/)?.[0] || "مصدر بودل الرسمي",
+      url,
+      snippet: "",
+      text: text.slice(0, 120_000),
+      fetchedAt: new Date().toISOString(),
+    };
+    await store.setJSON(key, page).catch(() => undefined);
+    return { title: page.title, url, snippet: snippetForQuery(page.text, query) };
+  } catch (error) {
+    if (cached?.text) return { title: cached.title || title, url, snippet: snippetForQuery(cached.text, query) };
+    throw error;
+  }
+};
+
 export async function lookupOfficialBoudlSources(query: string): Promise<OfficialSource[]> {
   const index = await getKnowledgeIndex();
   let candidates = index ? rankHotelLinks(index.hotels, query) : [];
-  let brandFallback: { url: string; html: string } | null = null;
 
-  if (!candidates.length) {
+  if (!candidates.length && !index) {
     const indexResults = await Promise.allSettled(OFFICIAL_ROOTS.map(async (url) => ({ url, html: await fetchOfficialHtml(url) })));
     const successfulIndexes = indexResults
       .filter((result): result is PromiseFulfilledResult<{ url: string; html: string }> => result.status === "fulfilled")
       .map((result) => result.value);
     const liveLinks = successfulIndexes.flatMap((item) => allHotelLinks(item.html));
     candidates = rankHotelLinks(liveLinks, query);
-    brandFallback = successfulIndexes.find((item) => item.url.includes("/brand/boudl")) || successfulIndexes[0] || null;
   }
 
-  const hotelResults = await Promise.allSettled(candidates.map(async (candidate) => {
-    const html = await fetchOfficialHtml(candidate.url);
-    const text = stripHtml(html);
-    return {
-      title: candidate.title || text.match(/(?:فندق|بودل)\s+[^|]{2,80}/)?.[0] || "مصدر بودل الرسمي",
-      url: candidate.url,
-      snippet: snippetForQuery(text, query),
-    } satisfies OfficialSource;
-  }));
+  const hotelResults = await Promise.allSettled(candidates.map((candidate) => (
+    officialSourceForUrl(candidate.url, candidate.title, query)
+  )));
 
   const sources = hotelResults
     .filter((result): result is PromiseFulfilledResult<OfficialSource> => result.status === "fulfilled")
     .map((result) => result.value);
   if (sources.length) return sources;
 
-  if (!brandFallback) {
-    try {
-      const html = await fetchOfficialHtml(OFFICIAL_ROOTS[0]);
-      brandFallback = { url: OFFICIAL_ROOTS[0], html };
-    } catch {
-      return [];
-    }
+  try {
+    return [await officialSourceForUrl(OFFICIAL_ROOTS[0], "بودل - الموقع الرسمي", query)];
+  } catch {
+    return [];
   }
-  return [{
-    title: "بودل - الموقع الرسمي",
-    url: brandFallback.url,
-    snippet: snippetForQuery(stripHtml(brandFallback.html), query),
-  }];
 }
