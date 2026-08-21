@@ -11,6 +11,7 @@ import {
   normalizeReservation,
   parseUnoReportFilters,
   reservationToBookingRecord,
+  saveReservationSnapshot,
   unoAuthenticationHeaders,
 } from "../../netlify/functions/uno-connection";
 
@@ -38,6 +39,8 @@ describe("UNO integration boundary", () => {
     const page = fs.readFileSync(path.join(root, "src/pages/AdminUno.tsx"), "utf8");
     const fn = fs.readFileSync(path.join(root, "netlify/functions/uno-connection.ts"), "utf8");
     const report = fs.readFileSync(path.join(root, "netlify/functions/uno-report.ts"), "utf8");
+    const bookings = fs.readFileSync(path.join(root, "netlify/functions/bookings.ts"), "utf8");
+    const bookingCsv = fs.readFileSync(path.join(root, "netlify/functions/_shared/bookingCsv.ts"), "utf8");
     const schedule = fs.readFileSync(path.join(root, "netlify/functions/uno-sync-scheduled.ts"), "utf8");
     const background = fs.readFileSync(path.join(root, "netlify/functions/uno-sync-background.ts"), "utf8");
     const api = fs.readFileSync(path.join(root, "src/lib/api.ts"), "utf8");
@@ -104,10 +107,16 @@ describe("UNO integration boundary", () => {
 
     expect(report).toContain('path: "/api/admin/uno-report"');
     expect(report).toContain('const MAX_REPORT_ROWS = 50_000');
+    expect(report).toContain('const DEFAULT_UNO_APP_VERSION = "29.3"');
+    expect(report).toContain('sourceSystem: "UNO"');
     expect(report).toContain('const PAGED_SIZE = 1_000');
     expect(report).toContain("deduplicateUnoReservations");
     expect(report).toContain("summarizeUnoReservations");
     expect(report).toContain("staleDataPreserved: true");
+    expect(fn).not.toContain("UNO_SNAPSHOT_LIMIT");
+    expect(bookings).toContain('store.get("uno-data"');
+    expect(bookings).toContain("ملفات CSV أو CRO لا تستبدل الأرقام الحالية");
+    expect(bookingCsv).toContain('sourceFormat: "uno-live-api"');
     expect(api).toContain('payload.action === "export" ? "/api/admin/uno-report" : "/api/admin/uno"');
   });
 
@@ -264,6 +273,73 @@ describe("UNO integration boundary", () => {
     expect(isCanonicalUnoSyncFilters(filters)).toBe(true);
     expect(isCanonicalUnoSyncFilters({ ...filters, property: "Braira Olaya" })).toBe(false);
     expect(isCanonicalUnoSyncFilters({ ...filters, status: "confirmed" })).toBe(false);
+  });
+
+  it("does not clip a valid UNO month at the old 5,000-row UI limit", async () => {
+    const reservations = Array.from({ length: 5_001 }, (_, index) => ({
+      unoNumber: `UNO-${index + 1}`,
+      pmsNumber: "",
+      phone: "",
+      guestName: `Guest ${index + 1}`,
+      agentName: "Agent One",
+      property: "Braira Olaya",
+      city: "Riyadh",
+      status: "M",
+      checkIn: "2026-08-20",
+      checkOut: "2026-08-21",
+      bookingDate: "2026-08-19T23:30:00Z",
+      channel: "Voice",
+      amount: "100",
+      currency: "SAR",
+    }));
+
+    const snapshot = await saveReservationSnapshot(
+      reservations,
+      "manual",
+      undefined,
+      undefined,
+      undefined,
+      false,
+    );
+
+    expect(snapshot.sourceSystem).toBe("UNO");
+    expect(snapshot.total).toBe(5_001);
+    expect(snapshot.reservations).toHaveLength(5_001);
+    expect(snapshot.quality).toMatchObject({ sourceRows: 5_001, truncated: false });
+  });
+
+  it("deduplicates on the UNO number even when PMS is added later", async () => {
+    const base = normalizeReservation({
+      reservationNo: "UNO-9988",
+      createdBy: "Agent One",
+      resStatus: "M",
+      reservationDate: "2026-08-17",
+    });
+    const snapshot = await saveReservationSnapshot([
+      base,
+      { ...base, pmsNumber: "PMS-7788", phone: "0555555555" },
+    ], "manual", undefined, undefined, undefined, false);
+
+    expect(snapshot.total).toBe(1);
+    expect(snapshot.reservations[0]).toMatchObject({
+      unoNumber: "UNO-9988",
+      pmsNumber: "PMS-7788",
+      phone: "0555555555",
+    });
+    expect(snapshot.quality?.duplicateReservations).toBe(1);
+  });
+
+  it("counts Modified with active confirmed reservations in legacy UNO filtering", () => {
+    const confirmed = normalizeReservation({ reservationNo: "1", resStatus: "M", reservationDate: "2026-08-17" });
+    const modified = normalizeReservation({ reservationNo: "2", resStatus: "Modified", reservationDate: "2026-08-17" });
+    const cancelled = normalizeReservation({ reservationNo: "3", resStatus: "NS", reservationDate: "2026-08-17" });
+    expect(filterReservationsForReport([confirmed, modified, cancelled], {
+      dateType: "booking",
+      from: "2026-08-01",
+      to: "2026-08-31",
+      property: "all",
+      status: "confirmed",
+    }).map((item) => item.unoNumber)).toEqual(["1", "2"]);
   });
 
   it("turns the authenticated reservation response into the employee productivity report", () => {

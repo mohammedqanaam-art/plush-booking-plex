@@ -85,7 +85,10 @@ const BookingReports = () => {
       </div>
 
       <section className="page-surface flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" aria-label="تحديث تقرير الحجوزات">
-        <h2 className="section-title">أحدث تقرير UNO</h2>
+        <div>
+          <h2 className="section-title">أحدث تقرير UNO</h2>
+          <p className="mt-1 text-xs font-semibold text-emerald-700">المصدر الوحيد للأرقام: UNO Voice</p>
+        </div>
         <button
           type="button"
           className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/8 px-4 text-sm font-bold text-primary disabled:cursor-wait disabled:opacity-60"

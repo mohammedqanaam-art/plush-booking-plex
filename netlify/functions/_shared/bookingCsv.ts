@@ -2,7 +2,7 @@ import { updateBookingPhoneArchive, type PhoneArchiveStatus } from "./bookingPho
 import { getEnvironmentStore } from "./storage";
 
 export type BookingRecord = Record<string, string>;
-export type BookingSourceFormat = "csv" | "uno-spreadsheetml";
+export type BookingSourceFormat = "csv" | "uno-spreadsheetml" | "uno-live-api";
 
 export type BookingStats = {
   total: number;
@@ -53,6 +53,16 @@ export class BookingCsvError extends Error {
 const MAX_REPORT_BYTES = 5 * 1024 * 1024;
 const MAX_REPORT_ROWS = 50_000;
 const SYSTEM_AGENT_IDS = new Set(["unovoice", "systemuno"]);
+
+export const isUnoBookingSourceFormat = (value: unknown): value is Exclude<BookingSourceFormat, "csv"> => (
+  value === "uno-spreadsheetml" || value === "uno-live-api"
+);
+
+const bookingSourceLabel = (format: BookingSourceFormat) => {
+  if (format === "uno-live-api") return "UNO Voice API";
+  if (format === "uno-spreadsheetml") return "UNO Excel XML (.xls)";
+  return "CSV";
+};
 
 const normalizeKey = (value: string) =>
   value
@@ -402,7 +412,7 @@ export const inspectParsedBookingReport = (parsed: ParsedBookingReport): Booking
     ...basic,
     updatedAt: new Date().toISOString(),
     sourceFormat: parsed.sourceFormat,
-    sourceLabel: parsed.sourceFormat === "uno-spreadsheetml" ? "UNO Excel XML (.xls)" : "CSV",
+    sourceLabel: bookingSourceLabel(parsed.sourceFormat),
     sourceFileName: parsed.sourceFileName,
     sourceRows: parsed.sourceRows,
     classifiedTotal,
@@ -431,8 +441,19 @@ const saveParsedBookingReport = async (parsed: ParsedBookingReport, options: Boo
     : undefined;
   if (options.updateCurrent !== false) {
     const store = getEnvironmentStore("bookings", { consistency: "strong" });
-    await store.setJSON("data", parsed.bookings);
-    await store.setJSON("stats", stats);
+    const writes = [
+      store.setJSON("data", parsed.bookings),
+      store.setJSON("stats", stats),
+    ];
+    // Keep a canonical UNO-only copy. Manual CSV/CRO imports may still be inspected,
+    // but they can never replace the figures served by the public UNO report.
+    if (isUnoBookingSourceFormat(parsed.sourceFormat)) {
+      writes.push(
+        store.setJSON("uno-data", parsed.bookings),
+        store.setJSON("uno-stats", stats),
+      );
+    }
+    await Promise.all(writes);
   }
   return { ...stats, ...(archive ? { archive } : {}) };
 };
@@ -445,7 +466,7 @@ export const saveBookingRecords = async (
   const deduplicated = deduplicateUnoRecords(bookings);
   return saveParsedBookingReport({
     bookings: deduplicated.bookings,
-    sourceFormat: "csv",
+    sourceFormat: "uno-live-api",
     sourceFileName: safeSourceName(fileName),
     sourceRows: bookings.length,
     duplicateReservations: deduplicated.duplicates,

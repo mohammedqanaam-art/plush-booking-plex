@@ -54,7 +54,7 @@ export type BookingReportStats = {
   cancelled: number;
   cancelRate: number;
   updatedAt: string;
-  sourceFormat: "csv" | "uno-spreadsheetml";
+  sourceFormat: "csv" | "uno-spreadsheetml" | "uno-live-api";
   sourceLabel: string;
   sourceFileName: string;
   sourceRows: number;
@@ -171,6 +171,7 @@ export type UnoSnapshotResponse = {
   limit: number;
   syncedAt: string | null;
   source: "automatic" | "manual" | null;
+  sourceSystem: "UNO";
   sessionExpiresAt: string | null;
   properties: string[];
   summary: {

@@ -9,6 +9,15 @@ import {
 } from "node:crypto";
 import { saveBookingRecords, type BookingRecord, type BookingSaveResult } from "./_shared/bookingCsv";
 import { getSessionToken, json, validateSession } from "./_shared/security";
+import {
+  deduplicateUnoReservations,
+  riyadhDateKey,
+  riyadhReportDate,
+  summarizeUnoReservations,
+  unoStatusGroup,
+  type UnoReportSummary,
+  type UnoReservationRecord,
+} from "./_shared/unoReportCore";
 
 const DEFAULT_UNO_RESERVATIONS_URL = "https://unolive-voice.rategain.com/view-reservations?brandId=3868248c-c053-43f2-b9c8-3188c74dfeb5&chainId=cdcc2737-a6b9-45bc-9d91-b1a760fb8026";
 const DEFAULT_UNO_API_BASE_URL = "https://uno-prod-ui-api-cpayzgdkqq-uc.a.run.app/api/";
@@ -21,7 +30,6 @@ const UNO_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RESEND_DELAY_MS = 40 * 1000;
 const SEARCH_LIMIT = 200;
-const UNO_SNAPSHOT_LIMIT = 5_000;
 const UNO_REPORT_LIMIT = 50_000;
 const UNO_REPORT_MAX_DAY_SPAN = 30;
 const UNO_REFRESH_WINDOW_MS = 45 * 60 * 1000;
@@ -101,8 +109,16 @@ type UnoSnapshot = {
   total: number;
   syncedAt: string;
   source: "automatic" | "manual";
+  sourceSystem: "UNO";
   sessionExpiresAt: string | null;
   reportFilters?: UnoReportFilters;
+  summary?: UnoReportSummary;
+  quality?: {
+    sourceRows: number;
+    duplicateReservations: number;
+    missingReservationNumber: number;
+    truncated: false;
+  };
   productivity?: {
     published: boolean;
     updatedAt?: string;
@@ -1323,19 +1339,10 @@ const fetchReservations = async (
 };
 
 const reportStatusGroup = (value: string): UnoReportStatus | "other" => {
-  const normalized = value.trim().toLocaleLowerCase("en");
-  if (normalized === "3" || /modif|معدل|معدّل/.test(normalized)) return "modified";
-  if (["-1", "c", "ns"].includes(normalized) || /cancel|no[\s-]?show|ملغ|عدم حضور/.test(normalized)) return "cancelled";
-  if (["1", "m", "o", "n", "i"].includes(normalized) || /confirm|مؤكد/.test(normalized)) return "confirmed";
-  return "other";
+  return unoStatusGroup(value);
 };
 
-const reservationDateKey = (value: string) => {
-  const direct = value.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
-  if (direct) return direct;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
-};
+const reservationDateKey = riyadhDateKey;
 
 export const filterReservationsForReport = (
   reservations: NormalizedReservation[],
@@ -1343,7 +1350,9 @@ export const filterReservationsForReport = (
 ) => reservations.filter((reservation) => {
   if (filters.property !== "all" && reservation.property !== filters.property) return false;
   const status = reportStatusGroup(reservation.status);
-  if (filters.status !== "all" && status !== filters.status) return false;
+  if (filters.status === "confirmed" && !["confirmed", "modified"].includes(status)) return false;
+  if (filters.status === "modified" && status !== "modified") return false;
+  if (filters.status === "cancelled" && status !== "cancelled") return false;
   const date = reservationDateKey(
     filters.dateType === "checkin"
       ? reservation.checkIn
@@ -1354,19 +1363,8 @@ export const filterReservationsForReport = (
   return Boolean(date && date >= filters.from && date <= filters.to);
 });
 
-const REPORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 const reportDateValue = (value: string, includeTime = false) => {
-  if (!value) return "";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  const day = parsed.getUTCDate();
-  const month = REPORT_MONTHS[parsed.getUTCMonth()];
-  const year = String(parsed.getUTCFullYear()).slice(-2);
-  if (!includeTime) return `${day} ${month} ${year}`;
-  const hour = String(parsed.getUTCHours()).padStart(2, "0");
-  const minute = String(parsed.getUTCMinutes()).padStart(2, "0");
-  return `${day} ${month} ${year}, ${hour}:${minute}`;
+  return riyadhReportDate(value, includeTime);
 };
 
 const bookingStatusForReport = (value: string) => {
@@ -1423,7 +1421,7 @@ const productivityError = (result: UnoProductivityResult) => (
   "error" in result ? result.error : undefined
 );
 
-const saveReservationSnapshot = async (
+export const saveReservationSnapshot = async (
   reservations: NormalizedReservation[],
   source: "automatic" | "manual",
   sessionExpiresAt?: string,
@@ -1431,28 +1429,26 @@ const saveReservationSnapshot = async (
   productivity?: UnoSnapshot["productivity"],
   persist = true,
 ): Promise<UnoSnapshot> => {
-  const deduplicated = new Map<string, NormalizedReservation>();
-  reservations.forEach((reservation, index) => {
-    const key = [
-      reservation.unoNumber,
-      reservation.pmsNumber,
-    ].filter(Boolean).join("|") || [
-      reservation.phone,
-      reservation.guestName,
-      reservation.property,
-      reservation.checkIn,
-      index,
-    ].join("|");
-    deduplicated.set(key, reservation);
-  });
-  const normalizedReservations = Array.from(deduplicated.values()).slice(0, UNO_SNAPSHOT_LIMIT);
+  const deduplicated = deduplicateUnoReservations(reservations as UnoReservationRecord[]);
+  const normalizedReservations = deduplicated.reservations as NormalizedReservation[];
   const snapshot = {
     reservations: normalizedReservations,
     total: normalizedReservations.length,
     syncedAt: new Date().toISOString(),
     source,
+    sourceSystem: "UNO" as const,
     sessionExpiresAt: sessionExpiresAt || null,
     reportFilters,
+    summary: summarizeUnoReservations(normalizedReservations, {
+      duplicateReservations: deduplicated.duplicates,
+      missingReservationNumber: deduplicated.missingReservationNumber,
+    }),
+    quality: {
+      sourceRows: reservations.length,
+      duplicateReservations: deduplicated.duplicates,
+      missingReservationNumber: deduplicated.missingReservationNumber,
+      truncated: false as const,
+    },
     productivity,
   };
   if (persist) await snapshotStore().setJSON("latest", snapshot);

@@ -1,4 +1,9 @@
 import type { Config } from "@netlify/functions";
+import {
+  BHG_ASSISTANT_SCOPE,
+  boudlScopeReply,
+  classifyBoudlAssistantScope,
+} from "./_shared/boudlAssistantScope";
 import { lookupOfficialBoudlSources, type OfficialSource } from "./_shared/boudl-knowledge";
 import { callN8nAgent, n8nAgentConfigured } from "./_shared/n8n";
 import { generateOpenAiText, isOpenAiAvailable, type OpenAiSource } from "./_shared/openai";
@@ -36,7 +41,7 @@ const uniqueSources = (...groups: Array<Array<PublicSource | OfficialSource | Op
 const historyFromBody = (value: unknown): ChatTurn[] => {
   if (!Array.isArray(value)) return [];
   return value
-    .slice(-10)
+    .slice(-6)
     .filter((item) => item && typeof item === "object")
     .map((item) => item as Record<string, unknown>)
     .filter((item) => item.role === "user" || item.role === "assistant")
@@ -88,16 +93,33 @@ export default async (req: Request) => {
   const history = historyFromBody(body.history);
   const requestId = crypto.randomUUID();
 
-  let officialSources: OfficialSource[] = [];
-  try {
-    officialSources = await lookupOfficialBoudlSources(message);
-  } catch (error) {
-    console.error("[visitor-agent] official source lookup failed", {
-      code: error instanceof Error ? error.message : "UNKNOWN",
+  const scope = classifyBoudlAssistantScope(
+    message,
+    history.filter((item) => item.role === "user").map((item) => item.content),
+  );
+  if (scope !== "in_scope") {
+    return json({
+      reply: boudlScopeReply(scope),
+      sessionId,
+      requestId,
+      provider: "bhg-scope-fast-path",
+      model: null,
+      sources: [],
+      scope: BHG_ASSISTANT_SCOPE,
     });
   }
 
-  if (await isOpenAiAvailable()) {
+  const [officialSources, openAiAvailable] = await Promise.all([
+    lookupOfficialBoudlSources(message).catch((error) => {
+      console.error("[visitor-agent] official source lookup failed", {
+        code: error instanceof Error ? error.message : "UNKNOWN",
+      });
+      return [] as OfficialSource[];
+    }),
+    isOpenAiAvailable().catch(() => false),
+  ]);
+
+  if (openAiAvailable) {
     try {
       const transcript = history
         .map((item) => `${item.role === "user" ? "الزائر" : "المساعد"}: ${item.content}`)
@@ -106,6 +128,7 @@ export default async (req: Request) => {
       const result = await generateOpenAiText({
         instructions: [
           "أنت المساعد الرقمي الرسمي لزوار مجموعة بودل للضيافة BHG.",
+          "نطاقك حصريًا فنادق وعلامات المجموعة: بودل، بريرا، عابر، نارسيس وزمن. ارفض باختصار أي موضوع آخر.",
           "تعامل مع الزائر بود واحترام ومرونة، وأجب باللغة التي يستخدمها.",
           "ساعد في معلومات الفنادق والفروع والمواقع والمرافق والخدمات وسياسات الإقامة العامة وطريقة الحجز والتنقل داخل موقع المجموعة.",
           "لأي معلومة متغيرة أو مرتبطة بفرع محدد، استخدم البحث في المصادر الرسمية Boudl.com وbooking.boudl.com ولا تخمن.",
@@ -120,10 +143,10 @@ export default async (req: Request) => {
           `سؤال الزائر: ${message}`,
           evidence ? `مقتطفات رسمية متاحة مسبقًا:\n${evidence}` : "",
         ].filter(Boolean).join("\n\n"),
-        maxOutputTokens: 1_400,
-        reasoningEffort: "low",
-        webSearchAllowedDomains: ["boudl.com", "booking.boudl.com"],
-        timeoutMs: 35_000,
+        maxOutputTokens: 800,
+        reasoningEffort: "none",
+        webSearchAllowedDomains: officialSources.length ? undefined : ["boudl.com", "booking.boudl.com"],
+        timeoutMs: 22_000,
       });
       return json({
         reply: result.text,
@@ -132,6 +155,7 @@ export default async (req: Request) => {
         model: result.model,
         provider: "openai-responses",
         sources: uniqueSources(result.sources, officialSources),
+        scope: BHG_ASSISTANT_SCOPE,
       });
     } catch (error) {
       console.error("[visitor-agent] OpenAI request failed", {
@@ -160,7 +184,7 @@ export default async (req: Request) => {
           noAdminActions: true,
           noBookingMutation: true,
         },
-      }, { timeoutMs: 25_000 });
+      }, { timeoutMs: 12_000 });
 
       if (result.reply) {
         const returnedSources = typeof result.data === "object" && Array.isArray(result.data.sources)
@@ -177,6 +201,7 @@ export default async (req: Request) => {
           provider: "n8n-agent",
           model: "n8n-managed",
           sources: uniqueSources(returnedSources, officialSources),
+          scope: BHG_ASSISTANT_SCOPE,
         });
       }
     } catch (error) {
@@ -193,6 +218,7 @@ export default async (req: Request) => {
     provider: "official-source-fallback",
     model: null,
     sources: uniqueSources(officialSources),
+    scope: BHG_ASSISTANT_SCOPE,
   });
 };
 

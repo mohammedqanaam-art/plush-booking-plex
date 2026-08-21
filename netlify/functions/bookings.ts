@@ -1,6 +1,11 @@
 import { json, requireSameOrigin, validateSession } from "./_shared/security";
 import { buildPublicBookingReport } from "./_shared/bookingReport";
-import { BookingCsvError, inspectBookingReportText, saveBookingReportText } from "./_shared/bookingCsv";
+import {
+  BookingCsvError,
+  inspectBookingReportText,
+  isUnoBookingSourceFormat,
+  saveBookingReportText,
+} from "./_shared/bookingCsv";
 import { publicCachedJson } from "./_shared/publicCache";
 import { getEnvironmentStore } from "./_shared/storage";
 
@@ -10,12 +15,29 @@ export default async (req: Request) => {
 
   if (method === "GET") {
     try {
-      const bookings = (await store.get("data", { type: "json" })) as Record<string, string>[] | null || [];
-      const stats = (await store.get("stats", { type: "json" })) as Record<string, unknown> | null || {
+      const [unoBookings, unoStats, legacyBookings, legacyStats] = await Promise.all([
+        store.get("uno-data", { type: "json" }).catch(() => null),
+        store.get("uno-stats", { type: "json" }).catch(() => null),
+        store.get("data", { type: "json" }).catch(() => null),
+        store.get("stats", { type: "json" }).catch(() => null),
+      ]) as [Record<string, string>[] | null, Record<string, unknown> | null, Record<string, string>[] | null, Record<string, unknown> | null];
+      // Backward compatibility for the last successful UNO sync that predates the
+      // dedicated keys. Generic CSV/CRO data is never accepted as report input.
+      const legacyFileName = String(legacyStats?.sourceFileName || "");
+      const legacyIsUno = isUnoBookingSourceFormat(legacyStats?.sourceFormat)
+        || /^uno-(?:live|reconciled)-/i.test(legacyFileName);
+      const bookings = Array.isArray(unoBookings)
+        ? unoBookings
+        : legacyIsUno && Array.isArray(legacyBookings)
+          ? legacyBookings
+          : [];
+      const stats = unoStats || (legacyIsUno ? legacyStats : null) || {
         total: 0,
         confirmed: 0,
         cancelled: 0,
         cancelRate: 0,
+        sourceFormat: "uno-live-api",
+        sourceLabel: "UNO Voice API",
       };
 
       const requestUrl = new URL(req.url);
@@ -23,7 +45,7 @@ export default async (req: Request) => {
         const settingsStore = getEnvironmentStore("settings");
         const settings = ((await settingsStore.get("site", { type: "json" })) as Record<string, unknown> | null) || {};
         const report = buildPublicBookingReport(
-          Array.isArray(bookings) ? bookings : [],
+          bookings,
           settings,
           typeof stats.updatedAt === "string" ? stats.updatedAt : null,
           {
@@ -36,7 +58,7 @@ export default async (req: Request) => {
 
       const session = await validateSession(req);
       if (!session) return json({ error: "Unauthorized" }, 401);
-      return json({ bookings: Array.isArray(bookings) ? bookings : [], stats });
+      return json({ bookings, stats });
     } catch (error) {
       console.error("[bookings] load failed", {
         code: error instanceof Error ? error.message : "UNKNOWN",
@@ -56,8 +78,21 @@ export default async (req: Request) => {
       return json({ error: "Permission Denied" }, 403);
     }
 
-    await store.setJSON("data", []);
-    await store.setJSON("stats", { total: 0, confirmed: 0, cancelled: 0, cancelRate: 0, updatedAt: new Date().toISOString() });
+    const emptyStats = {
+      total: 0,
+      confirmed: 0,
+      cancelled: 0,
+      cancelRate: 0,
+      updatedAt: new Date().toISOString(),
+      sourceFormat: "uno-live-api",
+      sourceLabel: "UNO Voice API",
+    };
+    await Promise.all([
+      store.setJSON("data", []),
+      store.setJSON("stats", emptyStats),
+      store.setJSON("uno-data", []),
+      store.setJSON("uno-stats", emptyStats),
+    ]);
     return json({ ok: true });
   }
 
@@ -81,9 +116,13 @@ export default async (req: Request) => {
     try {
       const fileName = req.headers.get("x-report-filename") || "report.csv";
       const preview = new URL(req.url).searchParams.get("preview") === "1";
+      const inspected = inspectBookingReportText(reportText, fileName);
       if (preview) {
-        const { stats } = inspectBookingReportText(reportText, fileName);
+        const { stats } = inspected;
         return json({ ok: true, preview: true, stats });
+      }
+      if (!isUnoBookingSourceFormat(inspected.stats.sourceFormat)) {
+        return json({ error: "يُعتمد تقرير الحجوزات من UNO فقط. ملفات CSV أو CRO لا تستبدل الأرقام الحالية." }, 400);
       }
       const stats = await saveBookingReportText(reportText, fileName);
       return json({ ok: true, preview: false, stats });

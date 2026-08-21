@@ -93,7 +93,7 @@ const VisitorChat = () => {
                 <strong>مساعد بودل الذكي</strong>
                 <span className="visitor-chat-model">{modelLabel}</span>
               </div>
-              <small>متاح للزوار · بدون تسجيل دخول</small>
+              <small>متاح للزوار · نطاق فنادق BHG فقط</small>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="visitor-chat-close" aria-label="إغلاق">
               <X className="h-4 w-4" />
