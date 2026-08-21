@@ -14,6 +14,7 @@ type UnoSnapshot = {
   total?: number;
   syncedAt?: string;
   source?: "automatic" | "manual";
+  sourceSystem?: "UNO";
   sessionExpiresAt?: string;
   summary?: UnoReportSummary;
   quality?: Record<string, unknown>;
@@ -132,6 +133,7 @@ export default async (req: Request) => {
     limit,
     syncedAt: snapshot.syncedAt || null,
     source: snapshot.source || null,
+    sourceSystem: "UNO",
     sessionExpiresAt: snapshot.sessionExpiresAt || null,
     properties,
     summary,
