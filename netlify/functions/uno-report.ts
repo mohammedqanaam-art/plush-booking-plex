@@ -19,9 +19,9 @@ import {
   parseUnoReportFilters,
 } from "./uno-connection";
 
-const DEFAULT_UNO_API_BASE_URL = "https://uno-prod-ui-api-1087875874170.us-central1.run.app/api/";
+const DEFAULT_UNO_API_BASE_URL = "https://uno-prod-ui-api-cpayzgdkqq-uc.a.run.app/api/";
 const DEFAULT_UNO_VOICE_API_BASE_URL = "https://ibe-prod-api-cpayzgdkqq-uc.a.run.app/api/";
-const DEFAULT_UNO_APP_VERSION = "29.2";
+const DEFAULT_UNO_APP_VERSION = "29.3";
 const VOICE_SEARCH_PATH = "voice/allreservaions";
 const SYSTEM_STATE_KEY = "system";
 const SYNC_HEALTH_KEY = "sync-health";
@@ -492,6 +492,7 @@ const executeReport = async (
         total: fetched.reservations.length,
         syncedAt,
         source,
+        sourceSystem: "UNO",
         sessionExpiresAt: new Date(active.state.expiresAt).toISOString(),
         reportFilters: filters,
         summary,
