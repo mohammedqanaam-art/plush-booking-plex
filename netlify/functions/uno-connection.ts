@@ -11,9 +11,9 @@ import { saveBookingRecords, type BookingRecord, type BookingSaveResult } from "
 import { getSessionToken, json, validateSession } from "./_shared/security";
 
 const DEFAULT_UNO_RESERVATIONS_URL = "https://unolive-voice.rategain.com/view-reservations?brandId=3868248c-c053-43f2-b9c8-3188c74dfeb5&chainId=cdcc2737-a6b9-45bc-9d91-b1a760fb8026";
-const DEFAULT_UNO_API_BASE_URL = "https://uno-prod-ui-api-1087875874170.us-central1.run.app/api/";
+const DEFAULT_UNO_API_BASE_URL = "https://uno-prod-ui-api-cpayzgdkqq-uc.a.run.app/api/";
 const DEFAULT_UNO_VOICE_API_BASE_URL = "https://ibe-prod-api-cpayzgdkqq-uc.a.run.app/api/";
-const DEFAULT_UNO_APP_VERSION = "29.2";
+const DEFAULT_UNO_APP_VERSION = "29.3";
 const AUTH_PATH = "AuthenticateUser/ValidateUserDetails";
 const VOICE_SEARCH_PATH = "voice/allreservaions";
 const LEGACY_SEARCH_PATHS = ["reservation/SearchReservations", "reservation/allreservaions"] as const;
@@ -601,14 +601,33 @@ const safeIpAddress = (context: Context) => {
   return /^[a-f0-9:.]{3,64}$/i.test(candidate) ? candidate : "0.0.0.0";
 };
 
-const authError = (payload: JsonRecord, verifying: boolean) => {
+const authError = (payload: JsonRecord, verifying: boolean, status = 0) => {
   const body = asRecord(payload.body);
   const userDetails = asRecord(body.userDetails);
+  const providerMessage = [
+    asString(payload.Message),
+    asString(payload.message),
+    asString(payload.description),
+  ].join(" ").toUpperCase();
+  if (status === 409 || providerMessage.includes("VERSION MISMATCH")) {
+    return "تغيّر إصدار UNO. تم تحديث الربط؛ أعد المحاولة.";
+  }
+  if (status === 423) return "حساب UNO مستخدم في جلسة أخرى. سجّل الخروج منها ثم أعد المحاولة.";
+  if (status === 429) return "طلبات الدخول إلى UNO كثيرة. انتظر قليلًا ثم أعد المحاولة.";
   if (isTruthy(userDetails.isLocked)) return "حساب UNO مقفل مؤقتًا.";
   if (isTruthy(userDetails.isPassWordInvalid)) return "بيانات دخول UNO غير صحيحة.";
   if (verifying) return "رمز التحقق غير صحيح أو منتهي.";
   return "تعذر تسجيل الدخول إلى UNO.";
 };
+
+const authHttpStatus = (status: number) => (
+  [409, 423, 429].includes(status) ? status : 401
+);
+
+export const unoAuthenticationHeaders = () => ({
+  Accept: "application/json",
+  "Content-Type": "application/json",
+});
 
 const postUnoAuth = async (
   configuration: ReturnType<typeof readConfiguration>,
@@ -619,11 +638,10 @@ const postUnoAuth = async (
   const endpoint = new URL(AUTH_PATH, configuration.apiBaseUrl);
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      AppVersion: configuration.appVersion,
-    },
+    // UNO's official login client deliberately omits AppVersion for this
+    // endpoint. Sending a stale version makes UNO return HTTP 409 before it
+    // validates the account, which used to surface as a generic login error.
+    headers: unoAuthenticationHeaders(),
     body: JSON.stringify({
       userEmail: configuration.username,
       password: createHash("sha256").update(configuration.password).digest("hex"),
@@ -636,6 +654,25 @@ const postUnoAuth = async (
   });
   const payload = asRecord(await response.json().catch(() => ({})));
   return { response, payload };
+};
+
+export const fetchWithUnoVersionFallback = async (
+  endpoint: URL,
+  init: Omit<RequestInit, "signal">,
+  timeoutMs: number,
+) => {
+  const send = (headers: HeadersInit | undefined) => fetch(endpoint, {
+    ...init,
+    headers,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const response = await send(init.headers);
+  if (response.status !== 409) return response;
+
+  const fallbackHeaders = new Headers(init.headers);
+  if (!fallbackHeaders.has("AppVersion")) return response;
+  fallbackHeaders.delete("AppVersion");
+  return send(fallbackHeaders);
 };
 
 const propertyList = (userDetails: JsonRecord) => {
@@ -703,7 +740,7 @@ async function refreshConnectedState(
       `AuthenticateUser/RefreshToken/${encodeURIComponent(tokenUserId)}`,
       configuration.apiBaseUrl,
     );
-    const response = await fetch(endpoint, {
+    const response = await fetchWithUnoVersionFallback(endpoint, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -715,8 +752,7 @@ async function refreshConnectedState(
         IPAddress: session.ipAddress,
       },
       body: "{}",
-      signal: AbortSignal.timeout(15_000),
-    });
+    }, 15_000);
     if (!response.ok) return null;
 
     const payload = asRecord(await response.json().catch(() => ({})));
@@ -846,7 +882,7 @@ const connect = async (
       await setState(key, state);
       return json(publicStatus(configuration, "otp", state));
     }
-    return json({ error: authError(payload, false) }, response.status === 429 ? 429 : 401);
+    return json({ error: authError(payload, false, response.status) }, authHttpStatus(response.status));
   } catch {
     return json({ error: "تعذر الوصول إلى UNO." }, 502);
   }
@@ -884,7 +920,7 @@ const verifyOtp = async (
       }, 429);
     }
     await setState(key, { ...active.state, attempts });
-    return json({ error: authError(payload, true) }, 401);
+    return json({ error: authError(payload, true, response.status) }, authHttpStatus(response.status));
   } catch {
     return json({ error: "تعذر التحقق من الرمز." }, 502);
   }
@@ -907,7 +943,7 @@ const resendOtp = async (
   try {
     const { response, payload } = await postUnoAuth(configuration, active.state.ipAddress, 0);
     if (!response.ok || !hasOtpChallenge(payload)) {
-      return json({ error: authError(payload, false) }, response.status === 429 ? 429 : 401);
+      return json({ error: authError(payload, false, response.status) }, authHttpStatus(response.status));
     }
     const now = Date.now();
     const state: PendingState = {
@@ -1152,12 +1188,11 @@ const enrichPhoneReservations = async (
         propertyID: propertyId,
       }).toString();
       try {
-        const response = await fetch(endpoint, {
+        const response = await fetchWithUnoVersionFallback(endpoint, {
           method: "POST",
           headers: unoHeaders(session, configuration),
           body: "{}",
-          signal: AbortSignal.timeout(12_000),
-        });
+        }, 12_000);
         if (!response.ok) return record;
         const payload = await response.json().catch(() => ({}));
         return { ...record, reservationDetails: payload };
@@ -1252,12 +1287,11 @@ const fetchReservations = async (
       isBookingDateUsed: String(reportFilters?.dateType === "booking"),
       ServerSidePagination: "false",
     }).toString();
-    const response = await fetch(endpoint, {
+    const response = await fetchWithUnoVersionFallback(endpoint, {
       method: "POST",
       headers: unoHeaders(session, configuration),
       body: JSON.stringify(legacySearchPayload),
-      signal: AbortSignal.timeout(25_000),
-    });
+    }, 25_000);
     lastStatus = response.status;
     if (response.status === 401 || response.status === 403) {
       unauthorized = true;
@@ -1385,6 +1419,10 @@ const publishProductivityReport = async (
 type UnoProductivityResult = Awaited<ReturnType<typeof publishProductivityReport>>
   | { published: false; skipped: true; error?: undefined };
 
+const productivityError = (result: UnoProductivityResult) => (
+  "error" in result ? result.error : undefined
+);
+
 const saveReservationSnapshot = async (
   reservations: NormalizedReservation[],
   source: "automatic" | "manual",
@@ -1447,7 +1485,7 @@ const exportLiveReport = async (
         records: productivity.stats.classifiedTotal,
         employees: productivity.stats.employeeCount,
       }
-    : { published: false, error: productivity.error };
+    : { published: false, error: productivityError(productivity) };
   const snapshot = await saveReservationSnapshot(
     reportReservations,
     source,
@@ -1674,7 +1712,7 @@ const listReservations = async (
       productivityUpdatedAt: exported.productivity.published ? exported.productivity.stats.updatedAt : undefined,
       productivityRecords: exported.productivity.published ? exported.productivity.stats.classifiedTotal : undefined,
       productivityEmployees: exported.productivity.published ? exported.productivity.stats.employeeCount : undefined,
-      reportError: exported.productivity.published ? undefined : exported.productivity.error,
+      reportError: exported.productivity.published ? undefined : productivityError(exported.productivity),
     });
   } catch {
     return json({ error: "تعذر تحميل حجوزات UNO." }, 502);
