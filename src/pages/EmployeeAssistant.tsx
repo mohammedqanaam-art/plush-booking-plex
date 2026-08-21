@@ -79,7 +79,7 @@ const EmployeeAssistant = () => {
             </div>
             <div>
               <strong className="block text-sm">خدمة ذكية للزوار والموظفين</strong>
-              <span className="text-[11px] text-white/70">بدون تسجيل دخول · المصادر الرسمية أولًا</span>
+              <span className="text-[11px] text-white/70">نطاق فنادق BHG فقط · المصادر الرسمية أولًا</span>
             </div>
           </div>
           <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold">{modelLabel}</span>
