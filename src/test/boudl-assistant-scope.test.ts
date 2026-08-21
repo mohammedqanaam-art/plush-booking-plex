@@ -5,6 +5,7 @@ import {
   classifyBoudlAssistantScope,
 } from "../../netlify/functions/_shared/boudlAssistantScope";
 import visitorAgent from "../../netlify/functions/visitor-agent";
+import { isCacheableBoudlQuestion } from "../../netlify/functions/_shared/boudlAssistantCache";
 
 describe("BHG hotel assistant scope", () => {
   it("accepts BHG brands and hotel service questions", () => {
@@ -30,6 +31,12 @@ describe("BHG hotel assistant scope", () => {
     expect(classifyBoudlAssistantScope("وكم السعر؟", ["مرحبًا"])).toBe("out_of_scope");
   });
 
+  it("caches only standalone questions with stable hotel facts", () => {
+    expect(isCacheableBoudlQuestion("ما فروع بودل في الرياض؟", false)).toBe(true);
+    expect(isCacheableBoudlQuestion("ما سعر الغرفة اليوم؟", false)).toBe(false);
+    expect(isCacheableBoudlQuestion("هل توجد مواقف؟", true)).toBe(false);
+  });
+
   it("uses cached official evidence and skips duplicate web search when evidence exists", () => {
     const visitor = readFileSync("netlify/functions/visitor-agent.ts", "utf8");
     const knowledge = readFileSync("netlify/functions/_shared/boudl-knowledge.ts", "utf8");
@@ -37,6 +44,8 @@ describe("BHG hotel assistant scope", () => {
 
     expect(BHG_ASSISTANT_SCOPE).toBe("bhg-hotels");
     expect(visitor).toContain("bhg-scope-fast-path");
+    expect(visitor).toContain("bhg-answer-cache");
+    expect(visitor).toContain("context.waitUntil(write)");
     expect(visitor).toContain("officialSources.length ? undefined");
     expect(visitor).toContain("maxOutputTokens: 800");
     expect(knowledge).toContain("officialPageCacheKey");
