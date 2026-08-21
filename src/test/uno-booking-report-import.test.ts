@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   inspectBookingReportText,
+  isUnoBookingSourceFormat,
   parseBookingReportText,
   parseUnoSpreadsheetXml,
 } from "../../netlify/functions/_shared/bookingCsv";
@@ -27,6 +28,11 @@ const unoXml = `<?xml version="1.0"?>
 </Workbook>`;
 
 describe("UNO employee booking report import", () => {
+  it("marks only UNO API and UNO SpreadsheetML as trusted booking sources", () => {
+    expect(isUnoBookingSourceFormat("uno-live-api")).toBe(true);
+    expect(isUnoBookingSourceFormat("uno-spreadsheetml")).toBe(true);
+    expect(isUnoBookingSourceFormat("csv")).toBe(false);
+  });
   it("recognizes SpreadsheetML exported with an .xls extension", () => {
     const records = parseUnoSpreadsheetXml(unoXml);
     expect(records).toHaveLength(4);
