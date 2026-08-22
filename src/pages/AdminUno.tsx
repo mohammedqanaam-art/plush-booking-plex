@@ -67,6 +67,12 @@ const riyadhToday = () => {
   return `${value("year")}-${value("month")}-${value("day")}`;
 };
 
+const monthEnd = (value: string) => {
+  const [year, month] = value.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return `${value.slice(0, 7)}-${String(lastDay).padStart(2, "0")}`;
+};
+
 const dateKey = (value: string) => {
   const iso = value.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
   if (iso) return iso;
@@ -95,9 +101,9 @@ const AdminUno = () => {
   const [snapshotTotal, setSnapshotTotal] = useState(0);
   const [snapshotSource, setSnapshotSource] = useState<"automatic" | "manual" | null>(null);
   const reportToday = riyadhToday();
-  const [reportDateType, setReportDateType] = useState<UnoReportFilters["dateType"]>("booking");
+  const [reportDateType, setReportDateType] = useState<UnoReportFilters["dateType"]>("checkout");
   const [reportFrom, setReportFrom] = useState(`${reportToday.slice(0, 7)}-01`);
-  const [reportTo, setReportTo] = useState(reportToday);
+  const [reportTo, setReportTo] = useState(monthEnd(reportToday));
   const [reportProperty, setReportProperty] = useState("all");
   const [reportStatus, setReportStatus] = useState<UnoReportFilters["status"]>("all");
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
@@ -662,7 +668,7 @@ const AdminUno = () => {
             </div>
           ) : null}
           <p className="text-[11px] leading-5 text-muted-foreground">
-            المزامنة العامة تستخدم تلقائيًا حجوزات الشهر الحالي لجميع المنشآت والحالات. الفلاتر أدناه للتصدير اليدوي ولا تغيّر النسخة العامة إلا عند اختيار نطاق الشهر الحالي كاملًا.
+            المزامنة العامة تطابق فلتر UNO Voice: تاريخ المغادرة من أول الشهر إلى آخره، لجميع المنشآت والحالات. الفلاتر أدناه للتصدير اليدوي ولا تغيّر النسخة العامة إلا عند اختيار النطاق نفسه كاملًا.
           </p>
           <div className="grid gap-2 rounded-2xl border border-border/50 bg-secondary/15 p-3 md:grid-cols-2 xl:grid-cols-5" aria-label="فلاتر تقرير UNO">
             <label className="text-xs font-bold">
