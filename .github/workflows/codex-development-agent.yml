@@ -1,0 +1,152 @@
+name: Codex Development Agent
+
+on:
+  repository_dispatch:
+    types: [codex_task]
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Development task for Codex"
+        required: true
+        type: string
+
+concurrency:
+  group: codex-development-agent
+  cancel-in-progress: false
+
+jobs:
+  codex:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      has_changes: ${{ steps.capture.outputs.has_changes }}
+    env:
+      TASK: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.task || inputs.task }}
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run Codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          prompt: |
+            You are the development agent for the BHG reservation dashboard repository.
+
+            Requested task:
+            ${{ env.TASK }}
+
+            Rules:
+            - Work only inside this repository checkout.
+            - Never reveal, print, copy, or commit secrets, credentials, tokens, cookies, or customer data.
+            - Do not push directly to main.
+            - Preserve existing functionality unless the task explicitly requires a change.
+            - Prefer the smallest maintainable change that fully solves the task.
+            - Do not weaken authentication, authorization, rate limits, validation, logging, or security controls.
+            - Do not change production environment variables or external service credentials.
+            - For Netlify Functions, preserve existing API routes unless the task explicitly requires a migration.
+            - Check existing code before creating duplicate modules or integrations.
+            - Update or add tests when behavior changes.
+            - Leave the working tree containing only the intended code changes.
+          output-file: codex-output.md
+
+      - name: Capture Codex patch
+        id: capture
+        shell: bash
+        run: |
+          git add -N .
+          git diff --binary --no-ext-diff > codex.patch
+          if [ -s codex.patch ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload isolated patch
+        if: steps.capture.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-patch-${{ github.run_id }}
+          path: codex.patch
+          if-no-files-found: error
+          retention-days: 7
+
+  validate-and-open-pr:
+    needs: codex
+    if: needs.codex.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout clean main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download Codex patch
+        uses: actions/download-artifact@v4
+        with:
+          name: codex-patch-${{ github.run_id }}
+
+      - name: Apply patch to clean checkout
+        run: git apply --index codex.patch
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Netlify configuration
+        run: npm run check:netlify-toml
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Create development branch and commit
+        id: branch
+        shell: bash
+        run: |
+          BRANCH="codex/n8n-${GITHUB_RUN_ID}"
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+          git config user.name "codex-development-agent"
+          git config user.email "codex-development-agent@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "Codex: n8n development task"
+          git push origin "$BRANCH"
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+          TASK: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.task || inputs.task }}
+        shell: bash
+        run: |
+          printf '%s\n\n%s\n\n%s\n' \
+            'Automated development task received through the controlled Codex pipeline.' \
+            "Task: $TASK" \
+            'Validation completed: Netlify config, lint, tests, and production build.' > pr-body.md
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Codex: automated development task" \
+            --body-file pr-body.md
