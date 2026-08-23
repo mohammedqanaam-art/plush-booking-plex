@@ -180,12 +180,10 @@ const riyadhToday = () => {
 
 export const currentMonthUnoSyncFilters = (): UnoReportFilters => {
   const today = riyadhToday();
-  const [year, month] = today.split("-").map(Number);
-  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
   return {
-    dateType: "checkout",
+    dateType: "booking",
     from: `${today.slice(0, 7)}-01`,
-    to: `${today.slice(0, 7)}-${String(lastDay).padStart(2, "0")}`,
+    to: today,
     property: "all",
     status: "all",
   };
