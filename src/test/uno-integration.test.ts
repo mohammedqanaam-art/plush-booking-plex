@@ -67,7 +67,8 @@ describe("UNO integration boundary", () => {
     expect(fn).toContain("saveBookingRecords");
     expect(page).toContain("api.exportUnoReport(reportFilters)");
     expect(page).toContain('autoComplete="one-time-code"');
-    expect(page).toContain("الملغاة / NS");
+    expect(page).toContain("الملغاة (Cancelled)");
+    expect(page).not.toContain("الملغاة / NS");
     expect(fn).toContain('const DEFAULT_UNO_RESERVATIONS_URL = "https://unolive-voice.rategain.com/view-reservations?brandId=3868248c-c053-43f2-b9c8-3188c74dfeb5&chainId=cdcc2737-a6b9-45bc-9d91-b1a760fb8026"');
     expect(fn).toContain('trimmedEnv("UNO_RESERVATIONS_URL")');
     expect(fn).toContain('trimmedEnv("UNO_LOGIN_URL")');
@@ -235,7 +236,7 @@ describe("UNO integration boundary", () => {
       agentName: "Hani Alotaibi",
       property: "Hotel",
       city: "",
-      status: "مؤكد",
+      status: "Confirmed",
       checkIn: "2026-08-01",
       checkOut: "2026-08-03",
       bookingDate: "",
@@ -295,7 +296,7 @@ describe("UNO integration boundary", () => {
       agentName: "Agent One",
       property: "Braira Olaya",
       city: "Riyadh",
-      status: "M",
+      status: "Confirmed",
       checkIn: "2026-08-20",
       checkOut: "2026-08-21",
       bookingDate: "2026-08-19T23:30:00Z",
@@ -323,7 +324,7 @@ describe("UNO integration boundary", () => {
     const base = normalizeReservation({
       reservationNo: "UNO-9988",
       createdBy: "Agent One",
-      resStatus: "M",
+      statusName: "Confirmed",
       reservationDate: "2026-08-17",
     });
     const snapshot = await saveReservationSnapshot([
@@ -340,10 +341,10 @@ describe("UNO integration boundary", () => {
     expect(snapshot.quality?.duplicateReservations).toBe(1);
   });
 
-  it("counts Modified with active confirmed reservations in legacy UNO filtering", () => {
-    const confirmed = normalizeReservation({ reservationNo: "1", resStatus: "M", reservationDate: "2026-08-17" });
-    const modified = normalizeReservation({ reservationNo: "2", resStatus: "Modified", reservationDate: "2026-08-17" });
-    const cancelled = normalizeReservation({ reservationNo: "3", resStatus: "NS", reservationDate: "2026-08-17" });
+  it("counts Modified with active confirmed reservations using UNO textual statuses", () => {
+    const confirmed = normalizeReservation({ reservationNo: "1", statusName: "Confirmed", reservationDate: "2026-08-17" });
+    const modified = normalizeReservation({ reservationNo: "2", statusName: "Modified", reservationDate: "2026-08-17" });
+    const cancelled = normalizeReservation({ reservationNo: "3", statusName: "Cancelled", reservationDate: "2026-08-17" });
     expect(filterReservationsForReport([confirmed, modified, cancelled], {
       dateType: "booking",
       from: "2026-08-01",
@@ -363,7 +364,7 @@ describe("UNO integration boundary", () => {
       firstName: "Guest",
       lastName: "One",
       name: "Braira Olaya",
-      resStatus: 1,
+      statusName: "Confirmed",
     });
     expect(filterReservationsForReport([reservation], {
       dateType: "booking",

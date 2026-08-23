@@ -26,9 +26,7 @@ export const normalizeUnoNumber = (value: string) => String(value || "")
 
 export const isOperaEligibleStatus = (value: string) => {
   const status = String(value || "").trim().toLocaleLowerCase("en");
-  if (["c", "ns", "-1"].includes(status) || /cancel|no[\s-]?show|ملغ|عدم حضور/.test(status)) return false;
-  return ["1", "3", "m", "o", "n", "i"].includes(status)
-    || /confirm|modif|مؤكد|معدل|معدّل/.test(status);
+  return status === "confirmed" || status === "modified";
 };
 
 export const operaRegionForReservation = (reservation: UnoReservation): OperaRegion => {

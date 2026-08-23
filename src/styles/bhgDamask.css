@@ -12,6 +12,7 @@
   --bhg-damask-faint: rgba(6, 63, 50, .045);
   --bhg-damask-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='112' viewBox='0 0 112 112'%3E%3Cg fill='none' stroke='%23063f32' stroke-opacity='.16' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M56 8c-4 12-15 17-15 29 0 8 6 14 15 18 9-4 15-10 15-18 0-12-11-17-15-29Z'/%3E%3Cpath d='M56 19c-1 11-8 17-8 24 0 5 3 9 8 12 5-3 8-7 8-12 0-7-7-13-8-24Z'/%3E%3Cpath d='M8 56c12-4 17-15 29-15 8 0 14 6 18 15-4 9-10 15-18 15-12 0-17-11-29-15Z'/%3E%3Cpath d='M104 56c-12-4-17-15-29-15-8 0-14 6-18 15 4 9 10 15 18 15 12 0 17-11 29-15Z'/%3E%3Cpath d='M56 104c-4-12-15-17-15-29 0-8 6-14 15-18 9 4 15 10 15 18 0 12-11 17-15 29Z'/%3E%3Cpath d='M24 24c9 2 15 8 17 17M88 24c-9 2-15 8-17 17M24 88c9-2 15-8 17-17M88 88c-9-2-15-8-17-17'/%3E%3Ccircle cx='56' cy='56' r='3.5'/%3E%3C/g%3E%3C/svg%3E");
   --bhg-damask-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='180' viewBox='0 0 280 180'%3E%3Cg fill='none' stroke='%23063f32' stroke-opacity='.14' stroke-linecap='round'%3E%3Cpath d='M275 7C218 14 179 42 161 86c-13 31-37 54-75 68'/%3E%3Cpath d='M278 32c-39 8-66 28-80 59-13 29-35 48-66 61'/%3E%3Cpath d='M218 42c-5 21 3 35 25 43-22 5-36-3-43-24'/%3E%3Cpath d='M171 84c-3 18 6 30 26 35-19 7-33 1-42-17'/%3E%3Cpath d='M123 132c0 14 9 22 25 25-14 7-26 4-35-8'/%3E%3Cpath d='M253 14c2 13 10 21 23 24M197 56c-9-2-17 1-24 9M151 108c-10-1-18 3-24 11'/%3E%3C/g%3E%3C/svg%3E");
+  --bhg-damascus-sword: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180' viewBox='0 0 320 180'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M42 145C106 116 151 73 196 24c10-11 22-15 35-14-3 13-9 24-20 33-49 43-94 86-151 119Z' stroke='%23063f32' stroke-opacity='.18' stroke-width='2.2'/%3E%3Cpath d='M56 146c57-30 100-70 145-117' stroke='%23b49350' stroke-opacity='.28' stroke-width='1.5'/%3E%3Cpath d='M34 133l39 35M29 150l59-9' stroke='%23063f32' stroke-opacity='.2' stroke-width='5'/%3E%3Cpath d='M30 151l-14 15M34 157l-12 13' stroke='%23b49350' stroke-opacity='.3' stroke-width='3'/%3E%3Cpath d='M108 118c31-18 55-42 79-69M125 120c29-20 51-43 72-68' stroke='%23b49350' stroke-opacity='.13' stroke-width='1'/%3E%3Cpath d='M232 32c18 15 32 32 42 52M223 41c18 12 34 28 47 48' stroke='%23063f32' stroke-opacity='.08'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 html,
@@ -147,14 +148,16 @@ body {
 .admin-tool-card,
 .service-card {
   border-color: rgba(6, 63, 50, .105) !important;
-  background-color: rgba(255, 253, 249, .97) !important;
+  background-color: rgba(255, 253, 249, .78) !important;
   background-image:
     var(--bhg-damask-corner),
-    linear-gradient(115deg, rgba(255, 253, 249, .98) 0 74%, rgba(236, 244, 240, .82)) !important;
+    linear-gradient(115deg, rgba(255, 253, 249, .86) 0 70%, rgba(230, 241, 236, .62)) !important;
   background-position: top left, center !important;
   background-size: 220px 142px, auto !important;
   background-repeat: no-repeat !important;
   box-shadow: 0 1px 2px rgba(6, 63, 50, .025), 0 14px 36px rgba(6, 63, 50, .06) !important;
+  -webkit-backdrop-filter: blur(15px) saturate(112%);
+  backdrop-filter: blur(15px) saturate(112%);
 }
 
 .card-hover:hover,
@@ -212,13 +215,45 @@ option {
 .app-shell--admin .compact-card,
 .app-shell--admin .admin-tool-card {
   border-color: rgba(6, 63, 50, .12) !important;
-  background-color: rgba(255, 253, 249, .97) !important;
+  background-color: rgba(255, 253, 249, .76) !important;
   background-image:
     var(--bhg-damask-corner),
-    linear-gradient(115deg, rgba(255, 253, 249, .98) 0 74%, rgba(236, 244, 240, .82)) !important;
+    linear-gradient(115deg, rgba(255, 253, 249, .84) 0 70%, rgba(228, 240, 234, .58)) !important;
   background-position: top left, center !important;
   background-size: 220px 142px, auto !important;
   background-repeat: no-repeat !important;
+  -webkit-backdrop-filter: blur(16px) saturate(115%);
+  backdrop-filter: blur(16px) saturate(115%);
+}
+
+/* UNO command center — calm glass surfaces with a restrained Damascene sword ornament. */
+.uno-command-center {
+  position: relative;
+  isolation: isolate;
+}
+
+.uno-command-center::before {
+  position: absolute;
+  inset: -22px -18px auto auto;
+  z-index: -1;
+  width: min(46vw, 350px);
+  height: 200px;
+  content: "";
+  pointer-events: none;
+  background: var(--bhg-damascus-sword) top right / contain no-repeat;
+  opacity: .8;
+  filter: drop-shadow(0 14px 30px rgba(6, 63, 50, .055));
+}
+
+.uno-command-center .page-surface,
+.uno-command-center .compact-card {
+  border-color: rgba(6, 63, 50, .105) !important;
+  box-shadow: 0 16px 40px rgba(6, 63, 50, .052), inset 0 1px 0 rgba(255, 255, 255, .74) !important;
+}
+
+.uno-command-center .page-surface:hover,
+.uno-command-center .compact-card:hover {
+  border-color: rgba(180, 147, 80, .24) !important;
 }
 
 .brand-footer {

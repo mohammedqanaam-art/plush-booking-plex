@@ -27,6 +27,7 @@ export type UnoReservationRecord = {
 
 export type UnoReportSummary = {
   total: number;
+  confirmedOnly: number;
   confirmed: number;
   modified: number;
   cancelled: number;
@@ -51,9 +52,9 @@ const normalizeName = (value: string) => clean(value).replace(/\s+/g, " ").toLoc
 
 export const unoStatusGroup = (value: string): "confirmed" | "modified" | "cancelled" | "other" => {
   const normalized = clean(value).toLocaleLowerCase("en");
-  if (normalized === "3" || /modif|معدل|معدّل/.test(normalized)) return "modified";
-  if (["-1", "2", "c", "ns"].includes(normalized) || /cancel|no[\s-]?show|ملغ|عدم حضور/.test(normalized)) return "cancelled";
-  if (["1", "m", "o", "n", "i"].includes(normalized) || /confirm|مؤكد/.test(normalized)) return "confirmed";
+  if (normalized === "modified") return "modified";
+  if (["cancel", "canceled", "cancelled"].includes(normalized)) return "cancelled";
+  if (normalized === "confirmed") return "confirmed";
   return "other";
 };
 
@@ -183,6 +184,7 @@ export const summarizeUnoReservations = (
 ): UnoReportSummary => {
   const summary: UnoReportSummary = {
     total: reservations.length,
+    confirmedOnly: 0,
     confirmed: 0,
     modified: 0,
     cancelled: 0,
@@ -197,7 +199,7 @@ export const summarizeUnoReservations = (
 
   for (const reservation of reservations) {
     const group = unoStatusGroup(reservation.status);
-    if (group === "confirmed") summary.confirmed += 1;
+    if (group === "confirmed") summary.confirmedOnly += 1;
     else if (group === "modified") summary.modified += 1;
     else if (group === "cancelled") summary.cancelled += 1;
     else summary.other += 1;
@@ -213,6 +215,6 @@ export const summarizeUnoReservations = (
   }
 
   // For operational reporting, modified reservations are still active/confirmed reservations.
-  summary.confirmed += summary.modified;
+  summary.confirmed = summary.confirmedOnly + summary.modified;
   return summary;
 };

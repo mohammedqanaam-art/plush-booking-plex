@@ -22,6 +22,8 @@ import {
   type UnoConnectionStatus,
   type UnoReportFilters,
   type UnoReservation,
+  type UnoReportQuality,
+  type UnoReportSummary,
   type UnoSearchField,
 } from "@/lib/api";
 import { buildOperaExport, normalizeUnoNumber } from "@/lib/unoOperaExport";
@@ -76,8 +78,8 @@ const dateKey = (value: string) => {
 
 const reservationState = (status: string) => {
   const normalized = status.trim().toLocaleLowerCase("en");
-  if (["c", "ns"].includes(normalized) || /ملغ|عدم حضور|cancel|no[\s-]?show/.test(normalized)) return "cancelled";
-  if (["1", "3", "m", "o", "n", "i"].includes(normalized) || /مؤكد|معدل|معدّل|confirm|modif/.test(normalized)) return "confirmed";
+  if (["cancel", "canceled", "cancelled"].includes(normalized)) return "cancelled";
+  if (["confirmed", "modified"].includes(normalized)) return "confirmed";
   return "other";
 };
 
@@ -94,6 +96,7 @@ const AdminUno = () => {
   const [snapshotSyncedAt, setSnapshotSyncedAt] = useState<string | null>(null);
   const [snapshotTotal, setSnapshotTotal] = useState(0);
   const [snapshotSource, setSnapshotSource] = useState<"automatic" | "manual" | null>(null);
+  const [reportAudit, setReportAudit] = useState<{ summary: UnoReportSummary; quality: UnoReportQuality | null } | null>(null);
   const reportToday = riyadhToday();
   const [reportDateType, setReportDateType] = useState<UnoReportFilters["dateType"]>("booking");
   const [reportFrom, setReportFrom] = useState(`${reportToday.slice(0, 7)}-01`);
@@ -131,6 +134,7 @@ const AdminUno = () => {
         setSnapshotSyncedAt(snapshot.syncedAt);
         setSnapshotTotal(snapshot.summary.total);
         setSnapshotSource(snapshot.source);
+        setReportAudit({ summary: snapshot.summary, quality: snapshot.quality });
       })
       .catch(() => undefined);
   }, []);
@@ -179,6 +183,7 @@ const AdminUno = () => {
         setSnapshotSyncedAt(snapshot.syncedAt);
         setSnapshotTotal(snapshot.summary.total);
         setSnapshotSource(snapshot.source);
+        setReportAudit({ summary: snapshot.summary, quality: snapshot.quality });
         if (next.productivityReady) {
           setMessage(`تم التحقق من OTP وتحديث تقرير الإنتاجية من UNO: ${(next.productivityRecords ?? snapshot.summary.total).toLocaleString("ar-SA")} سجل · ${(next.productivityEmployees ?? 0).toLocaleString("ar-SA")} موظف.`);
         } else if (next.reportError) {
@@ -233,6 +238,7 @@ const AdminUno = () => {
       setSnapshotSyncedAt(snapshot.syncedAt);
       setSnapshotTotal(snapshot.summary.total);
       setSnapshotSource(snapshot.source);
+      setReportAudit(null);
       resetResultFilters();
 
       if (snapshot.reservations.length || status?.phase !== "connected") {
@@ -262,6 +268,7 @@ const AdminUno = () => {
       setSnapshotSyncedAt(snapshot.syncedAt);
       setSnapshotTotal(snapshot.summary.total);
       setSnapshotSource(snapshot.source);
+      setReportAudit({ summary: snapshot.summary, quality: snapshot.quality });
       resetResultFilters();
       setMessage(snapshot.total ? "" : "لا توجد بيانات UNO متزامنة حتى الآن.");
     } catch (error) {
@@ -279,6 +286,7 @@ const AdminUno = () => {
     try {
       const response = await api.exportUnoReport(reportFilters);
       setResults(response.reservations);
+      if (response.summary) setReportAudit({ summary: response.summary, quality: response.quality || null });
       if (response.canonicalUpdated) {
         setSnapshotSyncedAt(response.syncedAt || response.searchedAt);
         setSnapshotTotal(response.total);
@@ -578,7 +586,7 @@ const AdminUno = () => {
           : "المزامنة غير مفعّلة";
 
   return (
-    <div className="page-wrap-narrow">
+    <div className="page-wrap-narrow uno-command-center">
       <PageHeader
         title="UNO Voice"
         icon={Cable}
@@ -686,7 +694,7 @@ const AdminUno = () => {
               <select className="h-10 w-full rounded-xl border bg-background px-3" value={reportStatus} onChange={(event) => setReportStatus(event.target.value as UnoReportFilters["status"])} disabled={phase === "otp"}>
                 <option value="all">الكل</option>
                 <option value="confirmed">مؤكد</option>
-                <option value="cancelled">ملغي / No-show</option>
+                <option value="cancelled">Cancelled</option>
                 <option value="modified">معدل</option>
               </select>
             </label>
@@ -905,8 +913,8 @@ const AdminUno = () => {
             <>
               <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {[
-                  { filter: "confirmed" as const, label: "المؤكدة", value: resultSummary.confirmed, icon: CheckCircle2, tone: "text-emerald-700" },
-                  { filter: "cancelled" as const, label: "الملغاة / NS", value: resultSummary.cancelled, icon: LogOut, tone: "text-red-700" },
+                  { filter: "confirmed" as const, label: "المؤكد الفعلي (Confirmed + Modified)", value: resultSummary.confirmed, icon: CheckCircle2, tone: "text-emerald-700" },
+                  { filter: "cancelled" as const, label: "الملغاة (Cancelled)", value: resultSummary.cancelled, icon: LogOut, tone: "text-red-700" },
                   { filter: "arrivals" as const, label: "وصول اليوم", value: resultSummary.arrivals, icon: CalendarCheck2, tone: "text-primary" },
                   { filter: "departures" as const, label: "مغادرة اليوم", value: resultSummary.departures, icon: CalendarClock, tone: "text-amber-700" },
                 ].map(({ filter: nextFilter, label, value, icon: Icon, tone }) => (
@@ -924,6 +932,31 @@ const AdminUno = () => {
                   </button>
                 ))}
               </section>
+
+              {reportAudit ? (
+                <section className="page-surface space-y-2" aria-label="تدقيق أرقام تقرير UNO">
+                  <div>
+                    <h2 className="section-title">تدقيق أرقام UNO</h2>
+                    <p className="mt-1 text-xs text-muted-foreground">لا تجمع Modified مرة أخرى؛ فهو داخل المؤكد الفعلي. القيم غير النصية مثل C وNS لا تدخل في المؤكد أو الملغى.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
+                    {[
+                      ["صفوف المصدر", reportAudit.quality?.sourceRows ?? reportAudit.summary.total],
+                      ["تكرارات مستبعدة", reportAudit.quality?.duplicateReservations ?? reportAudit.summary.duplicateReservations],
+                      ["الصافي", reportAudit.summary.total],
+                      ["Confirmed فقط", reportAudit.summary.confirmedOnly ?? Math.max(0, reportAudit.summary.confirmed - reportAudit.summary.modified)],
+                      ["Modified", reportAudit.summary.modified],
+                      ["Cancelled", reportAudit.summary.cancelled],
+                      ["غير مصنف", reportAudit.summary.other],
+                    ].map(([label, value]) => (
+                      <div key={String(label)} className="rounded-xl border border-border/50 bg-secondary/20 p-3">
+                        <span className="block text-[11px] text-muted-foreground">{label}</span>
+                        <strong className="mt-1 block text-xl">{Number(value).toLocaleString("ar-SA")}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
 
               <section className="page-surface space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">

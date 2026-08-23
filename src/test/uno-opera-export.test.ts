@@ -24,7 +24,7 @@ describe("UNO OPERA export", () => {
   it("treats confirmed and modified reservations as OPERA eligible", () => {
     expect(isOperaEligibleStatus("Confirmed")).toBe(true);
     expect(isOperaEligibleStatus("Modified")).toBe(true);
-    expect(isOperaEligibleStatus("3")).toBe(true);
+    expect(isOperaEligibleStatus("3")).toBe(false);
     expect(isOperaEligibleStatus("Cancelled")).toBe(false);
     expect(isOperaEligibleStatus("NS")).toBe(false);
   });

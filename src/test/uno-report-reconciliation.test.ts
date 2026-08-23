@@ -57,15 +57,12 @@ describe("UNO reconciled reporting", () => {
     expect(riyadhDateKey("2026-08-17")).toBe("2026-08-17");
   });
 
-  it("maps all operational statuses consistently", () => {
-    for (const value of ["1", "M", "O", "N", "I", "Confirmed", "مؤكد"]) {
-      expect(unoStatusGroup(value)).toBe("confirmed");
-    }
-    for (const value of ["3", "Modified", "معدل", "معدّل"]) {
-      expect(unoStatusGroup(value)).toBe("modified");
-    }
-    for (const value of ["-1", "2", "C", "NS", "Cancelled", "No-show", "عدم حضور"]) {
-      expect(unoStatusGroup(value)).toBe("cancelled");
+  it("uses only UNO textual statuses and rejects legacy CRO/Opera codes", () => {
+    expect(unoStatusGroup("Confirmed")).toBe("confirmed");
+    expect(unoStatusGroup("Modified")).toBe("modified");
+    expect(unoStatusGroup("Cancelled")).toBe("cancelled");
+    for (const value of ["1", "3", "M", "O", "N", "I", "C", "NS", "No-show"]) {
+      expect(unoStatusGroup(value)).toBe("other");
     }
   });
 
@@ -91,13 +88,14 @@ describe("UNO reconciled reporting", () => {
       reservation({ unoNumber: "2", status: "Modified", amount: "1,200.50", currency: "SAR" }),
       reservation({ unoNumber: "3", status: "Cancelled", amount: "350", currency: "SAR" }),
       reservation({ unoNumber: "4", status: "Confirmed", amount: "42.750", currency: "KWD" }),
-      reservation({ unoNumber: "5", status: "NS", amount: "20.000", currency: "KWD" }),
+      reservation({ unoNumber: "5", status: "Cancelled", amount: "20.000", currency: "KWD" }),
     ];
 
     const summary = summarizeUnoReservations(rows);
     expect(summary).toMatchObject({
       total: 5,
       confirmed: 3,
+      confirmedOnly: 2,
       modified: 1,
       cancelled: 2,
       other: 0,

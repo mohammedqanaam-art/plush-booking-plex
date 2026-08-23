@@ -992,10 +992,10 @@ const reservationArrays = (payload: unknown, depth = 0): JsonRecord[][] => {
 const reservationStatus = (value: string) => {
   const numeric = Number(value);
   if (Number.isFinite(numeric)) {
-    if (numeric === -1) return "ملغي";
-    if (numeric === 1) return "مؤكد";
-    if (numeric === 2) return "عدم حضور";
-    if (numeric === 10) return "حجز مؤقت";
+    if (numeric === -1) return "Cancelled";
+    if (numeric === 1) return "Confirmed";
+    if (numeric === 2) return "No-show";
+    if (numeric === 10) return "Temporary";
   }
   return value;
 };
