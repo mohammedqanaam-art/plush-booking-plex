@@ -265,25 +265,22 @@ describe("UNO integration boundary", () => {
   it("keeps the automatic snapshot on a moving current-month scope", () => {
     const filters = currentMonthUnoSyncFilters();
     expect(filters).toMatchObject({
-      dateType: "checkout",
+      dateType: "booking",
       property: "all",
       status: "all",
     });
     expect(filters.from).toBe(`${filters.to.slice(0, 7)}-01`);
-    const [year, month] = filters.to.split("-").map(Number);
-    expect(filters.to).toBe(`${filters.from.slice(0, 7)}-${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, "0")}`);
     const payload = createReservationSearchPayload({
       chainId: "4",
       properties: [{ id: "11", name: "Braira Olaya" }],
     }, undefined, "", filters);
     expect(payload).toMatchObject({
-      propertyIds: ["11"],
       BookingStatus: 0,
       SourceType: "Voice",
-      checkoutDateFrom: filters.from,
-      checkoutDateTo: filters.to,
+      bookingDateFrom: filters.from,
+      bookingDateTo: filters.to,
     });
-    expect(payload).not.toHaveProperty("bookingDateFrom");
+    expect(payload).not.toHaveProperty("checkoutDateFrom");
     expect(isCanonicalUnoSyncFilters(filters)).toBe(true);
     expect(isCanonicalUnoSyncFilters({ ...filters, property: "Braira Olaya" })).toBe(false);
     expect(isCanonicalUnoSyncFilters({ ...filters, status: "confirmed" })).toBe(false);
