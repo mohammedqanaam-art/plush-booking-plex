@@ -1,5 +1,6 @@
 import type { Context } from "@netlify/functions";
 import { createHash, timingSafeEqual } from "node:crypto";
+import { handleUnoReport } from "./uno-report";
 
 const secretValue = () => {
   const configured = Netlify.env.get("UNO_SYNC_SECRET")?.trim();
@@ -24,22 +25,51 @@ export default async (req: Request, context: Context) => {
   const body = await req.json().catch(() => ({})) as { action?: string };
   if (!["dispatch-sync", "dispatch-keepalive"].includes(body.action || "")) return;
 
-  const origin = context.site.url || new URL(req.url).origin;
   const fullSync = body.action === "dispatch-sync";
-  const endpoint = new URL(fullSync ? "/api/admin/uno-report" : "/api/admin/uno", origin);
+  const requestBody = JSON.stringify({ action: fullSync ? "sync-system" : "keepalive-system" });
+
+  if (fullSync) {
+    // Execute inside this Background Function's 15-minute window. Calling the
+    // normal HTTP function used to cancel valid monthly reports after 55 seconds.
+    const internalRequest = new Request(new URL("/api/admin/uno-report", req.url), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-UNO-Sync-Key": secret,
+      },
+      body: requestBody,
+    });
+
+    try {
+      const response = await handleUnoReport(internalRequest);
+      if (!response.ok && response.status !== 202) {
+        console.warn("[uno-sync-background] reconciled report sync did not complete", {
+          status: response.status,
+        });
+      }
+    } catch (error) {
+      console.warn("[uno-sync-background] report execution failed", {
+        code: error instanceof Error ? error.name : "UNKNOWN",
+      });
+    }
+    return;
+  }
+
+  const origin = context.site.url || new URL(req.url).origin;
+  const endpoint = new URL("/api/admin/uno", origin);
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-UNO-Sync-Key": secret,
     },
-    body: JSON.stringify({ action: fullSync ? "sync-system" : "keepalive-system" }),
+    body: requestBody,
     signal: AbortSignal.timeout(55_000),
   }).catch(() => null);
 
   if (!response?.ok) {
     console.warn("[uno-sync-background] UNO maintenance request did not complete", {
-      action: body.action,
+      action: "dispatch-keepalive",
       status: response?.status || 0,
     });
   }
