@@ -95,6 +95,10 @@ describe("UNO integration boundary", () => {
     expect(background).toContain('"/api/admin/uno-report"');
     expect(background).toContain('"sync-system"');
     expect(background).toContain('"keepalive-system"');
+    expect(background).toContain("handleUnoReport(internalRequest)");
+    expect(report).toContain("const SYNC_LEASE_MS = 20 * 60 * 1000");
+    expect(report).toContain('skipped: "already-running"');
+    expect(fn).toContain("const SYNC_RUNNING_STALE_MS = 20 * 60 * 1000");
     expect(fn).toContain('action === "keepalive-system"');
     expect(fn).toContain("readSharedActiveState");
     expect(schedule).toContain('Netlify.env.get("UNO_PASSWORD")');

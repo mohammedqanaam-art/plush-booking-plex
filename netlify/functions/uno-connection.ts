@@ -36,6 +36,7 @@ const UNO_REFRESH_WINDOW_MS = 45 * 60 * 1000;
 const SYSTEM_STATE_KEY = "system";
 const SYNC_HEALTH_KEY = "sync-health";
 const AUTOMATIC_SYNC_FRESH_MS = 75 * 60 * 1000;
+const SYNC_RUNNING_STALE_MS = 20 * 60 * 1000;
 
 type JsonRecord = Record<string, unknown>;
 type UnoPhase = "idle" | "otp" | "connected";
@@ -135,6 +136,7 @@ type UnoSyncHealth = {
   lastSuccessSource?: "automatic" | "manual";
   lastError?: string;
   lastCount?: number;
+  lastDurationMs?: number;
   consecutiveFailures: number;
   requiresOtp: boolean;
   reportFilters?: UnoReportFilters;
@@ -520,16 +522,21 @@ const statusWithSnapshot = async (
   const lastSuccessAt = health.lastSuccessAt
     || (snapshot?.source === "automatic" ? snapshot.syncedAt : undefined);
   const lastSuccessMs = lastSuccessAt ? new Date(lastSuccessAt).getTime() : 0;
+  const lastAttemptMs = health.lastAttemptAt ? new Date(health.lastAttemptAt).getTime() : 0;
+  const runningFresh = health.state === "running"
+    && lastAttemptMs > 0
+    && Date.now() - lastAttemptMs <= SYNC_RUNNING_STALE_MS;
+  const runningInterrupted = health.state === "running" && !runningFresh;
   const automaticSyncHealthy = automaticSyncEnabled
     && health.state === "healthy"
     && lastSuccessMs > 0
     && Date.now() - lastSuccessMs <= AUTOMATIC_SYNC_FRESH_MS;
   const automaticSyncState = !automaticSyncConfigured
     ? "disabled"
-    : health.state === "running"
-      ? "running"
-      : health.requiresOtp || system.phase !== "connected"
-        ? "verification_required"
+    : health.requiresOtp || system.phase !== "connected"
+      ? "verification_required"
+      : runningFresh
+        ? "running"
         : automaticSyncHealthy
           ? "healthy"
           : "failed";
@@ -544,7 +551,10 @@ const statusWithSnapshot = async (
     lastSyncSuccessSource: health.lastSuccessSource,
     syncConsecutiveFailures: health.consecutiveFailures || 0,
     syncRequiresOtp: health.requiresOtp || system.phase !== "connected",
-    syncError: health.lastError,
+    syncError: runningInterrupted
+      ? "انقطعت محاولة مزامنة سابقة قبل تسجيل النتيجة؛ سيعيد النظام المحاولة تلقائيًا."
+      : health.lastError,
+    lastSyncDurationMs: health.lastDurationMs,
     syncReportFilters: health.reportFilters || currentMonthUnoSyncFilters(),
     lastExportAt: snapshot?.syncedAt || undefined,
     lastExportCount: snapshot?.total ?? undefined,
