@@ -346,7 +346,10 @@ export default async (req: Request, context?: Context) => {
 
   if (req.method === "GET" && new URL(req.url).searchParams.get("warm") === "1") {
     const warm = loadAssistantRuntime()
-      .then((runtime) => runtime.openai.isOpenAiAvailable())
+      .then((runtime) => Promise.all([
+        runtime.openai.isOpenAiAvailable(),
+        runtime.knowledge.getOfficialBoudlKnowledgeStatus().catch(() => null),
+      ]))
       .catch(() => false);
     if (context) context.waitUntil(warm);
     else void warm;

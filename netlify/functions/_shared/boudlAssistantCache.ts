@@ -9,6 +9,7 @@ export type CachedBoudlAnswer = {
 };
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const CACHE_READ_TIMEOUT_MS = 650;
 const HOT_CACHE_LIMIT = 80;
 const hotCache = new Map<string, CachedBoudlAnswer>();
 const changingFactPattern = /(?:سعر|اسعار|الاسعار|متاح|متوفر|توفر|توافر|اليوم|الليله|غدا|غدًا|price|prices|rate|rates|available|availability|today|tonight|tomorrow)/i;
@@ -49,8 +50,12 @@ export const readCachedBoudlAnswer = async (message: string): Promise<CachedBoud
   if (isFresh(inMemory)) return inMemory || null;
   hotCache.delete(key);
 
-  const cached = await getEnvironmentStore("assistant-cache")
-    .get(key, { type: "json" }).catch(() => null) as CachedBoudlAnswer | null;
+  const stored = getEnvironmentStore("assistant-cache")
+    .get(key, { type: "json" }).catch(() => null) as Promise<CachedBoudlAnswer | null>;
+  const cached = await Promise.race([
+    stored,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), CACHE_READ_TIMEOUT_MS)),
+  ]);
   if (!isFresh(cached)) return null;
   remember(key, cached as CachedBoudlAnswer);
   return cached;

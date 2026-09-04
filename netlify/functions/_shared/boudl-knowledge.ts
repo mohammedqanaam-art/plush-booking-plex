@@ -19,6 +19,7 @@ const OFFICIAL_ROOTS = [
   "https://boudl.com/ar/brands",
 ];
 const KNOWLEDGE_PAGE_TTL_MS = 24 * 60 * 60 * 1000;
+let hotKnowledgeIndex: BranchKnowledgeIndex | null = null;
 
 const allowedOfficialHost = (hostname: string) => (
   hostname === "boudl.com"
@@ -146,14 +147,17 @@ export async function refreshOfficialBoudlKnowledgeIndex(): Promise<BranchKnowle
     hotelCount: links.size,
     hotels: [...links.values()].sort((a, b) => a.title.localeCompare(b.title, "ar")),
   };
+  hotKnowledgeIndex = index;
   await getEnvironmentStore("branch-knowledge", { consistency: "strong" }).setJSON("official-index", index);
   return index;
 }
 
 export async function getOfficialBoudlKnowledgeStatus(): Promise<BranchKnowledgeIndex | null> {
+  if (hotKnowledgeIndex) return hotKnowledgeIndex;
   const stored = await getEnvironmentStore("branch-knowledge", { consistency: "strong" })
     .get("official-index", { type: "json" }) as BranchKnowledgeIndex | null;
   if (!stored || !Array.isArray(stored.hotels)) return null;
+  hotKnowledgeIndex = stored;
   return stored;
 }
 
