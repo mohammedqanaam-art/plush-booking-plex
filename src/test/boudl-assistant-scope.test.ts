@@ -13,6 +13,7 @@ describe("BHG hotel assistant scope", () => {
       "ما فروع بودل في الرياض؟",
       "هل يوجد مسبح في بريرا العليا؟",
       "أحتاج فندقًا من المجموعة في جدة",
+      "كيف أحجز من الموقع الرسمي؟",
       "How can I book a room at Narcissus?",
     ]) {
       expect(classifyBoudlAssistantScope(question)).toBe("in_scope");
@@ -48,6 +49,7 @@ describe("BHG hotel assistant scope", () => {
     expect(visitor).toContain("context.waitUntil(write)");
     expect(visitor).toContain("officialSources.length ? undefined");
     expect(visitor).toContain("maxOutputTokens: 800");
+    expect(readFileSync("netlify/functions/_shared/boudlAssistantCache.ts", "utf8")).toContain("CACHE_READ_TIMEOUT_MS");
     expect(knowledge).toContain("officialPageCacheKey");
     expect(knowledge).toContain("if (cached) return cached");
     expect(schedule).toContain('schedule: "15 1 * * *"');
@@ -64,6 +66,27 @@ describe("BHG hotel assistant scope", () => {
 
     expect(response.status).toBe(200);
     expect(data).toMatchObject({ provider: "bhg-scope-fast-path", scope: "bhg-hotels" });
+    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockRestore();
+  });
+
+  it("streams the lightweight scope reply without an upstream request", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    const response = await visitorAgent(new Request("https://res-dashbord.com/api/visitor/agent", {
+      method: "POST",
+      headers: {
+        Accept: "text/event-stream",
+        "Content-Type": "application/json",
+        Origin: "https://res-dashbord.com",
+      },
+      body: JSON.stringify({ message: "السلام عليكم" }),
+    }));
+    const stream = await response.text();
+
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+    expect(stream).toContain("event: delta");
+    expect(stream).toContain("event: done");
+    expect(stream).toContain("مجموعة بودل للضيافة");
     expect(fetchMock).not.toHaveBeenCalled();
     fetchMock.mockRestore();
   });

@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { generateOpenAiText, isOpenAiConfigured } from "../../netlify/functions/_shared/openai";
+import {
+  generateOpenAiText,
+  generateOpenAiTextStream,
+  isOpenAiConfigured,
+} from "../../netlify/functions/_shared/openai";
 
 const responsesPayload = (text: string, model: string) => ({
   id: `resp_${model.replace(/[^a-z0-9]/gi, "_")}`,
@@ -110,5 +114,44 @@ describe("Netlify AI Gateway", () => {
         headers: expect.objectContaining({ Authorization: "Bearer automatic-gateway-key" }),
       }),
     );
+  });
+
+  it("streams text deltas from the Responses API", async () => {
+    const values: Record<string, string> = {
+      OPENAI_API_KEY: "netlify-gateway-key",
+      OPENAI_BASE_URL: "https://gateway.example.test/openai",
+    };
+    vi.stubGlobal("Netlify", {
+      env: { get: vi.fn((key: string) => values[key]) },
+    });
+    const completed = responsesPayload("تم الاتصال", "gpt-5.6-sol");
+    const body = [
+      "event: response.output_text.delta",
+      `data: ${JSON.stringify({ type: "response.output_text.delta", delta: "تم " })}`,
+      "",
+      "event: response.output_text.delta",
+      `data: ${JSON.stringify({ type: "response.output_text.delta", delta: "الاتصال" })}`,
+      "",
+      "event: response.completed",
+      `data: ${JSON.stringify({ type: "response.completed", response: completed })}`,
+      "",
+    ].join("\n");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(body, {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const deltas: string[] = [];
+
+    await expect(generateOpenAiTextStream(
+      { instructions: "تعليمات", input: "اختبار", reasoningEffort: "none" },
+      (delta) => deltas.push(delta),
+    )).resolves.toMatchObject({
+      text: "تم الاتصال",
+      model: "gpt-5.6-sol",
+    });
+    expect(deltas).toEqual(["تم ", "الاتصال"]);
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(request.body))).toMatchObject({ stream: true });
   });
 });

@@ -12,6 +12,7 @@ dist
 dist-ssr
 .netlify
 *.local
+*.tsbuildinfo
 
 # Secrets / runtime sessions
 .env

@@ -42,6 +42,15 @@ export type OpenAiTextResult = {
   sources: OpenAiSource[];
 };
 
+export type OpenAiTextOptions = {
+  instructions: string;
+  input: string;
+  maxOutputTokens?: number;
+  timeoutMs?: number;
+  reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
+  webSearchAllowedDomains?: string[];
+};
+
 const DEFAULT_MODEL = "gpt-5.6-sol";
 
 const configuredEnv = (key: string) => {
@@ -127,14 +136,7 @@ const responseTextAndSources = (data: OpenAiResponse) => {
   };
 };
 
-export async function generateOpenAiText(options: {
-  instructions: string;
-  input: string;
-  maxOutputTokens?: number;
-  timeoutMs?: number;
-  reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
-  webSearchAllowedDomains?: string[];
-}): Promise<OpenAiTextResult> {
+const requestOpenAi = async (options: OpenAiTextOptions, stream: boolean) => {
   const config = await resolveOpenAiConfig();
   if (!config.apiKey) throw new Error("OPENAI_NOT_CONFIGURED");
 
@@ -151,6 +153,7 @@ export async function generateOpenAiText(options: {
     max_output_tokens: Math.min(4_000, Math.max(200, options.maxOutputTokens || 1_200)),
     store: false,
   };
+  if (stream) body.stream = true;
 
   if (allowedDomains.length) {
     body.tools = [{
@@ -178,13 +181,109 @@ export async function generateOpenAiText(options: {
     throw new Error(`OPENAI_UPSTREAM_${response.status}`);
   }
 
+  return { response, configuredModel: config.model };
+};
+
+export async function generateOpenAiText(options: OpenAiTextOptions): Promise<OpenAiTextResult> {
+  const { response, configuredModel } = await requestOpenAi(options, false);
+
   const data = await response.json() as OpenAiResponse;
   const parsed = responseTextAndSources(data);
   if (!parsed.text) throw new Error("OPENAI_EMPTY_RESPONSE");
   return {
     text: parsed.text,
-    model: String(data.model || config.model),
+    model: String(data.model || configuredModel),
     responseId: data.id,
+    sources: parsed.sources,
+  };
+}
+
+type OpenAiStreamEvent = {
+  type?: string;
+  delta?: string;
+  response?: OpenAiResponse;
+};
+
+const sseData = (block: string) => block
+  .split(/\r?\n/)
+  .filter((line) => line.startsWith("data:"))
+  .map((line) => line.slice(5).trimStart())
+  .join("\n")
+  .trim();
+
+export async function generateOpenAiTextStream(
+  options: OpenAiTextOptions,
+  onDelta: (delta: string) => void,
+): Promise<OpenAiTextResult> {
+  const { response, configuredModel } = await requestOpenAi(options, true);
+  const contentType = response.headers.get("content-type") || "";
+
+  if (!response.body || !contentType.includes("text/event-stream")) {
+    const data = await response.json() as OpenAiResponse;
+    const parsed = responseTextAndSources(data);
+    if (!parsed.text) throw new Error("OPENAI_EMPTY_RESPONSE");
+    onDelta(parsed.text);
+    return {
+      text: parsed.text,
+      model: String(data.model || configuredModel),
+      responseId: data.id,
+      sources: parsed.sources,
+    };
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let accumulated = "";
+  let completed: OpenAiResponse | undefined;
+
+  const processBlock = (block: string) => {
+    const raw = sseData(block);
+    if (!raw || raw === "[DONE]") return;
+
+    let event: OpenAiStreamEvent;
+    try {
+      event = JSON.parse(raw) as OpenAiStreamEvent;
+    } catch {
+      return;
+    }
+
+    if (event.type === "response.output_text.delta" && typeof event.delta === "string" && event.delta) {
+      accumulated += event.delta;
+      onDelta(event.delta);
+      return;
+    }
+    if (event.type === "response.completed" && event.response) {
+      completed = event.response;
+      return;
+    }
+    if (event.type === "error" || event.type === "response.failed" || event.type === "response.incomplete") {
+      throw new Error("OPENAI_STREAM_FAILED");
+    }
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const blocks = buffer.split(/\r?\n\r?\n/);
+    buffer = blocks.pop() || "";
+    for (const block of blocks) processBlock(block);
+  }
+  buffer += decoder.decode();
+  if (buffer.trim()) processBlock(buffer);
+
+  const parsed = completed ? responseTextAndSources(completed) : { text: "", sources: [] as OpenAiSource[] };
+  const text = parsed.text || accumulated.trim();
+  if (!text) throw new Error("OPENAI_EMPTY_RESPONSE");
+
+  if (!accumulated) onDelta(text);
+  else if (text.startsWith(accumulated) && text.length > accumulated.length) onDelta(text.slice(accumulated.length));
+
+  return {
+    text,
+    model: String(completed?.model || configuredModel),
+    responseId: completed?.id,
     sources: parsed.sources,
   };
 }
