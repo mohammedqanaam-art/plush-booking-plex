@@ -3,12 +3,45 @@ import { Bot, ExternalLink, Send, Sparkles, X } from "lucide-react";
 import { useVisitorAssistant } from "@/hooks/useVisitorAssistant";
 
 const starters = [
-  "أقرب فروع بودل في الرياض؟",
+  "أقرب فنادق BHG لبرج المملكة؟",
   "ما الخدمات المتوفرة في بودل العليا؟",
   "كيف أحجز من الموقع الرسمي؟",
 ];
 
-const initialMessage = "أهلًا بك في مجموعة بودل للضيافة. اسألني عن الفروع، المواقع، الخدمات، المرافق أو طريقة الحجز، وسأبحث لك في المصادر الرسمية عند الحاجة.";
+const initialMessage = "أهلًا بك في مجموعة BHG. أساعدك في فنادق بودل، عابر، بريرا، نارسس وزمن: الفروع والمواقع والخدمات والحجز من المصادر المعتمدة.";
+
+const officialHref = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && ["boudl.com", "www.boudl.com", "booking.boudl.com"].includes(url.hostname)
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const VisitorAnswer = ({ text }: { text: string }) => {
+  const parts = text.split(/(\*\*[^*\n]+\*\*|\[[^\]\n]+\]\(https:\/\/[^)\s]+\))/g);
+  return (
+    <div className="whitespace-pre-wrap">
+      {parts.map((part, index) => {
+        const bold = part.match(/^\*\*([^*\n]+)\*\*$/);
+        if (bold) return <strong key={`${index}-${part}`}>{bold[1]}</strong>;
+        const markdownLink = part.match(/^\[([^\]\n]+)\]\((https:\/\/[^)\s]+)\)$/);
+        if (markdownLink) {
+          const href = officialHref(markdownLink[2]);
+          return href ? (
+            <a key={`${index}-${part}`} href={href} target="_blank" rel="noreferrer" className="visitor-answer-link">
+              {markdownLink[1]} <ExternalLink className="inline h-3.5 w-3.5" />
+            </a>
+          ) : <span key={`${index}-${part}`}>{markdownLink[1]}</span>;
+        }
+        return <span key={`${index}-${part}`}>{part}</span>;
+      })}
+    </div>
+  );
+};
 
 const VisitorChat = () => {
   const [open, setOpen] = useState(false);
@@ -44,20 +77,20 @@ const VisitorChat = () => {
         onPointerEnter={warm}
         onFocus={warm}
         className="visitor-chat-launcher"
-        aria-label={open ? "إغلاق مساعد بودل" : "فتح مساعد بودل"}
+        aria-label={open ? "إغلاق مساعد BHG" : "فتح مساعد BHG"}
         aria-expanded={open}
       >
         {open ? <X className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
-        <span className="hidden sm:inline">اسأل بودل</span>
+        <span className="hidden sm:inline">اسأل BHG</span>
       </button>
 
       {open ? (
-        <section className="visitor-chat-panel" aria-label="مساعد بودل الذكي">
+        <section className="visitor-chat-panel" aria-label="مساعد BHG الذكي">
           <header className="visitor-chat-header">
             <div className="visitor-chat-avatar"><Bot className="h-5 w-5" /></div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <strong>مساعد بودل الذكي</strong>
+                <strong>مساعد BHG الذكي</strong>
                 <span className="visitor-chat-model">{modelLabel}</span>
               </div>
               <small>بث فوري · مصادر BHG الرسمية أولًا</small>
@@ -84,8 +117,8 @@ const VisitorChat = () => {
                       <Sparkles className="h-4 w-4 animate-pulse" /> {status}
                     </div>
                   ) : (
-                    <div className="whitespace-pre-wrap">
-                      {item.content}
+                    <div>
+                      <VisitorAnswer text={item.content} />
                       {item.pending ? <span className="ms-1 animate-pulse text-primary" aria-hidden="true">▍</span> : null}
                     </div>
                   )}
@@ -123,7 +156,7 @@ const VisitorChat = () => {
                 }
               }}
               placeholder="اكتب سؤالك عن أي فرع أو خدمة…"
-              aria-label="سؤالك لمساعد بودل"
+              aria-label="سؤالك لمساعد BHG"
               rows={1}
               dir="auto"
             />

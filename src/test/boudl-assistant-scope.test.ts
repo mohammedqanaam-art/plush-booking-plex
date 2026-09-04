@@ -35,6 +35,7 @@ describe("BHG hotel assistant scope", () => {
   it("caches only standalone questions with stable hotel facts", () => {
     expect(isCacheableBoudlQuestion("ما فروع بودل في الرياض؟", false)).toBe(true);
     expect(isCacheableBoudlQuestion("ما سعر الغرفة اليوم؟", false)).toBe(false);
+    expect(isCacheableBoudlQuestion("أقرب فرع لبرج المملكة", false)).toBe(false);
     expect(isCacheableBoudlQuestion("هل توجد مواقف؟", true)).toBe(false);
   });
 
@@ -47,7 +48,7 @@ describe("BHG hotel assistant scope", () => {
     expect(visitor).toContain("bhg-scope-fast-path");
     expect(visitor).toContain("bhg-answer-cache");
     expect(visitor).toContain("context.waitUntil(write)");
-    expect(visitor).toContain("officialSources.length ? undefined");
+    expect(visitor).toContain("forceOfficialSearch || !officialSources.length");
     expect(visitor).toContain("maxOutputTokens: 800");
     expect(readFileSync("netlify/functions/_shared/boudlAssistantCache.ts", "utf8")).toContain("CACHE_READ_TIMEOUT_MS");
     expect(knowledge).toContain("officialPageCacheKey");
@@ -87,6 +88,29 @@ describe("BHG hotel assistant scope", () => {
     expect(stream).toContain("event: delta");
     expect(stream).toContain("event: done");
     expect(stream).toContain("مجموعة بودل للضيافة");
+    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockRestore();
+  });
+
+  it("answers the Kingdom Centre location question from structured BHG knowledge", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    const response = await visitorAgent(new Request("https://res-dashbord.com/api/visitor/agent", {
+      method: "POST",
+      headers: {
+        Accept: "text/event-stream",
+        "Content-Type": "application/json",
+        Origin: "https://res-dashbord.com",
+      },
+      body: JSON.stringify({ message: "أقرب فرع لبرج المملكة", sessionId: "visitor_test_12345678" }),
+    }));
+    const stream = await response.text();
+
+    expect(stream).toContain("bhg-knowledge-fast-path");
+    expect(stream).toContain("بريرا العليا");
+    expect(stream).toContain("نارسس ذا رويال");
+    expect(stream).toContain("بودل العليا");
+    expect(stream).not.toContain("بودل السليمانية");
+    expect(stream).not.toContain("4.4 كم");
     expect(fetchMock).not.toHaveBeenCalled();
     fetchMock.mockRestore();
   });
