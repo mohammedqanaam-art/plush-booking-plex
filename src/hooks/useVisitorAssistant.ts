@@ -25,12 +25,18 @@ const stageLabels: Record<VisitorStreamStage | "streaming", string> = {
 
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 
-export const useVisitorAssistant = (options: { initialMessage: string; autoWarm?: boolean }) => {
+export const useVisitorAssistant = (options: {
+  initialMessage: string;
+  autoWarm?: boolean;
+  endpoint?: string;
+  sessionPrefix?: "visitor" | "employee";
+}) => {
+  const endpoint = options.endpoint || "/api/visitor/agent";
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(stageLabels.preparing);
   const [modelLabel, setModelLabel] = useState("GPT‑5.6 Sol");
-  const [sessionId, setSessionId] = useState(() => `visitor_${crypto.randomUUID()}`);
+  const [sessionId, setSessionId] = useState(() => `${options.sessionPrefix || "visitor"}_${crypto.randomUUID()}`);
   const [items, setItems] = useState<AssistantChatItem[]>(() => [{
     id: newId("welcome"),
     role: "assistant",
@@ -39,12 +45,12 @@ export const useVisitorAssistant = (options: { initialMessage: string; autoWarm?
   const sendingRef = useRef(false);
 
   useEffect(() => {
-    if (options.autoWarm) void warmVisitorAssistant();
-  }, [options.autoWarm]);
+    if (options.autoWarm) void warmVisitorAssistant(endpoint);
+  }, [endpoint, options.autoWarm]);
 
   const warm = useCallback(() => {
-    void warmVisitorAssistant();
-  }, []);
+    void warmVisitorAssistant(endpoint);
+  }, [endpoint]);
 
   const send = useCallback(async (value?: string) => {
     const text = String(value ?? message).trim();
@@ -85,6 +91,7 @@ export const useVisitorAssistant = (options: { initialMessage: string; autoWarm?
               : item));
           },
         },
+        { endpoint },
       );
 
       if (result.sessionId) setSessionId(result.sessionId);
@@ -110,7 +117,7 @@ export const useVisitorAssistant = (options: { initialMessage: string; autoWarm?
       sendingRef.current = false;
       setLoading(false);
     }
-  }, [items, message, sessionId]);
+  }, [endpoint, items, message, sessionId]);
 
   return {
     canSend: Boolean(message.trim()) && !loading,

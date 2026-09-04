@@ -34,16 +34,19 @@ export const localAssistantReply = (message: string, history: VisitorChatTurn[])
   return scope === "in_scope" ? null : boudlScopeReply(scope);
 };
 
-let warmPromise: Promise<void> | undefined;
-export const warmVisitorAssistant = () => {
-  warmPromise ??= fetch("/api/visitor/agent?warm=1", {
+const warmPromises = new Map<string, Promise<void>>();
+export const warmVisitorAssistant = (endpoint = "/api/visitor/agent") => {
+  const current = warmPromises.get(endpoint);
+  if (current) return current;
+  const warmPromise = fetch(`${endpoint}?warm=1`, {
     method: "GET",
     headers: { Accept: "application/json" },
     credentials: "same-origin",
     keepalive: true,
   }).then(() => undefined).catch(() => {
-    warmPromise = undefined;
+    warmPromises.delete(endpoint);
   });
+  warmPromises.set(endpoint, warmPromise);
   return warmPromise;
 };
 
@@ -68,8 +71,9 @@ export async function streamVisitorAssistant(
     onDelta: (delta: string) => void;
     onStatus?: (stage: VisitorStreamStage) => void;
   },
+  options: { endpoint?: string } = {},
 ): Promise<VisitorAgentResponse> {
-  const response = await fetch("/api/visitor/agent", {
+  const response = await fetch(options.endpoint || "/api/visitor/agent", {
     method: "POST",
     headers: {
       Accept: "text/event-stream",

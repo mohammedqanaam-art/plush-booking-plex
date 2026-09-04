@@ -14,7 +14,7 @@ describe("assistant UI", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<MemoryRouter><EmployeeAssistant /></MemoryRouter>);
 
-    const input = screen.getByLabelText("سؤالك لمساعد بودل");
+    const input = screen.getByLabelText("سؤالك لمساعد الحجز");
     fireEvent.change(input, { target: { value: "السلام عليكم" } });
     fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
 
@@ -52,12 +52,13 @@ describe("assistant UI", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<MemoryRouter><EmployeeAssistant /></MemoryRouter>);
 
-    const input = screen.getByLabelText("سؤالك لمساعد بودل");
+    const input = screen.getByLabelText("سؤالك لمساعد الحجز");
     fireEvent.change(input, { target: { value: "ما فروع بودل في الرياض؟" } });
     fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
 
     expect(await screen.findByText(completion.reply)).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url, init]) => url === "/api/employee/agent" && init?.method === "POST")).toBe(true);
     expect(screen.getByRole("link", { name: /دليل بودل/ })).toHaveAttribute("href", "https://boudl.com/ar/hotels");
-    await waitFor(() => expect(screen.getByLabelText("سؤالك لمساعد بودل")).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByLabelText("سؤالك لمساعد الحجز")).not.toBeDisabled());
   });
 });

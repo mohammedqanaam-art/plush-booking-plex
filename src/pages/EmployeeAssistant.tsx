@@ -4,13 +4,13 @@ import PageHeader from "@/components/PageHeader";
 import { useVisitorAssistant } from "@/hooks/useVisitorAssistant";
 
 const quickPrompts = [
-  "ما فروع بودل في الرياض؟",
-  "وش الخدمات الموجودة في بودل العليا؟",
-  "كيف أحجز من الموقع الرسمي؟",
-  "أحتاج فندق قريب من شمال الرياض",
+  "كيف أتعامل مع شكوى الضيف؟",
+  "ضيف حاضر ولا يجد حجزًا مؤكدًا، ماذا أفعل؟",
+  "كم بكج العرسان في بريرا النخيل؟",
+  "هل أستطيع تعديل حجز من Booking؟",
 ];
 
-const initialMessage = "أهلًا بك. أنا مساعد بودل الذكي؛ أقدر أساعدك في الفروع، المواقع، الخدمات، المرافق، السياسات العامة وطريقة الحجز، وأرجع للمصادر الرسمية عند الحاجة.";
+const initialMessage = "أهلًا بك. أنا مساعد موظف الحجز في BHG؛ أوجّهك في الشكاوى والتصعيد والطلبات والسياسات ومعلومات الفروع وبكج العرسان، مع توضيح حدود الصلاحية وما يجب توثيقه.";
 
 const EmployeeAssistant = () => {
   const {
@@ -22,7 +22,12 @@ const EmployeeAssistant = () => {
     send,
     setMessage,
     status,
-  } = useVisitorAssistant({ initialMessage, autoWarm: true });
+  } = useVisitorAssistant({
+    initialMessage,
+    autoWarm: true,
+    endpoint: "/api/employee/agent",
+    sessionPrefix: "employee",
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,7 +38,7 @@ const EmployeeAssistant = () => {
 
   return (
     <div className="page-wrap-narrow space-y-4">
-      <PageHeader title="مساعد بودل الذكي" icon={MessageCircle} />
+      <PageHeader title="مساعد قرارات الحجز" icon={MessageCircle} />
 
       <section className="glass-card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-l from-emerald-950 to-emerald-800 px-4 py-4 text-white md:px-6">
@@ -42,8 +47,8 @@ const EmployeeAssistant = () => {
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <strong className="block text-sm">خدمة ذكية للزوار والموظفين</strong>
-              <span className="text-[11px] text-white/70">إجابات متدفقة · مصادر BHG الرسمية أولًا</span>
+              <strong className="block text-sm">إرشاد تشغيلي لموظفي الحجز</strong>
+              <span className="text-[11px] text-white/70">إجراء · صلاحية · تصعيد · صياغة للضيف</span>
             </div>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold">
@@ -94,7 +99,7 @@ const EmployeeAssistant = () => {
                 )}
                 {item.role === "assistant" && item.sources?.length ? (
                   <div className="mt-3 space-y-1.5 border-t border-border/60 pt-2">
-                    <div className="text-[11px] font-semibold text-muted-foreground">المصادر الرسمية</div>
+                    <div className="text-[11px] font-semibold text-muted-foreground">المراجع المستخدمة</div>
                     {item.sources.slice(0, 5).map((source) => (
                       <a
                         key={source.url}
@@ -104,7 +109,7 @@ const EmployeeAssistant = () => {
                         className="flex items-center gap-1.5 text-xs text-primary underline-offset-4 hover:underline"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
-                        <span>{source.title || "Boudl.com"}</span>
+                        <span>{source.title || "مرجع BHG"}</span>
                       </a>
                     ))}
                   </div>
@@ -130,8 +135,8 @@ const EmployeeAssistant = () => {
                   if (canSend) void send();
                 }
               }}
-              placeholder="اسألني عن أي فرع، خدمة أو معلومة تحتاجها…"
-              aria-label="سؤالك لمساعد بودل"
+              placeholder="اكتب الحالة: الفرع، مصدر الحجز، ما حدث، وما الذي يطلبه الضيف…"
+              aria-label="سؤالك لمساعد الحجز"
               rows={2}
               className="min-h-[54px] flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
               dir="auto"
