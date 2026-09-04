@@ -171,6 +171,18 @@
   padding-top: 8px;
 }
 
+.visitor-answer-link {
+  color: #08745b;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(8, 116, 91, .35);
+  text-underline-offset: 3px;
+}
+
+.visitor-answer-link:hover {
+  text-decoration-color: currentColor;
+}
+
 .visitor-message__sources > span {
   color: #7a8581;
   font-size: 9px;

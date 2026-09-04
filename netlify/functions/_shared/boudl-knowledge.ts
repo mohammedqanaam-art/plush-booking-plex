@@ -72,6 +72,12 @@ const fetchOfficialHtml = async (url: string): Promise<string> => {
 
 type HotelLink = { title: string; url: string; score: number };
 
+const genericQueryTokens = new Set([
+  "اقرب", "قريب", "فرع", "فروع", "فندق", "فنادق", "الموقع", "موقع", "خدمات", "الخدمات",
+  "في", "من", "الي", "على", "عن", "هل", "ما", "كم", "كيف", "اريد", "احتاج",
+  "near", "nearest", "hotel", "hotels", "branch", "branches", "location", "service", "services",
+]);
+
 const allHotelLinks = (html: string): Array<{ title: string; url: string }> => {
   const links = new Map<string, { title: string; url: string }>();
   const anchor = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -98,16 +104,31 @@ const allHotelLinks = (html: string): Array<{ title: string; url: string }> => {
 
 const rankHotelLinks = (links: Array<{ title: string; url: string }>, query: string): HotelLink[] => {
   const normalizedQuery = normalizeArabic(query);
-  const queryTokens = normalizedQuery.split(" ").filter((token) => token.length >= 2);
+  const queryTokens = normalizedQuery.split(" ")
+    .filter((token) => token.length >= 2 && !genericQueryTokens.has(token));
+  const queryHasBoudl = /(?:^|\s)(?:بودل|boudl)(?:\s|$)/i.test(normalizedQuery);
+  const queryHasBraira = /(?:^|\s)(?:بريرا|برايرا|braira)(?:\s|$)/i.test(normalizedQuery);
+  const queryHasAber = /(?:^|\s)(?:عابر|aber)(?:\s|$)/i.test(normalizedQuery);
+  const queryHasNarcissus = /(?:^|\s)(?:نارسس|نارسيس|narcissus)(?:\s|$)/i.test(normalizedQuery);
   return links.map((item) => {
     const haystack = normalizeArabic(`${item.title} ${decodeURIComponent(new URL(item.url).pathname)}`);
     let score = 0;
+    let matchedTokens = 0;
     for (const token of queryTokens) {
-      if (haystack.includes(token)) score += token.length >= 5 ? 4 : 2;
+      if (haystack.includes(token)) {
+        score += token.length >= 5 ? 4 : 2;
+        matchedTokens += 1;
+      }
     }
-    if (/بودل|boudl/i.test(haystack)) score += 1;
-    return { ...item, score };
-  }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
+    if (queryHasBoudl && /بودل|boudl/i.test(haystack)) score += 5;
+    if (queryHasBraira && /بريرا|برايرا|braira/i.test(haystack)) score += 5;
+    if (queryHasAber && /عابر|aber/i.test(haystack)) score += 5;
+    if (queryHasNarcissus && /نارسس|نارسيس|narcissus/i.test(haystack)) score += 5;
+    return { ...item, score, matchedTokens };
+  }).filter((item) => item.matchedTokens > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(({ matchedTokens: _matchedTokens, ...item }) => item);
 };
 
 const snippetForQuery = (text: string, query: string) => {
@@ -225,9 +246,8 @@ export async function lookupOfficialBoudlSources(query: string): Promise<Officia
     .map((result) => result.value);
   if (sources.length) return sources;
 
-  try {
-    return [await officialSourceForUrl(OFFICIAL_ROOTS[0], "بودل - الموقع الرسمي", query)];
-  } catch {
-    return [];
-  }
+  // A generic root page is not evidence for a specific branch, landmark, or
+  // distance. Returning no source lets the Responses API perform a scoped
+  // official-site search instead of grounding an answer in unrelated text.
+  return [];
 }

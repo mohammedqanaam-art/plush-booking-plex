@@ -11,8 +11,9 @@ export type CachedBoudlAnswer = {
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const CACHE_READ_TIMEOUT_MS = 650;
 const HOT_CACHE_LIMIT = 80;
+const CACHE_SCHEMA_VERSION = "v2";
 const hotCache = new Map<string, CachedBoudlAnswer>();
-const changingFactPattern = /(?:سعر|اسعار|الاسعار|متاح|متوفر|توفر|توافر|اليوم|الليله|غدا|غدًا|price|prices|rate|rates|available|availability|today|tonight|tomorrow)/i;
+const changingFactPattern = /(?:سعر|اسعار|الاسعار|متاح|متوفر|توفر|توافر|اليوم|الليله|غدا|غدًا|اقرب|قريب|موقعي|الموقع الحالي|مسافه|كم يبعد|price|prices|rate|rates|available|availability|today|tonight|tomorrow|near|nearest|location|distance)/i;
 
 const normalizedQuestion = (value: string) => value
   .toLocaleLowerCase("ar")
@@ -27,7 +28,7 @@ export const isCacheableBoudlQuestion = (message: string, hasConversationContext
   return Boolean(normalized && !hasConversationContext && !changingFactPattern.test(normalized));
 };
 
-const cacheKey = (message: string) => `answer-${createHash("sha256").update(normalizedQuestion(message)).digest("hex")}`;
+const cacheKey = (message: string) => `answer-${CACHE_SCHEMA_VERSION}-${createHash("sha256").update(normalizedQuestion(message)).digest("hex")}`;
 
 const isFresh = (cached: CachedBoudlAnswer | null | undefined) => {
   if (!cached?.reply || !Array.isArray(cached.sources) || !cached.sources.length) return false;

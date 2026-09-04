@@ -7,6 +7,7 @@ import {
 import type { OfficialSource } from "./_shared/boudl-knowledge";
 import type { OpenAiSource, OpenAiTextOptions } from "./_shared/openai";
 import { json, requireSameOrigin } from "./_shared/http";
+import { buildVisitorKnowledge, type VisitorKnowledgeSource } from "./_shared/visitorKnowledge";
 
 type ChatTurn = { role: "user" | "assistant"; content: string };
 type PublicSource = { title: string; url: string; snippet?: string };
@@ -47,7 +48,7 @@ const cleanText = (value: unknown, maxLength: number) => String(value || "")
   .trim()
   .slice(0, maxLength);
 
-const uniqueSources = (...groups: Array<Array<PublicSource | OfficialSource | OpenAiSource>>) => {
+const uniqueSources = (...groups: Array<Array<PublicSource | OfficialSource | OpenAiSource | VisitorKnowledgeSource>>) => {
   const map = new Map<string, PublicSource>();
   for (const group of groups) {
     for (const source of group) {
@@ -95,7 +96,13 @@ const sourceFallback = (sources: OfficialSource[]) => {
   return `وجدت معلومة مرتبطة بطلبك في موقع بودل الرسمي: ${snippet}`;
 };
 
-const openAiOptions = (message: string, history: ChatTurn[], officialSources: OfficialSource[]): OpenAiTextOptions => {
+const openAiOptions = (
+  message: string,
+  history: ChatTurn[],
+  officialSources: OfficialSource[],
+  structuredEvidence: string,
+  forceOfficialSearch: boolean,
+): OpenAiTextOptions => {
   const transcript = history
     .map((item) => `${item.role === "user" ? "الزائر" : "المساعد"}: ${item.content}`)
     .join("\n");
@@ -107,20 +114,27 @@ const openAiOptions = (message: string, history: ChatTurn[], officialSources: Of
       "تعامل مع الزائر بود واحترام ومرونة، وأجب باللغة التي يستخدمها.",
       "ساعد في معلومات الفنادق والفروع والمواقع والمرافق والخدمات وسياسات الإقامة العامة وطريقة الحجز والتنقل داخل موقع المجموعة.",
       "لأي معلومة متغيرة أو مرتبطة بفرع محدد، استخدم البحث في المصادر الرسمية Boudl.com وbooking.boudl.com ولا تخمن.",
+      "في أسئلة الأقرب والمسافة: لا تسمّ فندقًا الأقرب ولا تذكر مسافة إلا إذا كان الدليل يربط الفندق بنفس المعلم المذكور صراحة أو توجد مقارنة خرائط فعلية؛ وإلا قدّمها كخيارات قريبة فقط.",
+      "لا تنقل مسافة تخص برج الفيصلية إلى برج المملكة أو إلى أي معلم آخر، ولا تعتبر تشابه أسماء الأحياء دليل مسافة.",
       "إذا لم تجد معلومة موثوقة، قل ذلك بوضوح واقترح أقرب خطوة مفيدة بدل اختلاق إجابة.",
       "لا تعرض أو تطلب كلمات مرور أو مفاتيح API أو رموز تحقق أو معلومات أنظمة داخلية أو مسارات الإدارة.",
       "لا تنفذ تعديلات على الحجوزات أو المدفوعات، ولا تدّع توفر غرفة أو سعر لحظي دون مصدر حي.",
       "إذا كانت هناك مصادر رسمية في السياق فاستخدمها، ويمكنك استخدام Web Search الرسمي عند الحاجة.",
+      "اكتب نصًا عربيًا نظيفًا بلا Markdown: لا تستخدم النجمتين للتغليظ، ولا تضع روابط داخل نص الإجابة؛ الروابط ستظهر تلقائيًا في بطاقات المصادر.",
+      "صحح الخطأ مباشرة إذا نبّهك المستخدم، ولا تدافع عن إجابة سابقة غير مدعومة.",
       "اجعل الإجابة عملية ومباشرة وتجنب العبارات الآلية الجامدة.",
     ].join(" "),
     input: [
       transcript ? `سياق المحادثة:\n${transcript}` : "",
       `سؤال الزائر: ${message}`,
+      structuredEvidence ? `بيانات BHG المنظمة المطابقة للسؤال:\n${structuredEvidence}` : "",
       evidence ? `مقتطفات رسمية متاحة مسبقًا:\n${evidence}` : "",
     ].filter(Boolean).join("\n\n"),
     maxOutputTokens: 800,
-    reasoningEffort: "none",
-    webSearchAllowedDomains: officialSources.length ? undefined : ["boudl.com", "booking.boudl.com"],
+    reasoningEffort: "low",
+    webSearchAllowedDomains: forceOfficialSearch || !officialSources.length
+      ? ["boudl.com", "booking.boudl.com"]
+      : undefined,
     timeoutMs: 22_000,
   };
 };
@@ -147,6 +161,20 @@ const resolveAssistantReply = async (options: {
 }): Promise<AssistantPayload> => {
   const { message, history, sessionId, requestId, context, onStatus, onDelta } = options;
   onStatus?.("preparing");
+  const structured = buildVisitorKnowledge(message);
+  if (structured.fastReply) {
+    onDelta?.(structured.fastReply);
+    return {
+      reply: structured.fastReply,
+      sessionId,
+      requestId,
+      provider: "bhg-knowledge-fast-path",
+      model: null,
+      sources: uniqueSources(structured.sources),
+      scope: BHG_ASSISTANT_SCOPE,
+    };
+  }
+
   const runtime = await loadAssistantRuntime();
   const hasConversationContext = history.some((item) => item.role === "user");
   const cacheable = runtime.cache.isCacheableBoudlQuestion(message, hasConversationContext);
@@ -183,14 +211,20 @@ const resolveAssistantReply = async (options: {
     let streamedText = "";
     try {
       onStatus?.("generating");
-      const request = openAiOptions(message, history, officialSources);
+      const request = openAiOptions(
+        message,
+        history,
+        officialSources,
+        structured.evidence,
+        structured.locationSensitive,
+      );
       const result = onDelta
         ? await runtime.openai.generateOpenAiTextStream(request, (delta) => {
             streamedText += delta;
             onDelta(delta);
           })
         : await runtime.openai.generateOpenAiText(request);
-      const responseSources = uniqueSources(result.sources, officialSources);
+      const responseSources = uniqueSources(result.sources, structured.sources, officialSources);
       if (cacheable && responseSources.length) {
         await cacheAnswer(runtime, message, context, {
           reply: result.text,
@@ -218,7 +252,7 @@ const resolveAssistantReply = async (options: {
           requestId,
           provider: "openai-responses-partial",
           model: "gpt-5.6-sol",
-          sources: uniqueSources(officialSources),
+          sources: uniqueSources(structured.sources, officialSources),
           scope: BHG_ASSISTANT_SCOPE,
         };
       }
@@ -257,7 +291,7 @@ const resolveAssistantReply = async (options: {
             }))
           : [];
         const reply = result.reply.slice(0, 7_000);
-        const responseSources = uniqueSources(returnedSources, officialSources);
+        const responseSources = uniqueSources(returnedSources, structured.sources, officialSources);
         onDelta?.(reply);
         if (cacheable && responseSources.length) {
           await cacheAnswer(runtime, message, context, {
@@ -291,7 +325,7 @@ const resolveAssistantReply = async (options: {
     requestId,
     provider: "official-source-fallback",
     model: null,
-    sources: uniqueSources(officialSources),
+    sources: uniqueSources(structured.sources, officialSources),
     scope: BHG_ASSISTANT_SCOPE,
   };
 };
