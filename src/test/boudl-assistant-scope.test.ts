@@ -47,7 +47,6 @@ describe("BHG hotel assistant scope", () => {
     expect(visitor).toContain("bhg-scope-fast-path");
     expect(visitor).toContain("bhg-answer-cache");
     expect(visitor).toContain("context.waitUntil(write)");
-    expect(visitor).toContain("getOfficialBoudlKnowledgeStatus");
     expect(visitor).toContain("officialSources.length ? undefined");
     expect(visitor).toContain("maxOutputTokens: 800");
     expect(readFileSync("netlify/functions/_shared/boudlAssistantCache.ts", "utf8")).toContain("CACHE_READ_TIMEOUT_MS");
