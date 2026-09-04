@@ -1,9 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useRef } from "react";
 import { ExternalLink, MessageCircle, Send, Sparkles } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-
-type Source = { title: string; url: string; snippet?: string };
-type ChatItem = { role: "user" | "assistant"; content: string; sources?: Source[] };
+import { useVisitorAssistant } from "@/hooks/useVisitorAssistant";
 
 const quickPrompts = [
   "ما فروع بودل في الرياض؟",
@@ -12,60 +10,26 @@ const quickPrompts = [
   "أحتاج فندق قريب من شمال الرياض",
 ];
 
+const initialMessage = "أهلًا بك. أنا مساعد بودل الذكي؛ أقدر أساعدك في الفروع، المواقع، الخدمات، المرافق، السياسات العامة وطريقة الحجز، وأرجع للمصادر الرسمية عند الحاجة.";
+
 const EmployeeAssistant = () => {
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(() => `visitor_${crypto.randomUUID()}`);
-  const [modelLabel, setModelLabel] = useState("BHG AI");
-  const [items, setItems] = useState<ChatItem[]>([
-    {
-      role: "assistant",
-      content: "أهلًا بك. أنا مساعد بودل الذكي؛ أقدر أساعدك في الفروع، المواقع، الخدمات، المرافق، السياسات العامة وطريقة الحجز، وأرجع للمصادر الرسمية عند الحاجة.",
-    },
-  ]);
+  const {
+    canSend,
+    items,
+    loading,
+    message,
+    modelLabel,
+    send,
+    setMessage,
+    status,
+  } = useVisitorAssistant({ initialMessage, autoWarm: true });
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const canSend = useMemo(() => message.trim().length > 0 && !loading, [message, loading]);
-
-  const send = async (value = message) => {
-    const text = value.trim();
-    if (!text || loading) return;
-    const history = items.slice(-10).map((item) => ({ role: item.role, content: item.content }));
-    setLoading(true);
-    setMessage("");
-    setItems((current) => [...current, { role: "user", content: text }]);
-
-    try {
-      const response = await fetch("/api/visitor/agent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, sessionId, history }),
-      });
-      const data = await response.json().catch(() => ({})) as {
-        reply?: string;
-        sources?: Source[];
-        error?: string;
-        model?: string | null;
-        provider?: string;
-        sessionId?: string;
-      };
-      if (!response.ok) throw new Error(data.error || "تعذر تشغيل المساعد");
-      if (data.sessionId) setSessionId(data.sessionId);
-      if (data.model?.toLowerCase().includes("gpt-5.6")) setModelLabel("GPT‑5.6 Sol");
-      else if (data.provider === "n8n-agent") setModelLabel("BHG AI · n8n");
-      setItems((current) => [...current, {
-        role: "assistant",
-        content: data.reply || "لم أجد إجابة مؤكدة الآن.",
-        sources: Array.isArray(data.sources) ? data.sources : [],
-      }]);
-    } catch {
-      setItems((current) => [...current, {
-        role: "assistant",
-        content: "تعذر الوصول للمساعد الآن. جرّب مرة أخرى بعد قليل أو استخدم صفحة الفروع والبحث داخل الموقع.",
-      }]);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (typeof bottomRef.current?.scrollIntoView === "function") {
+      bottomRef.current.scrollIntoView({ behavior: loading ? "auto" : "smooth", block: "nearest" });
     }
-  };
+  }, [items, loading, status]);
 
   return (
     <div className="page-wrap-narrow space-y-4">
@@ -79,14 +43,17 @@ const EmployeeAssistant = () => {
             </div>
             <div>
               <strong className="block text-sm">خدمة ذكية للزوار والموظفين</strong>
-              <span className="text-[11px] text-white/70">نطاق فنادق BHG فقط · المصادر الرسمية أولًا</span>
+              <span className="text-[11px] text-white/70">إجابات متدفقة · مصادر BHG الرسمية أولًا</span>
             </div>
           </div>
-          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold">{modelLabel}</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" aria-hidden="true" />
+            {modelLabel}
+          </span>
         </div>
 
         <div className="space-y-4 p-4 md:p-6">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" aria-label="أسئلة سريعة">
             {quickPrompts.map((prompt) => (
               <button
                 key={prompt}
@@ -100,17 +67,31 @@ const EmployeeAssistant = () => {
             ))}
           </div>
 
-          <div className="min-h-[420px] max-h-[62vh] space-y-3 overflow-y-auto rounded-2xl bg-secondary/20 p-3 custom-scrollbar">
-            {items.map((item, index) => (
+          <div
+            className="min-h-[420px] max-h-[62vh] space-y-3 overflow-y-auto rounded-2xl bg-secondary/20 p-3 custom-scrollbar"
+            aria-live="polite"
+            aria-busy={loading}
+          >
+            {items.map((item) => (
               <div
-                key={`${item.role}-${index}`}
+                key={item.id}
                 className={`max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-7 ${
                   item.role === "user"
                     ? "ms-auto bg-primary text-primary-foreground"
                     : "me-auto border border-border/70 bg-background text-foreground"
                 }`}
               >
-                <div className="whitespace-pre-wrap">{item.content}</div>
+                {item.pending && !item.content ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Sparkles className="h-4 w-4 animate-pulse" />
+                    <span>{status}</span>
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap">
+                    {item.content}
+                    {item.pending ? <span className="ms-1 animate-pulse text-primary" aria-hidden="true">▍</span> : null}
+                  </div>
+                )}
                 {item.role === "assistant" && item.sources?.length ? (
                   <div className="mt-3 space-y-1.5 border-t border-border/60 pt-2">
                     <div className="text-[11px] font-semibold text-muted-foreground">المصادر الرسمية</div>
@@ -130,11 +111,7 @@ const EmployeeAssistant = () => {
                 ) : null}
               </div>
             ))}
-            {loading ? (
-              <div className="me-auto rounded-2xl border border-border/70 bg-background px-4 py-3 text-sm text-muted-foreground">
-                جارٍ البحث والتفكير…
-              </div>
-            ) : null}
+            <div ref={bottomRef} />
           </div>
 
           <form
@@ -147,7 +124,14 @@ const EmployeeAssistant = () => {
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value.slice(0, 2_400))}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                  event.preventDefault();
+                  if (canSend) void send();
+                }
+              }}
               placeholder="اسألني عن أي فرع، خدمة أو معلومة تحتاجها…"
+              aria-label="سؤالك لمساعد بودل"
               rows={2}
               className="min-h-[54px] flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
               dir="auto"
@@ -161,6 +145,7 @@ const EmployeeAssistant = () => {
               <Send className="h-5 w-5" />
             </button>
           </form>
+          <p className="text-center text-[10px] text-muted-foreground">Enter للإرسال · Shift + Enter لسطر جديد</p>
         </div>
       </section>
     </div>

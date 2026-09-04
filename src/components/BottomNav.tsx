@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { BarChart3, Building2, LayoutDashboard, MessageCircle, Search } from "lucide-react";
+import { warmVisitorAssistant } from "@/lib/visitorAssistantClient";
 
 const mainNavItems = [
   { path: "/", label: "الرئيسية", icon: LayoutDashboard },
@@ -23,7 +24,11 @@ const BottomNav = () => {
               <button
                 key={item.path}
                 type="button"
-                onClick={() => navigate(item.path)}
+                onPointerDown={item.path === "/assistant" ? () => void warmVisitorAssistant() : undefined}
+                onClick={() => {
+                  if (item.path === "/assistant") void warmVisitorAssistant();
+                  navigate(item.path);
+                }}
                 className={`mobile-tab-item touch-target interactive ${isActive ? "is-active" : ""}`}
                 aria-current={isActive ? "page" : undefined}
               >

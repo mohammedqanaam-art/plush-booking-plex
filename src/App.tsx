@@ -50,7 +50,7 @@ const App = () => (
             <Route path="/boudl-preview/*" element={<Navigate to="/" replace />} />
             <Route path="/upload-center" element={<Navigate to="/admin/login" replace />} />
             <Route path="/contact-requests" element={<Contacts />} />
-            <Route path="/contacts" element={<Contacts />} />
+            <Route path="/contacts" element={<Navigate to="/contact-requests" replace />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/complaints" element={<ProtectedRoute><AdminComplaints /></ProtectedRoute>} />
