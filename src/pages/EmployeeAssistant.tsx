@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ExternalLink, MessageCircle, Send, Sparkles } from "lucide-react";
+import { ExternalLink, MessageCircle, Send, ShieldCheck, Sparkles } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { useVisitorAssistant } from "@/hooks/useVisitorAssistant";
 
@@ -58,6 +58,10 @@ const EmployeeAssistant = () => {
         </div>
 
         <div className="space-y-4 p-4 md:p-6">
+          <div className="flex items-start gap-2 rounded-2xl border border-emerald-800/10 bg-emerald-950/[0.035] p-3 text-xs leading-6 text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-800" />
+            <p><strong className="text-foreground">وضع الخصوصية مفعل:</strong> لا تكتب اسم الضيف الكامل أو رقم الجوال أو البطاقة أو رمز التحقق. تُحجب الأرقام والبريد وبيانات الدخول قبل إرسال السؤال للمحرك.</p>
+          </div>
           <div className="flex flex-wrap gap-2" aria-label="أسئلة سريعة">
             {quickPrompts.map((prompt) => (
               <button

@@ -28,7 +28,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }, []);
 
   if (state === "checking") {
-    return <div className="grid min-h-[45vh] place-items-center text-sm text-muted-foreground">جاري التحقق من صلاحية المشرف…</div>;
+    return <div className="grid min-h-[45vh] place-items-center text-sm text-muted-foreground">جاري التحقق من الوصول الآمن…</div>;
   }
   if (state === "denied") {
     return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;

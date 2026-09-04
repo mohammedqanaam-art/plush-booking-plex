@@ -3,7 +3,7 @@ import { BHG_ASSISTANT_SCOPE, boudlScopeReply, classifyBoudlAssistantScope } fro
 import { lookupOfficialBoudlSources, type OfficialSource } from "./_shared/boudl-knowledge";
 import { buildEmployeeKnowledge, employeeGuideForModel, type EmployeeKnowledgeSource } from "./_shared/employeeKnowledge";
 import { generateOpenAiText, generateOpenAiTextStream, isOpenAiAvailable, type OpenAiTextOptions } from "./_shared/openai";
-import { json, requireSameOrigin } from "./_shared/security";
+import { json, requireSameOrigin, validateSession } from "./_shared/security";
 
 type ChatTurn = { role: "user" | "assistant"; content: string };
 type StreamStage = "preparing" | "sources" | "generating" | "fallback";
@@ -13,7 +13,11 @@ type EmployeePayload = { reply: string; sources: EmployeeKnowledgeSource[]; sess
 const cleanText = (value: unknown, maxLength: number) => String(value || "")
   .replace(/\bsk-[A-Za-z0-9_-]{10,}\b/g, "[مفتاح محجوب]")
   .replace(/\b(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]+/gi, "[بيانات دخول محجوبة]")
-  .replace(/\b(password|api[_ -]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=[محجوب]").trim().slice(0, maxLength);
+  .replace(/\b(password|api[_ -]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=[محجوب]")
+  .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[بريد محجوب]")
+  .replace(/[+\d][\d\s()-]{6,}\d/g, (candidate) => (
+    candidate.replace(/\D/g, "").length >= 8 ? "[رقم محجوب]" : candidate
+  )).trim().slice(0, maxLength);
 
 const historyFromBody = (value: unknown): ChatTurn[] => Array.isArray(value)
   ? value.slice(-8).filter((item) => item && typeof item === "object").map((item) => item as Record<string, unknown>)
@@ -66,12 +70,14 @@ const eventStream = (run: (send: StreamSender) => Promise<void> | void) => {
 
 export default async (req: Request, context?: Context) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
+  if (req.method !== "GET" && req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  const originError = requireSameOrigin(req); if (originError) return originError;
+  if (!await validateSession(req)) return json({ error: "Unauthorized" }, 401);
   if (req.method === "GET" && new URL(req.url).searchParams.get("warm") === "1") {
     const warm = isOpenAiAvailable().catch(() => false); if (context) context.waitUntil(warm); else void warm;
     return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
   }
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  const originError = requireSameOrigin(req); if (originError) return originError;
   if (Number(req.headers.get("content-length") || 0) > 32 * 1024) return json({ error: "Request too large" }, 413);
   let body: { message?: string; sessionId?: string; history?: unknown };
   try { body = await req.json(); } catch { return json({ error: "Invalid request body" }, 400); }

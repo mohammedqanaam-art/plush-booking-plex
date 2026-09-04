@@ -17,6 +17,15 @@ export type VisitorAgentResponse = {
 
 export type VisitorStreamStage = "preparing" | "cache" | "sources" | "generating" | "fallback";
 
+export const redactSensitiveMessage = (value: string) => value
+  .replace(/\bsk-[A-Za-z0-9_-]{10,}\b/g, "[مفتاح محجوب]")
+  .replace(/\b(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]+/gi, "[بيانات دخول محجوبة]")
+  .replace(/\b(password|api[_ -]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=[محجوب]")
+  .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[بريد محجوب]")
+  .replace(/[+\d][\d\s()-]{6,}\d/g, (candidate) => (
+    candidate.replace(/\D/g, "").length >= 8 ? "[رقم محجوب]" : candidate
+  ));
+
 const safeSources = (value: unknown): VisitorSource[] => Array.isArray(value)
   ? value.filter((source): source is VisitorSource => Boolean(
       source
@@ -73,13 +82,19 @@ export async function streamVisitorAssistant(
   },
   options: { endpoint?: string } = {},
 ): Promise<VisitorAgentResponse> {
+  const protectedRequest = {
+    ...request,
+    message: redactSensitiveMessage(request.message),
+    history: request.history.map((item) => ({ ...item, content: redactSensitiveMessage(item.content) })),
+  };
   const response = await fetch(options.endpoint || "/api/visitor/agent", {
     method: "POST",
     headers: {
       Accept: "text/event-stream",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(request),
+    body: JSON.stringify(protectedRequest),
+    credentials: "same-origin",
   });
 
   if (!response.ok) {

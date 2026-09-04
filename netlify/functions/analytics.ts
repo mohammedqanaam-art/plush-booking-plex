@@ -53,6 +53,7 @@ type PresenceRecord = Omit<VisitorRecord, "views" | "pages" | "sessions" | "firs
 const ID_PATTERN = /^[a-zA-Z0-9_-]{16,80}$/;
 const BOT_PATTERN = /bot|crawler|spider|headless|preview|lighthouse|uptime|monitoring/i;
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
+const analyticsCollectionEnabled = () => false;
 
 function analyticsStore(context: Context) {
   if (context.deploy.context === "production") {
@@ -188,6 +189,12 @@ function increment(target: Record<string, number>, key: string, amount = 1) {
 
 export default async (req: Request, context: Context) => {
   const store = analyticsStore(context);
+
+  // Privacy-first mode: keep the authenticated historical readout available
+  // without accepting any new visitor telemetry from old cached clients.
+  if (req.method === "POST" && !analyticsCollectionEnabled()) {
+    return json({ ok: true, collection: "disabled" }, 202);
+  }
 
   if (req.method === "POST") {
     const userAgent = req.headers.get("user-agent") || "";
