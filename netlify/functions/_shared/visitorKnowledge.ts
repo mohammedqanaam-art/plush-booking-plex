@@ -1,10 +1,4 @@
-import { hotelBranches, type HotelBranch } from "../../../src/data/hotels";
-import {
-  HOTEL_INFORMATION_SHEET_URL,
-  HOTEL_INFORMATION_SNAPSHOT_DATE,
-  sheetOperationalHotels,
-  type SheetOperationalHotel,
-} from "../../../src/data/sheetOperationalData";
+import { publicBranches, type PublicBranch } from "../../../src/data/publicBranches";
 
 export type VisitorKnowledgeSource = {
   title: string;
@@ -44,12 +38,6 @@ const officialDirectorySource: VisitorKnowledgeSource = {
   title: "دليل فنادق مجموعة BHG الرسمي",
   url: OFFICIAL_HOTELS_URL,
   snippet: "الدليل الرسمي لفنادق بودل وعابر وبريرا ونارسس وزمن.",
-};
-
-const operationalSource: VisitorKnowledgeSource = {
-  title: "دليل معلومات الفروع المعتمد",
-  url: HOTEL_INFORMATION_SHEET_URL,
-  snippet: `لقطة تشغيلية بتاريخ ${HOTEL_INFORMATION_SNAPSHOT_DATE}؛ المعلومات المتغيرة تُراجع قبل التأكيد.`,
 };
 
 const kingdomCentreSources = (): VisitorKnowledgeSource[] => [
@@ -100,20 +88,20 @@ const brandForQuery = (query: string) => {
   return null;
 };
 
-const normalizedBranch = (branch: HotelBranch) => ({
+const normalizedBranch = (branch: PublicBranch) => ({
   ...branch,
+  group: branch.brand,
   nameKey: normalize(branch.name),
-  groupKey: normalize(branch.group),
+  groupKey: normalize(branch.brand),
   cityKey: normalize(branch.city),
 });
 
 type IndexedBranch = ReturnType<typeof normalizedBranch>;
 let hotBranchIndex: IndexedBranch[] | undefined;
 let hotCities: string[] | undefined;
-let hotOperationalByName: Map<string, SheetOperationalHotel> | undefined;
 
 const getBranchIndex = () => {
-  hotBranchIndex ??= hotelBranches.map(normalizedBranch);
+  hotBranchIndex ??= publicBranches.map(normalizedBranch);
   return hotBranchIndex;
 };
 
@@ -138,66 +126,9 @@ const branchMatch = (query: string) => {
   return suffixMatches.length === 1 ? suffixMatches[0] : null;
 };
 
-const operationalMatch = (branchName: string): SheetOperationalHotel | undefined => {
-  const key = normalize(branchName);
-  hotOperationalByName ??= new Map(sheetOperationalHotels.map((hotel) => [normalize(hotel.name), hotel]));
-  return hotOperationalByName.get(key)
-    || [...hotOperationalByName.entries()].find(([name]) => name === key || name.includes(key) || key.includes(name))?.[1];
-};
-
-const serviceQuestion = (query: string): { label: string; key: keyof SheetOperationalHotel } | null => {
-  const text = normalize(query);
-  const rules: Array<{ pattern: RegExp; label: string; key: keyof SheetOperationalHotel }> = [
-    { pattern: /افطار|breakfast/, label: "الإفطار", key: "breakfast" },
-    { pattern: /مسبح|pool/, label: "المسبح", key: "pool" },
-    { pattern: /كوفي|مقهي|coffee/, label: "الكوفي شوب", key: "coffeeShop" },
-    { pattern: /مطعم|restaurant/, label: "المطعم", key: "restaurant" },
-    { pattern: /اطلاله|بلكون|view|balcony/, label: "الإطلالة أو الشرفة", key: "viewBalcony" },
-    { pattern: /مواقف|parking/, label: "المواقف", key: "parking" },
-    { pattern: /قاعه|اجتماع|meeting/, label: "القاعات", key: "meetingHall" },
-    { pattern: /نادي|جيم|gym/, label: "النادي الرياضي", key: "gym" },
-    { pattern: /مغسل|laundry/, label: "المغسلة", key: "laundry" },
-    { pattern: /جلسات خارجي|outdoor/, label: "الجلسات الخارجية", key: "outdoorSeating" },
-    { pattern: /سبا|spa/, label: "السبا", key: "spa" },
-    { pattern: /جاكوزي|jacuzzi/, label: "الجاكوزي", key: "jacuzzi" },
-    { pattern: /اطفال|kids/, label: "قسم الأطفال", key: "kidsSection" },
-  ];
-  return rules.find((rule) => rule.pattern.test(text)) || null;
-};
-
-const branchEvidence = (branch: ReturnType<typeof branchMatch>, operational?: SheetOperationalHotel) => {
-  if (!branch) return "";
-  const data = operational || branch;
-  return [
-    `سجل فرع منظم: ${branch.name}`,
-    `العلامة: ${branch.group}`,
-    `المدينة: ${branch.city}`,
-    `الهاتف: ${branch.phone}`,
-    `الإفطار: ${data.breakfast}`,
-    `المسبح: ${data.pool}`,
-    `المطعم: ${data.restaurant}`,
-    `الكوفي شوب: ${data.coffeeShop}`,
-    `الإطلالة/الشرفة: ${"viewBalcony" in data ? data.viewBalcony : data.balcony}`,
-    `السبا: ${data.spa}`,
-    `الجاكوزي: ${data.jacuzzi}`,
-    `قسم الأطفال: ${data.kidsSection}`,
-    `المغسلة: ${data.laundry}`,
-    `الجلسات الخارجية: ${data.outdoorSeating}`,
-  ].join("\n");
-};
-
-const generalServicesReply = (branch: NonNullable<ReturnType<typeof branchMatch>>, hotel: SheetOperationalHotel) => [
-  `${branch.name} — أبرز المعلومات المسجلة:`,
-  `• الإفطار: ${hotel.breakfast}`,
-  `• المسبح: ${hotel.pool}`,
-  `• المطعم: ${hotel.restaurant}`,
-  `• الكوفي شوب: ${hotel.coffeeShop}`,
-  `• المواقف: ${hotel.parking}`,
-  `• النادي الرياضي: ${hotel.gym}`,
-  `• السبا: ${hotel.spa}`,
-  "",
-  `هذه بيانات الدليل التشغيلي بتاريخ ${HOTEL_INFORMATION_SNAPSHOT_DATE}؛ الخدمة المتغيرة تُراجع مع الفندق قبل تأكيدها للضيف.`,
-].join("\n");
+const branchEvidence = (branch: ReturnType<typeof branchMatch>) => branch
+  ? `هوية فرع عامة: ${branch.name}\nالعلامة: ${branch.brand}\nالمدينة المسجلة: ${branch.city}\nالخدمات والأرقام والأسعار تُتحقق من المصدر الرسمي العام؛ لا يوجد وصول إلى الدليل التشغيلي.`
+  : "";
 
 const branchListReply = (query: string) => {
   const text = normalize(query);
@@ -252,41 +183,10 @@ export const buildVisitorKnowledge = (message: string): VisitorKnowledge => {
   }
 
   const branch = branchMatch(message);
-  const operational = branch ? operationalMatch(branch.name) : undefined;
-  if (branch && /(?:رقم|هاتف|اتصال|تواصل|phone|contact)/i.test(normalize(message))) {
-    return {
-      evidence: branchEvidence(branch, operational),
-      fastReply: `${branch.name} — رقم الفندق المسجل: ${branch.phone}. للحجز المركزي يمكنك استخدام القناة الرسمية الظاهرة في الموقع.`,
-      locationSensitive,
-      sources: [officialDirectorySource],
-    };
-  }
-  const service = branch && operational ? serviceQuestion(message) : null;
-  if (branch && operational && service) {
-    return {
-      evidence: branchEvidence(branch, operational),
-      fastReply: [
-        `${branch.name} — ${service.label}: ${String(operational[service.key] || "غير محدد")}.`,
-        "المعلومة من دليل الفروع التشغيلي؛ تحقّق من الفندق قبل الوعد إذا كانت الخدمة مرتبطة بالوقت أو حسب الإمكانية.",
-      ].join("\n"),
-      locationSensitive,
-      sources: [operationalSource, officialDirectorySource],
-    };
-  }
-
-  if (branch && operational && /(?:الخدمات|المرافق|متوفر|موجود|facilit)/i.test(normalize(message))) {
-    return {
-      evidence: branchEvidence(branch, operational),
-      fastReply: generalServicesReply(branch, operational),
-      locationSensitive,
-      sources: [operationalSource, officialDirectorySource],
-    };
-  }
-
   return {
-    evidence: branchEvidence(branch, operational),
+    evidence: branchEvidence(branch),
     fastReply: null,
     locationSensitive,
-    sources: branch ? [operationalSource, officialDirectorySource] : [],
+    sources: branch ? [officialDirectorySource] : [],
   };
 };

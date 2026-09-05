@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { AlertCircle, Copy, ExternalLink, MailCheck, OctagonAlert, SendHorizonal, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
-import { branchRecords } from "@/data/knowledge";
+import { publicBranches } from "@/data/publicBranches";
 import PageHeader from "@/components/PageHeader";
 
 type FormState = {
@@ -33,9 +33,8 @@ const Complaints = () => {
   const [result, setResult] = useState<ResultState | null>(null);
   const [submitError, setSubmitError] = useState("");
 
-  const branches = useMemo(() => branchRecords
-    .filter((row) => row.brand === form.brand)
-    .map((row) => ({ id: row.id, name: row.branch, city: row.city, phone: row.hotelPhone || "-" })), [form.brand]);
+  const branches = useMemo(() => publicBranches
+    .filter((row) => row.brandCode === form.brand), [form.brand]);
 
   const selectedBranch = useMemo(() => branches.find((b) => b.name === form.branch), [branches, form.branch]);
   const subCategories = useMemo(() => MAIN_CATEGORIES[form.mainCategory] || [], [form.mainCategory]);
@@ -59,7 +58,7 @@ const Complaints = () => {
         <option value="">اختر الفرع</option>{branches.map((b) => <option key={b.id} value={b.name}>{b.name}</option>)}
       </select></label>
 
-      {selectedBranch ? <div className="md:col-span-2 rounded-xl border border-primary/18 bg-secondary/24 p-3 text-xs text-muted-foreground">{selectedBranch.city} · الاستقبال: <span dir="ltr">{selectedBranch.phone}</span></div> : null}
+      {selectedBranch ? <div className="md:col-span-2 rounded-xl border border-primary/18 bg-secondary/24 p-3 text-xs text-muted-foreground">{selectedBranch.name} · {selectedBranch.city}</div> : null}
 
       <label className="space-y-1 text-sm"><span className="font-medium">التصنيف</span><select className="h-11 w-full rounded-xl bg-secondary/70 border px-3" value={form.mainCategory} onChange={(e) => setForm({ ...form, mainCategory: e.target.value, subCategory: "" })} required>
         <option value="">اختر التصنيف الرئيسي</option>{Object.keys(MAIN_CATEGORIES).map((item) => <option key={item}>{item}</option>)}

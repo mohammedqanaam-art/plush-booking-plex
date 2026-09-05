@@ -1,62 +1,47 @@
-import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, Building2, LayoutDashboard, MessageCircle, PhoneCall, Search, ShieldCheck } from "lucide-react";
+import { Building2, LayoutDashboard, MessageSquareWarning, PhoneCall, ShieldCheck } from "lucide-react";
 import BottomNav from "./BottomNav";
 import RiyadhClock from "./RiyadhClock";
 import ViewerPreferences from "./ViewerPreferences";
-import AnalyticsTracker from "./AnalyticsTracker";
 import BrandFooter from "./BrandFooter";
 import AiChat from "./AiChat";
 import VisitorChat from "./VisitorChat";
-import { warmVisitorAssistant } from "@/lib/visitorAssistantClient";
 
 const desktopNav = [
   { to: "/", label: "الرئيسية", icon: LayoutDashboard },
-  { to: "/assistant", label: "المساعد", icon: MessageCircle },
-  { to: "/operations", label: "البحث", icon: Search },
   { to: "/branches", label: "الفروع", icon: Building2 },
-  { to: "/booking-reports", label: "التقارير", icon: BarChart3 },
-  { to: "/contact-requests", label: "طلبات التواصل", icon: PhoneCall },
+  { to: "/contact-requests", label: "طلب تواصل", icon: PhoneCall },
+  { to: "/complaints", label: "شكوى", icon: MessageSquareWarning },
 ];
 
-const prewarmAssistant = () => {
-  void warmVisitorAssistant();
-};
+const employeePaths = ["/assistant", "/operations", "/booking-reports", "/knowledge-bank"];
 
 const Layout = () => {
   const location = useLocation();
   const isAdminArea = location.pathname.startsWith("/admin");
-
-  useEffect(() => {
-    if (isAdminArea) return undefined;
-    const timer = window.setTimeout(prewarmAssistant, 1_200);
-    return () => window.clearTimeout(timer);
-  }, [isAdminArea]);
+  const isEmployeeArea = employeePaths.some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`));
+  const isPrivateArea = isAdminArea || isEmployeeArea;
 
   return (
-    <div className={`app-shell ${isAdminArea ? "app-shell--admin" : "app-shell--public"} flex flex-col`}>
-      <AnalyticsTracker />
-
+    <div className={`app-shell ${isPrivateArea ? "app-shell--admin" : "app-shell--public"} flex flex-col`}>
       <header className="app-topbar safe-area-top sticky top-0 z-40">
         <div className="content-container app-topbar__inner">
-          <Link to={isAdminArea ? "/admin" : "/"} className="app-brand" aria-label="مجموعة بودل للضيافة — إدارة الحجز المركزي">
+          <Link to={isPrivateArea ? "/admin" : "/"} className="app-brand" aria-label="مجموعة بودل للضيافة — إدارة الحجز المركزي">
             <span className="app-brand__mark" aria-hidden="true">
               <img src="/bhg-hospitality-group.jpg" alt="" />
             </span>
             <span className="app-brand__copy">
               <strong>الحجز المركزي · BHG</strong>
-              <small>{isAdminArea ? "BOUDL HOSPITALITY GROUP · OPERATIONS" : "BOUDL HOSPITALITY GROUP · EST. 1959"}</small>
+              <small>{isPrivateArea ? "PRIVATE OPERATIONS WORKSPACE" : "BOUDL HOSPITALITY GROUP · EST. 1959"}</small>
             </span>
           </Link>
 
-          {!isAdminArea ? (
+          {!isPrivateArea ? (
             <nav className="app-desktop-nav hidden md:flex" aria-label="التنقل الرئيسي">
               {desktopNav.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  onPointerEnter={item.to === "/assistant" ? prewarmAssistant : undefined}
-                  onFocus={item.to === "/assistant" ? prewarmAssistant : undefined}
                   className={({ isActive }) => `app-desktop-nav__item ${isActive ? "is-active" : ""}`}
                 >
                   <item.icon className="w-4 h-4" strokeWidth={1.9} />
@@ -67,29 +52,29 @@ const Layout = () => {
           ) : (
             <div className="hidden lg:inline-flex admin-context-pill">
               <ShieldCheck className="h-4 w-4" />
-              مساحة تشغيل محمية
+              مساحة داخلية محمية
             </div>
           )}
 
           <div className="app-topbar__actions">
-            {!isAdminArea ? (
+            {!isPrivateArea ? (
               <>
                 <Link
                   to="/admin"
                   className="admin-entry-link"
-                  aria-label="لوحة مدير ومشرفين إدارة الحجز"
-                  title="لوحة مدير ومشرفين إدارة الحجز"
+                  aria-label="دخول الموظفين والمشرفين"
+                  title="دخول الموظفين والمشرفين"
                 >
                   <ShieldCheck className="h-4 w-4" />
-                  <span className="hidden xl:inline">الإدارة</span>
+                  <span className="hidden xl:inline">دخول الموظفين</span>
                 </Link>
                 <div className="hidden lg:block"><RiyadhClock /></div>
                 <div className="hidden md:block"><ViewerPreferences /></div>
               </>
             ) : (
-              <Link to="/" className="admin-entry-link" aria-label="العودة للموقع العام" title="العودة للموقع العام">
+              <Link to="/" className="admin-entry-link" aria-label="العودة للخدمات العامة" title="العودة للخدمات العامة">
                 <LayoutDashboard className="h-4 w-4" />
-                <span className="hidden sm:inline">الموقع العام</span>
+                <span className="hidden sm:inline">الخدمات العامة</span>
               </Link>
             )}
           </div>
@@ -99,18 +84,18 @@ const Layout = () => {
       <main className="app-main flex-1 min-h-0 overflow-y-auto custom-scrollbar" key={location.pathname}>
         <div className="content-container app-main__inner">
           <Outlet />
-          {!isAdminArea ? <BrandFooter className="mt-6 md:hidden" /> : null}
+          {!isPrivateArea ? <BrandFooter className="mt-6 md:hidden" /> : null}
         </div>
       </main>
 
-      {!isAdminArea ? (
+      {!isPrivateArea ? (
         <div className="hidden md:block">
           <BrandFooter />
         </div>
       ) : null}
 
-      {!isAdminArea ? <BottomNav /> : null}
-      {!isAdminArea && location.pathname !== "/assistant" ? <VisitorChat /> : null}
+      {!isPrivateArea ? <BottomNav /> : null}
+      {!isPrivateArea ? <VisitorChat /> : null}
       {isAdminArea && location.pathname !== "/admin/login" ? <AiChat /> : null}
     </div>
   );

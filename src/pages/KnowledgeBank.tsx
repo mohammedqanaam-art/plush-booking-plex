@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { BookOpenCheck, ExternalLink, Filter, Search, Tags } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { branchRecords, branchesByBrand, quickIntents } from "@/data/knowledge";
+import InternalKnowledgeBoundary from "@/components/InternalKnowledgeBoundary";
+import { useInternalKnowledge } from "@/hooks/useInternalKnowledge";
+import { knowledgeQuickIntents as quickIntents } from "@/lib/internalKnowledge";
 import PageHeader from "@/components/PageHeader";
 
 type ResultCategory = "فروع" | "جهات اتصال" | "وجبات" | "غرف" | "مرافق" | "قاعات";
@@ -27,6 +29,7 @@ const detailLines = (items: Array<[string, string]>) => items
   .map(([label, value]) => `${label}: ${value}`);
 
 const KnowledgeBank = () => {
+  const { branchRecords } = useInternalKnowledge();
   const [query, setQuery] = useState("");
   const [brand, setBrand] = useState<"الكل" | "Braira" | "Boudl" | "Aber" | "Narcissus" | "Z'MN">("الكل");
   const [branch, setBranch] = useState("الكل");
@@ -35,8 +38,8 @@ const KnowledgeBank = () => {
 
   const branchOptions = useMemo(() => {
     if (brand === "الكل") return ["الكل", ...branchRecords.map((b) => b.branch)];
-    return ["الكل", ...branchesByBrand[brand].map((b) => b.branch)];
-  }, [brand]);
+    return ["الكل", ...branchRecords.filter((b) => b.brand === brand).map((b) => b.branch)];
+  }, [brand, branchRecords]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -110,7 +113,7 @@ const KnowledgeBank = () => {
       const matchQuery = !q || blob.includes(q);
       return matchBrand && matchBranch && matchCategory && matchQuery;
     });
-  }, [query, brand, branch, category]);
+  }, [query, brand, branch, category, branchRecords]);
 
   const hasCriteria = query.trim().length > 0 || brand !== "الكل" || branch !== "الكل" || category !== "الكل";
   const visibleResults = hasCriteria ? results.slice(0, 60) : [];
@@ -200,4 +203,6 @@ const KnowledgeBank = () => {
   );
 };
 
-export default KnowledgeBank;
+export default function ProtectedKnowledgeBank() {
+  return <InternalKnowledgeBoundary><KnowledgeBank /></InternalKnowledgeBoundary>;
+}

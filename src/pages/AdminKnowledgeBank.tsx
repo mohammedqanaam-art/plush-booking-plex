@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { BookOpenText, Search } from "lucide-react";
 import { getAdminSession, hasPermission } from "@/lib/adminAuth";
-import { branchRecords } from "@/data/knowledge";
+import InternalKnowledgeBoundary from "@/components/InternalKnowledgeBoundary";
+import { useInternalKnowledge } from "@/hooks/useInternalKnowledge";
 import PageHeader from "@/components/PageHeader";
 
 const AdminKnowledgeBank = () => {
+  const { branchRecords } = useInternalKnowledge();
   const session = getAdminSession();
   const canManage = session ? hasPermission(session.role, "manage_knowledge") : false;
   const [query, setQuery] = useState("");
@@ -12,7 +14,7 @@ const AdminKnowledgeBank = () => {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return branchRecords.filter((row) => !q || `${row.branch} ${row.city} ${row.brand}`.toLowerCase().includes(q));
-  }, [query]);
+  }, [query, branchRecords]);
 
   if (!canManage) return <div className="p-4">ليس لديك صلاحية إدارة بنك المعلومات.</div>;
 
@@ -45,4 +47,6 @@ const AdminKnowledgeBank = () => {
   );
 };
 
-export default AdminKnowledgeBank;
+export default function ProtectedAdminKnowledgeBank() {
+  return <InternalKnowledgeBoundary><AdminKnowledgeBank /></InternalKnowledgeBoundary>;
+}

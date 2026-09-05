@@ -1,3 +1,4 @@
+import { redactSensitiveMessage } from "@/lib/redactSensitiveMessage";
 import {
   boudlScopeReply,
   classifyBoudlAssistantScope,
@@ -16,6 +17,8 @@ export type VisitorAgentResponse = {
 };
 
 export type VisitorStreamStage = "preparing" | "cache" | "sources" | "generating" | "fallback";
+
+export { redactSensitiveMessage } from "@/lib/redactSensitiveMessage";
 
 const safeSources = (value: unknown): VisitorSource[] => Array.isArray(value)
   ? value.filter((source): source is VisitorSource => Boolean(
@@ -73,13 +76,19 @@ export async function streamVisitorAssistant(
   },
   options: { endpoint?: string } = {},
 ): Promise<VisitorAgentResponse> {
+  const protectedRequest = {
+    ...request,
+    message: redactSensitiveMessage(request.message),
+    history: request.history.map((item) => ({ ...item, content: redactSensitiveMessage(item.content) })),
+  };
   const response = await fetch(options.endpoint || "/api/visitor/agent", {
     method: "POST",
     headers: {
       Accept: "text/event-stream",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(request),
+    body: JSON.stringify(protectedRequest),
+    credentials: "same-origin",
   });
 
   if (!response.ok) {
@@ -90,6 +99,7 @@ export async function streamVisitorAssistant(
   const contentType = response.headers.get("content-type") || "";
   if (!response.body || !contentType.includes("text/event-stream")) {
     const data = await response.json() as Partial<VisitorAgentResponse>;
+    if (data.error) throw new Error("لم تكتمل الإجابة. يرجى إعادة المحاولة.");
     const reply = String(data.reply || "").trim();
     if (!reply) throw new Error("تعذر الحصول على إجابة واضحة");
     handlers.onDelta(reply);
@@ -138,7 +148,8 @@ export async function streamVisitorAssistant(
   }
   buffer += decoder.decode();
   if (buffer.trim()) processBlock(buffer);
-  if (streamError && !reply.trim()) throw new Error(streamError);
+  if (streamError) throw new Error(streamError);
+  if (!completed || completed.error) throw new Error("لم تكتمل الإجابة. يرجى إعادة المحاولة.");
 
   const completedReply = String(completed?.reply || "").trim();
   if (!reply && completedReply) {

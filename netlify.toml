@@ -23,7 +23,7 @@
     X-Permitted-Cross-Domain-Policies = "none"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.netlify.app; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; manifest-src 'self'; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; manifest-src 'self'; upgrade-insecure-requests"
 
 [[headers]]
   for = "/assets/*"
@@ -32,6 +32,34 @@
 
 [[headers]]
   for = "/admin/*"
+  [headers.values]
+    Cache-Control = "private, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
+
+[[headers]]
+  for = "/assistant"
+  [headers.values]
+    Cache-Control = "private, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
+
+[[headers]]
+  for = "/operations"
+  [headers.values]
+    Cache-Control = "private, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
+
+[[headers]]
+  for = "/booking-reports"
+  [headers.values]
+    Cache-Control = "private, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
+
+[[headers]]
+  for = "/knowledge-bank"
   [headers.values]
     Cache-Control = "private, no-store, max-age=0, must-revalidate"
     Pragma = "no-cache"

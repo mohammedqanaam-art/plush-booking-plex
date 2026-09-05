@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { branches, type Branch } from "@/data/branches";
+import type { Branch } from "@/data/branches";
+import InternalKnowledgeBoundary from "@/components/InternalKnowledgeBoundary";
+import { useInternalKnowledge } from "@/hooks/useInternalKnowledge";
 import { Building2 } from "lucide-react";
 import { getAdminSession, hasPermission } from "@/lib/adminAuth";
 import PageHeader from "@/components/PageHeader";
@@ -7,6 +9,7 @@ import PageHeader from "@/components/PageHeader";
 type EditableBranch = Record<string, Partial<Branch>>;
 
 const AdminBranches = () => {
+  const { branches } = useInternalKnowledge();
   const session = getAdminSession();
   const canManage = session ? hasPermission(session.role, "manage_knowledge") : false;
 
@@ -16,7 +19,7 @@ const AdminBranches = () => {
   const [selectedId, setSelectedId] = useState(branches[0]?.id ?? "");
   const [edits, setEdits] = useState<EditableBranch>({});
 
-  const brands = useMemo(() => ["الكل", ...Array.from(new Set(branches.map((b) => b.brand)))], []);
+  const brands = useMemo(() => ["الكل", ...Array.from(new Set(branches.map((b) => b.brand)))], [branches]);
   const statuses = ["الكل", "verified", "partially_verified", "conflicting", "missing_info"];
 
   const filtered = useMemo(() => {
@@ -28,7 +31,7 @@ const AdminBranches = () => {
       const matchesText = !q || searchable.includes(q);
       return matchesBrand && matchesStatus && matchesText;
     });
-  }, [brand, search, status]);
+  }, [brand, search, status, branches]);
 
   const selected = filtered.find((b) => b.id === selectedId) ?? filtered[0];
 
@@ -69,4 +72,6 @@ const AdminBranches = () => {
   );
 };
 
-export default AdminBranches;
+export default function ProtectedAdminBranches() {
+  return <InternalKnowledgeBoundary><AdminBranches /></InternalKnowledgeBoundary>;
+}

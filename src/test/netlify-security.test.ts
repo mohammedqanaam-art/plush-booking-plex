@@ -33,13 +33,13 @@ describe("Netlify password storage", () => {
     const token = "a".repeat(64);
     const cookie = createSessionCookie(token);
 
-    expect(cookie).toContain(`res_admin_session=${token}`);
+    expect(cookie).toContain(`__Host-res_admin_session=${token}`);
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("Secure");
     expect(cookie).toContain("SameSite=Strict");
     expect(clearSessionCookie()).toContain("Max-Age=0");
     expect(getSessionToken(new Request("https://example.com", {
-      headers: { cookie: `other=value; res_admin_session=${token}` },
+      headers: { cookie: `other=value; __Host-res_admin_session=${token}` },
     }))).toBe(token);
 
     const storageKey = sessionStorageKey(token);

@@ -14,7 +14,6 @@ import {
   LogOut,
   MessageSquareMore,
   MoonStar,
-  Radar,
   RefreshCw,
   Save,
   Search,
@@ -36,11 +35,10 @@ import { isEmployeeHidden, normalizeEmployeeName, normalizeHiddenEmployees } fro
 import { clearAdminSession, getAdminSession, hasPermission, type PermissionAction, type UserRole } from "@/lib/adminAuth";
 import { processBookings } from "@/lib/bookingProcessor";
 import PageHeader from "@/components/PageHeader";
-import AdminAnalytics from "@/components/admin/AdminAnalytics";
 import ReservationReportMerge from "@/components/admin/ReservationReportMerge";
 
 type UserRecord = { username: string; role: UserRole };
-type AdminTab = "overview" | "analytics" | "bookings" | "employees" | "requests" | "users" | "settings" | "profile";
+type AdminTab = "overview" | "bookings" | "employees" | "requests" | "users" | "settings" | "profile";
 type PendingBookingReport = { file: File; stats: BookingReportStats };
 type AdminTool = {
   to: string;
@@ -64,7 +62,6 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 const TAB_DEFINITIONS: Array<{ id: AdminTab; label: string; icon: typeof Gauge; permission: PermissionAction }> = [
   { id: "overview", label: "نظرة عامة", icon: Gauge, permission: "view" },
-  { id: "analytics", label: "زيارات الموقع", icon: BarChart3, permission: "view" },
   { id: "bookings", label: "بيانات الحجوزات", icon: Upload, permission: "upload" },
   { id: "employees", label: "إدارة الموظفين", icon: UsersRound, permission: "manage_employees" },
   { id: "requests", label: "طلبات التواصل", icon: MessageSquareMore, permission: "view" },
@@ -83,7 +80,6 @@ const ADMIN_TOOLS: AdminTool[] = [
   { to: "/admin/discounts", label: "الخصومات", icon: Tags, permission: "edit_settings" },
   { to: "/admin/branches", label: "إدارة الفروع", icon: Building2, permission: "manage_knowledge" },
   { to: "/admin/knowledge-bank", label: "بنك المعلومات", icon: BookOpenCheck, permission: "manage_knowledge" },
-  { to: "/admin/ghost", label: "سجل الزوار", icon: Radar, roles: ["superadmin", "admin"] },
   { to: "/admin/errors", label: "أخطاء النظام", icon: ShieldAlert, roles: ["superadmin", "admin"] },
   { to: "/admin/enterprise-control", label: "التحكم المؤسسي", icon: SlidersHorizontal, roles: ["superadmin", "admin"] },
   { to: "/admin/ai-maintenance", label: "مركز التطوير الذكي", icon: Sparkles, roles: ["superadmin", "admin"] },
@@ -328,8 +324,6 @@ const AdminDashboard = () => {
           </section>
         </div>
       ) : null}
-
-      {activeTab === "analytics" ? <AdminAnalytics /> : null}
 
       {activeTab === "bookings" ? (
         <div className="space-y-4">

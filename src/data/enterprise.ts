@@ -1,4 +1,4 @@
-import { hotelBranches } from "@/data/hotels";
+import { publicBranches as hotelBranches } from "@/data/publicBranches";
 
 export type BrandCode = "Boudl" | "Braira" | "Narcissus" | "Aber";
 
@@ -17,7 +17,7 @@ export const branchesByBrand: Record<BrandCode, string[]> = enterpriseBrands.red
 );
 
 hotelBranches.forEach((branch) => {
-  const brand = groupToBrand[branch.group];
+  const brand = groupToBrand[branch.brand];
   if (!brand) return;
   branchesByBrand[brand].push(`${branch.name} - ${branch.city}`);
 });

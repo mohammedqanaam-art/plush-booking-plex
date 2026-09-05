@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { assistantModelLabel } from "@/lib/assistantModelLabel";
 import {
   localAssistantReply,
   streamVisitorAssistant,
@@ -18,7 +19,7 @@ const stageLabels: Record<VisitorStreamStage | "streaming", string> = {
   preparing: "جارٍ تجهيز المساعد…",
   cache: "أبحث عن إجابة فورية…",
   sources: "أراجع مصادر بودل الرسمية…",
-  generating: "GPT‑5.6 Sol يصيغ الإجابة…",
+  generating: "جارٍ صياغة الإجابة…",
   fallback: "أجهز أفضل إجابة متاحة…",
   streaming: "تصل الإجابة الآن…",
 };
@@ -35,7 +36,7 @@ export const useVisitorAssistant = (options: {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(stageLabels.preparing);
-  const [modelLabel, setModelLabel] = useState("GPT‑5.6 Sol");
+  const [modelLabel, setModelLabel] = useState("مساعد BHG");
   const [sessionId, setSessionId] = useState(() => `${options.sessionPrefix || "visitor"}_${crypto.randomUUID()}`);
   const [items, setItems] = useState<AssistantChatItem[]>(() => [{
     id: newId("welcome"),
@@ -61,6 +62,7 @@ export const useVisitorAssistant = (options: {
     const assistantId = newId("assistant");
     const localReply = localAssistantReply(text, history);
 
+    setModelLabel(localReply ? "إجابة محلية" : "مساعد BHG");
     setMessage("");
     setItems((current) => [
       ...current,
@@ -95,8 +97,7 @@ export const useVisitorAssistant = (options: {
       );
 
       if (result.sessionId) setSessionId(result.sessionId);
-      if (result.model?.toLowerCase().includes("gpt-5.6")) setModelLabel("GPT‑5.6 Sol");
-      else if (result.provider === "n8n-agent") setModelLabel("BHG AI · n8n");
+      setModelLabel(assistantModelLabel(result));
       setItems((current) => current.map((item) => item.id === assistantId
         ? {
             ...item,
@@ -106,10 +107,13 @@ export const useVisitorAssistant = (options: {
           }
         : item));
     } catch {
+      setModelLabel("إجابة غير مكتملة");
       setItems((current) => current.map((item) => item.id === assistantId
         ? {
             ...item,
-            content: item.content || "تعذر الوصول للمساعد الآن. جرّب مرة أخرى بعد قليل أو استخدم صفحة الفروع والبحث داخل الموقع.",
+            content: item.content
+              ? `${item.content}\n\n⚠️ لم تكتمل الإجابة؛ لا تعتمدها قبل إعادة المحاولة والتحقق.`
+              : "تعذر الوصول للمساعد الآن. جرّب مرة أخرى بعد قليل أو استخدم صفحة الفروع والبحث داخل الموقع.",
             pending: false,
           }
         : item));

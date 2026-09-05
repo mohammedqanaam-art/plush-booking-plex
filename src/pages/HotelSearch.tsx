@@ -1,7 +1,9 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { BedDouble, Building2, PhoneCall, Presentation, Search, UtensilsCrossed } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { knowledgeEntries, quickIntents } from "@/data/operations";
+import InternalKnowledgeBoundary from "@/components/InternalKnowledgeBoundary";
+import { useInternalKnowledge } from "@/hooks/useInternalKnowledge";
+import { knowledgeQuickIntents as quickIntents } from "@/lib/internalKnowledge";
 
 type GroupKey = "الكل" | "فروع" | "جهات اتصال" | "وجبات" | "غرف" | "مرافق" | "قاعات";
 
@@ -18,6 +20,7 @@ const groupIcons: Record<GroupKey, ReactNode> = {
 const groups: GroupKey[] = ["الكل", "فروع", "جهات اتصال", "وجبات", "غرف", "مرافق", "قاعات"];
 
 const HotelSearch = () => {
+  const { knowledgeEntries } = useInternalKnowledge();
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState<GroupKey>("الكل");
 
@@ -41,7 +44,7 @@ const HotelSearch = () => {
       .filter((bucket) => bucket.items.length > 0);
 
     return grouped;
-  }, [group, hasCriteria, normalized]);
+  }, [group, hasCriteria, normalized, knowledgeEntries]);
 
   return (
     <div className="page-wrap">
@@ -117,4 +120,6 @@ const HotelSearch = () => {
   );
 };
 
-export default HotelSearch;
+export default function ProtectedHotelSearch() {
+  return <InternalKnowledgeBoundary><HotelSearch /></InternalKnowledgeBoundary>;
+}

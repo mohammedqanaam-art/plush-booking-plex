@@ -23,7 +23,6 @@ const AdminComplaints = lazy(() => import("./pages/AdminComplaints"));
 const AdminWarnings = lazy(() => import("./pages/AdminWarnings"));
 const AdminAvayaReports = lazy(() => import("./pages/AdminAvayaReports"));
 const AdminShiftStartTools = lazy(() => import("./pages/AdminShiftStartTools"));
-const AdminGhost = lazy(() => import("./pages/AdminGhost"));
 const AdminUno = lazy(() => import("./pages/AdminUno"));
 const AdminOperaSearch = lazy(() => import("./pages/AdminOperaSearch"));
 const AdminAiMaintenance = lazy(() => import("./pages/AdminAiMaintenance"));
@@ -38,11 +37,11 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/employees" element={<Navigate to="/booking-reports?section=employees" replace />} />
-            <Route path="/booking-reports" element={<BookingReports />} />
-            <Route path="/operations" element={<HotelSearch />} />
+            <Route path="/booking-reports" element={<ProtectedRoute><BookingReports /></ProtectedRoute>} />
+            <Route path="/operations" element={<ProtectedRoute><HotelSearch /></ProtectedRoute>} />
             <Route path="/branches" element={<Branches />} />
-            <Route path="/assistant" element={<EmployeeAssistant />} />
-            <Route path="/knowledge-bank" element={<KnowledgeBank />} />
+            <Route path="/assistant" element={<ProtectedRoute><EmployeeAssistant /></ProtectedRoute>} />
+            <Route path="/knowledge-bank" element={<ProtectedRoute><KnowledgeBank /></ProtectedRoute>} />
             <Route path="/policies" element={<Navigate to="/" replace />} />
             <Route path="/complaints" element={<Complaints />} />
             <Route path="/runner" element={<Navigate to="/" replace />} />
@@ -61,7 +60,7 @@ const App = () => (
             <Route path="/admin/uno" element={<ProtectedRoute><AdminUno /></ProtectedRoute>} />
             <Route path="/admin/opera-search" element={<ProtectedRoute><AdminOperaSearch /></ProtectedRoute>} />
             <Route path="/admin/ai-maintenance" element={<ProtectedRoute><AdminAiMaintenance /></ProtectedRoute>} />
-            <Route path="/admin/ghost" element={<ProtectedRoute><AdminGhost /></ProtectedRoute>} />
+            <Route path="/admin/ghost" element={<ProtectedRoute><Navigate to="/admin" replace /></ProtectedRoute>} />
             <Route path="/admin/discounts" element={<ProtectedRoute><AdminDiscounts /></ProtectedRoute>} />
             <Route path="/admin/enterprise-control" element={<ProtectedRoute><AdminEnterpriseControl /></ProtectedRoute>} />
             <Route path="/admin/errors" element={<ProtectedRoute><AdminErrors /></ProtectedRoute>} />

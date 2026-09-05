@@ -11,6 +11,7 @@ import {
   needsPasswordRehash,
   normalizeRole,
   sessionStorageKey,
+  requireSameOrigin,
   validateSession,
   verifyPassword,
   type UserRole,
@@ -66,6 +67,8 @@ export default async (req: Request) => {
   const method = req.method;
 
   if (method === "POST") {
+    const originError = requireSameOrigin(req);
+    if (originError) return originError;
     const contentLength = Number(req.headers.get("content-length") || 0);
     if (contentLength > 8 * 1024) return json({ error: "Request too large" }, 413);
 
@@ -132,6 +135,8 @@ export default async (req: Request) => {
   }
 
   if (method === "DELETE") {
+    const originError = requireSameOrigin(req);
+    if (originError) return originError;
     const token = getSessionToken(req);
     if (token) {
       try {
@@ -140,7 +145,10 @@ export default async (req: Request) => {
         // Session already gone.
       }
     }
-    return json({ ok: true }, 200, { "Set-Cookie": clearSessionCookie() });
+    return json({ ok: true }, 200, {
+      "Set-Cookie": clearSessionCookie(),
+      "Clear-Site-Data": '"cache", "cookies", "storage"',
+    });
   }
 
   return json({ error: "Method not allowed" }, 405);

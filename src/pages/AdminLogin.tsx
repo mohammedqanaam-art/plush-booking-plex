@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import { Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getAdminSession } from "@/lib/adminAuth";
 import { api } from "@/lib/api";
 import PageHeader from "@/components/PageHeader";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const requestedPath = (location.state as { from?: unknown } | null)?.from;
+  const returnTo = typeof requestedPath === "string"
+    && requestedPath.startsWith("/")
+    && !requestedPath.startsWith("//")
+    && requestedPath !== "/admin/login"
+    ? requestedPath
+    : "/admin";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -14,9 +22,9 @@ const AdminLogin = () => {
 
   useEffect(() => {
     if (getAdminSession()) {
-      navigate("/admin", { replace: true });
+      navigate(returnTo, { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, returnTo]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -24,7 +32,7 @@ const AdminLogin = () => {
     setError(null);
     try {
       await api.login(username, password);
-      navigate("/admin", { replace: true });
+      navigate(returnTo, { replace: true });
     } catch {
       setError("بيانات الدخول غير صحيحة.");
     } finally {
@@ -34,13 +42,14 @@ const AdminLogin = () => {
 
   return (
     <div className="page-wrap-narrow">
-      <PageHeader title="لوحة مدير ومشرفين إدارة الحجز" icon={Lock} />
+      <PageHeader title="الدخول إلى مساحة العمل" icon={Lock} />
 
       <div className="glass-card p-8 text-center space-y-4">
         <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
           <Lock className="w-8 h-8 text-primary" />
         </div>
-        <h3 className="text-lg font-semibold">تسجيل الدخول</h3>
+        <h3 className="text-lg font-semibold">دخول الموظفين والمشرفين</h3>
+        <p className="mx-auto max-w-sm text-xs leading-6 text-muted-foreground">المساعد التشغيلي وتقارير الموظفين وبنك الإجراءات متاحة للحسابات المخولة فقط.</p>
 
         <form onSubmit={handleSubmit} className="space-y-3 pt-2">
           <input

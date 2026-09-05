@@ -12,10 +12,10 @@ export type Session = {
   expiresAt: number;
 };
 
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const PASSWORD_ITERATIONS = 600_000;
 const PASSWORD_KEY_LENGTH = 32;
-const SESSION_COOKIE = "res_admin_session";
+const SESSION_COOKIE = "__Host-res_admin_session";
 
 export function getBearerToken(req: Request): string | null {
   const header = req.headers.get("Authorization");

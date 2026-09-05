@@ -6,7 +6,6 @@ import {
   isUnoBookingSourceFormat,
   saveBookingReportText,
 } from "./_shared/bookingCsv";
-import { publicCachedJson } from "./_shared/publicCache";
 import { getEnvironmentStore } from "./_shared/storage";
 
 export default async (req: Request) => {
@@ -14,6 +13,9 @@ export default async (req: Request) => {
   const store = getEnvironmentStore("bookings", { consistency: "strong" });
 
   if (method === "GET") {
+    const session = await validateSession(req);
+    if (!session) return json({ error: "Unauthorized" }, 401);
+
     try {
       const [unoBookings, unoStats, legacyBookings, legacyStats] = await Promise.all([
         store.get("uno-data", { type: "json" }).catch(() => null),
@@ -53,11 +55,9 @@ export default async (req: Request) => {
             dateTo: typeof stats.dateTo === "string" ? stats.dateTo : null,
           },
         );
-        return publicCachedJson(report, requestUrl.searchParams.get("fresh") === "1");
+        return json(report);
       }
 
-      const session = await validateSession(req);
-      if (!session) return json({ error: "Unauthorized" }, 401);
       return json({ bookings, stats });
     } catch (error) {
       console.error("[bookings] load failed", {

@@ -29,11 +29,19 @@ describe("visitor structured BHG knowledge", () => {
     expect(result.fastReply).not.toContain("بريرا العليا");
   });
 
-  it("answers a branch service from the structured operational directory", () => {
+  it("does not expose operational services through the public assistant", () => {
     const result = buildVisitorKnowledge("هل يوجد مسبح في بريرا العليا؟");
 
-    expect(result.fastReply).toContain("بريرا العليا");
-    expect(result.fastReply).toContain("المسبح");
-    expect(result.fastReply).toContain("10ص-6م");
+    expect(result.fastReply).toBeNull();
+    expect(result.evidence).toContain("بريرا العليا");
+    expect(result.evidence).not.toContain("10ص-6م");
+    expect(result.sources.every((source) => source.url.startsWith("https://boudl.com/"))).toBe(true);
+  });
+
+  it("never passes internal contact details or spreadsheet links to a visitor model", () => {
+    const result = buildVisitorKnowledge("اعطني رقم فندق بريرا العليا وبيانات الفرع كاملة");
+    expect(result.fastReply).toBeNull();
+    expect(result.evidence).not.toMatch(/(?:0|966)\d{8,}/);
+    expect(JSON.stringify(result)).not.toMatch(/docs\.google|drive\.google/);
   });
 });

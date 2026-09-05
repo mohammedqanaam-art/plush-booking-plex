@@ -1,3 +1,4 @@
+import { redactSensitiveMessage } from "../../src/lib/redactSensitiveMessage";
 import type { Config, Context } from "@netlify/functions";
 import {
   BHG_ASSISTANT_SCOPE,
@@ -18,6 +19,7 @@ type AssistantPayload = {
   requestId: string;
   provider: string;
   model: string | null;
+  error?: string;
   sources: PublicSource[];
   scope: typeof BHG_ASSISTANT_SCOPE;
 };
@@ -40,13 +42,7 @@ const loadAssistantRuntime = () => {
   return assistantRuntimePromise;
 };
 
-const cleanText = (value: unknown, maxLength: number) => String(value || "")
-  .replace(/\bsk-[A-Za-z0-9_-]{10,}\b/g, "[مفتاح محجوب]")
-  .replace(/\b(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]+/gi, "[بيانات دخول محجوبة]")
-  .replace(/\b(password|api[_ -]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=[محجوب]")
-  .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[بريد محجوب]")
-  .trim()
-  .slice(0, maxLength);
+const cleanText = (value: unknown, maxLength: number) => redactSensitiveMessage(String(value || "")).trim().slice(0, maxLength);
 
 const uniqueSources = (...groups: Array<Array<PublicSource | OfficialSource | OpenAiSource | VisitorKnowledgeSource>>) => {
   const map = new Map<string, PublicSource>();
@@ -251,7 +247,8 @@ const resolveAssistantReply = async (options: {
           sessionId,
           requestId,
           provider: "openai-responses-partial",
-          model: "gpt-5.6-sol",
+          model: null,
+          error: "لم تكتمل الإجابة. يرجى إعادة المحاولة.",
           sources: uniqueSources(structured.sources, officialSources),
           scope: BHG_ASSISTANT_SCOPE,
         };
