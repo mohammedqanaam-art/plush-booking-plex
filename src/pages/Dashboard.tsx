@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
-import { branches } from "@/data/branches";
+import { publicBranches as branches } from "@/data/publicBranches";
 
 type ServiceTone = "green" | "orange" | "red" | "violet";
 type PublicEntry = {
@@ -28,7 +28,7 @@ const publicEntries: PublicEntry[] = [
   {
     to: "/branches",
     label: "دليل الفروع",
-    description: "استعرض مواقع الفنادق والخدمات وبيانات التواصل المعتمدة.",
+    description: "تعرّف على الفروع ومدنها، وتحقق من التفاصيل عبر موقع الفندق الرسمي.",
     icon: Building2,
     tone: "green",
   },

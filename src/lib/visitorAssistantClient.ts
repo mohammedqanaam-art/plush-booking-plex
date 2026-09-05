@@ -1,3 +1,4 @@
+import { redactSensitiveMessage } from "@/lib/redactSensitiveMessage";
 import {
   boudlScopeReply,
   classifyBoudlAssistantScope,
@@ -17,14 +18,7 @@ export type VisitorAgentResponse = {
 
 export type VisitorStreamStage = "preparing" | "cache" | "sources" | "generating" | "fallback";
 
-export const redactSensitiveMessage = (value: string) => value
-  .replace(/\bsk-[A-Za-z0-9_-]{10,}\b/g, "[مفتاح محجوب]")
-  .replace(/\b(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]+/gi, "[بيانات دخول محجوبة]")
-  .replace(/\b(password|api[_ -]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=[محجوب]")
-  .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[بريد محجوب]")
-  .replace(/[+\d][\d\s()-]{6,}\d/g, (candidate) => (
-    candidate.replace(/\D/g, "").length >= 8 ? "[رقم محجوب]" : candidate
-  ));
+export { redactSensitiveMessage } from "@/lib/redactSensitiveMessage";
 
 const safeSources = (value: unknown): VisitorSource[] => Array.isArray(value)
   ? value.filter((source): source is VisitorSource => Boolean(
@@ -153,7 +147,8 @@ export async function streamVisitorAssistant(
   }
   buffer += decoder.decode();
   if (buffer.trim()) processBlock(buffer);
-  if (streamError && !reply.trim()) throw new Error(streamError);
+  if (streamError) throw new Error(streamError);
+  if (!completed || completed.error) throw new Error("لم تكتمل الإجابة. يرجى إعادة المحاولة.");
 
   const completedReply = String(completed?.reply || "").trim();
   if (!reply && completedReply) {

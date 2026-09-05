@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Send, CheckCircle2, ChevronDown, PhoneCall, Clock3, Hash } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { hotelBranches } from "@/data/hotels";
+import { publicBranches as hotelBranches } from "@/data/publicBranches";
 import { api, type ContactRequest } from "@/lib/api";
 
 interface ContactForm {
@@ -19,8 +19,8 @@ const Contacts = () => {
   const [error, setError] = useState<string | null>(null);
   const [recentRequests, setRecentRequests] = useState<ContactRequest[]>([]);
 
-  const brands = useMemo(() => [...new Set(hotelBranches.map((h) => h.group))].sort((a, b) => a.localeCompare(b, "ar")), []);
-  const branches = useMemo(() => hotelBranches.filter((h) => !form.brand || h.group === form.brand), [form.brand]);
+  const brands = useMemo(() => [...new Set(hotelBranches.map((h) => h.brand))].sort((a, b) => a.localeCompare(b, "ar")), []);
+  const branches = useMemo(() => hotelBranches.filter((h) => !form.brand || h.brand === form.brand), [form.brand]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

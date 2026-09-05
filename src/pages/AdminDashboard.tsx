@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  BarChart3,
   BookOpenCheck,
   Building2,
   CalendarSearch,

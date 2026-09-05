@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Branches from "@/pages/Branches";
@@ -7,16 +7,18 @@ import fs from "node:fs";
 import path from "node:path";
 
 describe("public pages are read-only", () => {
+  afterEach(() => vi.unstubAllGlobals());
   it("keeps the branches page concise", () => {
     render(<MemoryRouter><Branches /></MemoryRouter>);
     expect(screen.queryByText(/هذه الصفحة للعرض فقط/)).toBeNull();
     expect(screen.getByPlaceholderText(/اسم الفرع/)).toBeDefined();
   });
 
-  it("keeps the knowledge bank concise", () => {
+  it("does not render knowledge without a successful authenticated response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
     render(<MemoryRouter><KnowledgeBank /></MemoryRouter>);
-    expect(screen.queryByText(/الصفحة للعرض فقط/)).toBeNull();
-    expect(screen.getByPlaceholderText(/إفطار/)).toBeDefined();
+    expect(await screen.findByText("يلزم تسجيل الدخول لعرض المعلومات التشغيلية.")).toBeDefined();
+    expect(screen.queryByPlaceholderText(/إفطار/)).toBeNull();
   });
 
   it("redirects the retired public upload center to admin login", () => {

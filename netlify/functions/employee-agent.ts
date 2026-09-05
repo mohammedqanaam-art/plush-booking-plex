@@ -1,3 +1,4 @@
+import { redactSensitiveMessage } from "../../src/lib/redactSensitiveMessage";
 import type { Config, Context } from "@netlify/functions";
 import { BHG_ASSISTANT_SCOPE, boudlScopeReply, classifyBoudlAssistantScope } from "./_shared/boudlAssistantScope";
 import { lookupOfficialBoudlSources, type OfficialSource } from "./_shared/boudl-knowledge";
@@ -10,14 +11,7 @@ type StreamStage = "preparing" | "sources" | "generating" | "fallback";
 type EmployeePayload = { reply: string; sources: EmployeeKnowledgeSource[]; sessionId: string; requestId: string;
   provider: string; model: string | null; scope: typeof BHG_ASSISTANT_SCOPE };
 
-const cleanText = (value: unknown, maxLength: number) => String(value || "")
-  .replace(/\bsk-[A-Za-z0-9_-]{10,}\b/g, "[مفتاح محجوب]")
-  .replace(/\b(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]+/gi, "[بيانات دخول محجوبة]")
-  .replace(/\b(password|api[_ -]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=[محجوب]")
-  .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[بريد محجوب]")
-  .replace(/[+\d][\d\s()-]{6,}\d/g, (candidate) => (
-    candidate.replace(/\D/g, "").length >= 8 ? "[رقم محجوب]" : candidate
-  )).trim().slice(0, maxLength);
+const cleanText = (value: unknown, maxLength: number) => redactSensitiveMessage(String(value || "")).trim().slice(0, maxLength);
 
 const historyFromBody = (value: unknown): ChatTurn[] => Array.isArray(value)
   ? value.slice(-8).filter((item) => item && typeof item === "object").map((item) => item as Record<string, unknown>)

@@ -57,4 +57,16 @@ describe("visitor assistant client", () => {
     expect(statuses).toEqual(["generating"]);
     expect(result).toMatchObject(completion);
   });
+
+  it.each(["", 'event: error\ndata: {"error":"interrupted"}\n\n',
+    'event: done\ndata: {"error":"incomplete"}\n\n'])("does not accept a partial stream without a successful done: %s", async (tail) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
+      'event: delta\ndata: {"delta":"جزء من الإجابة"}\n\n' + tail,
+      { headers: { "Content-Type": "text/event-stream" } },
+    )));
+    const onDelta = vi.fn();
+    await expect(streamVisitorAssistant({ message: "كيف أحجز في بودل؟", sessionId: "test_12345678", history: [] }, { onDelta }))
+      .rejects.toThrow();
+    expect(onDelta).toHaveBeenCalledWith("جزء من الإجابة");
+  });
 });
