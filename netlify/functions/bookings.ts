@@ -58,6 +58,9 @@ export default async (req: Request) => {
 
       const session = await validateSession(req);
       if (!session) return json({ error: "Unauthorized" }, 401);
+      if (!["superadmin", "admin", "editor"].includes(session.role)) {
+        return json({ error: "Permission Denied" }, 403);
+      }
       return json({ bookings, stats });
     } catch (error) {
       console.error("[bookings] load failed", {

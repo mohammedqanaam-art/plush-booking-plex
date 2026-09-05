@@ -1,5 +1,9 @@
 # Welcome to your Lovable project
 
+## Employee Agent Hub
+
+The protected `/assistant` workspace provides seven Arabic operational agents, a shared task board, shift scheduling, dual call-quality review, private marketing-consultancy records, multi-industry call-center project profiles, an Avaya launch gate, and a source-backed seven-day forecast. Administrators can open the operations view directly at `/admin/call-center`. See [`docs/employee-agent-hub.md`](docs/employee-agent-hub.md) for roles, privacy boundaries, corporate-network enforcement, backup configuration, and architecture.
+
 ## Arabic automation setup (ChatGPT + n8n + GitHub + Netlify)
 
 For the full Arabic step-by-step setup guide (including webhook/OpenAPI schema and Custom GPT setup), see:

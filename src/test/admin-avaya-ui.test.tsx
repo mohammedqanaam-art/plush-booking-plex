@@ -10,8 +10,8 @@ afterEach(() => {
 });
 
 describe("Avaya admin upload center", () => {
-  it("shows the three required exports only to an authenticated uploader", () => {
-    sessionStorage.setItem("admin_session", JSON.stringify({ username: "tester", role: "editor" }));
+  it("shows the three required exports only to an authenticated uploader", async () => {
+    sessionStorage.setItem("admin_session", JSON.stringify({ username: "tester", role: "admin" }));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ report: null, sync: { configured: true, updatedAt: null } }) }));
     render(<MemoryRouter initialEntries={["/admin/avaya-reports"]}><AdminAvayaReports /></MemoryRouter>);
 
@@ -23,10 +23,11 @@ describe("Avaya admin upload center", () => {
     expect(screen.getByText("Feature Trace")).toBeInTheDocument();
     expect(screen.getByText("Agent Time Card")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /إنشاء التقرير الموحد/ })).toBeDisabled();
-  });
+    expect(await screen.findByText("بانتظار أول مجموعة تقارير مكتملة.")).toBeInTheDocument();
+  }, 15_000);
 
   it("loads the latest automatically synchronized report", async () => {
-    sessionStorage.setItem("admin_session", JSON.stringify({ username: "tester", role: "editor" }));
+    sessionStorage.setItem("admin_session", JSON.stringify({ username: "tester", role: "admin" }));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -65,7 +66,7 @@ describe("Avaya admin upload center", () => {
   });
 
   it("requests an archived report using the selected date range", async () => {
-    sessionStorage.setItem("admin_session", JSON.stringify({ username: "tester", role: "editor" }));
+    sessionStorage.setItem("admin_session", JSON.stringify({ username: "tester", role: "admin" }));
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({

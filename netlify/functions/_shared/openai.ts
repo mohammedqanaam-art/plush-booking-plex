@@ -75,7 +75,7 @@ const loadStoredOpenAiConfig = async (): Promise<StoredOpenAiConfig | null> => {
   }
 };
 
-const resolveOpenAiConfig = async () => {
+export const resolveOpenAiRuntimeConfig = async () => {
   const envKey = configuredEnv("OPENAI_API_KEY");
   const envModel = configuredEnv("OPENAI_MODEL");
   if (envKey) return { apiKey: envKey, model: safeModel(envModel || DEFAULT_MODEL) };
@@ -91,11 +91,11 @@ const resolveOpenAiConfig = async () => {
 export const isOpenAiConfigured = () => Boolean(configuredEnv("OPENAI_API_KEY"));
 
 export const isOpenAiAvailable = async () => {
-  const config = await resolveOpenAiConfig();
+  const config = await resolveOpenAiRuntimeConfig();
   return Boolean(config.apiKey);
 };
 
-const openAiEndpoint = () => {
+const openAiApiBase = () => {
   const configuredBaseUrl = configuredEnv("OPENAI_BASE_URL") || "https://api.openai.com";
   let parsed: URL;
   try {
@@ -105,8 +105,10 @@ const openAiEndpoint = () => {
   }
   if (parsed.protocol !== "https:") parsed = new URL("https://api.openai.com");
   const baseUrl = parsed.toString().replace(/\/+$/, "");
-  return `${baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`}/responses`;
+  return baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
 };
+
+const openAiEndpoint = () => `${openAiApiBase()}/responses`;
 
 const responseTextAndSources = (data: OpenAiResponse) => {
   const text: string[] = [];
@@ -137,7 +139,7 @@ const responseTextAndSources = (data: OpenAiResponse) => {
 };
 
 const requestOpenAi = async (options: OpenAiTextOptions, stream: boolean) => {
-  const config = await resolveOpenAiConfig();
+  const config = await resolveOpenAiRuntimeConfig();
   if (!config.apiKey) throw new Error("OPENAI_NOT_CONFIGURED");
 
   const allowedDomains = (options.webSearchAllowedDomains || [])
@@ -183,6 +185,62 @@ const requestOpenAi = async (options: OpenAiTextOptions, stream: boolean) => {
 
   return { response, configuredModel: config.model };
 };
+
+export type OpenAiTranscriptResult = {
+  text: string;
+  model: string;
+};
+
+export async function transcribeOpenAiAudio(file: Blob, fileName: string): Promise<OpenAiTranscriptResult> {
+  const config = await resolveOpenAiRuntimeConfig();
+  if (!config.apiKey) throw new Error("OPENAI_NOT_CONFIGURED");
+
+  const model = safeModel(configuredEnv("OPENAI_TRANSCRIBE_MODEL") || "gpt-4o-transcribe-diarize");
+  const form = new FormData();
+  form.append("file", file, fileName.slice(0, 180));
+  form.append("model", model);
+  form.append("response_format", "diarized_json");
+  form.append("chunking_strategy", "auto");
+
+  const response = await fetch(`${openAiApiBase()}/audio/transcriptions`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${config.apiKey}` },
+    body: form,
+    signal: AbortSignal.timeout(28_000),
+  });
+  if (!response.ok) {
+    console.error("OpenAI transcription request failed", {
+      status: response.status,
+      requestId: response.headers.get("x-request-id") || undefined,
+    });
+    throw new Error(`OPENAI_TRANSCRIPTION_${response.status}`);
+  }
+
+  const data = await response.json() as {
+    text?: string;
+    segments?: Array<{ speaker?: string; start?: number; end?: number; text?: string }>;
+  };
+  const segments = Array.isArray(data.segments)
+    ? data.segments
+        .map((segment) => ({
+          speaker: String(segment.speaker || "متحدث").slice(0, 40),
+          start: Number.isFinite(segment.start) ? Number(segment.start) : null,
+          end: Number.isFinite(segment.end) ? Number(segment.end) : null,
+          text: String(segment.text || "").trim().slice(0, 4_000),
+        }))
+        .filter((segment) => segment.text)
+        .slice(0, 2_000)
+    : [];
+  const timestamp = (seconds: number | null) => seconds === null
+    ? ""
+    : `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+  const diarizedText = segments.map((segment) => `[${timestamp(segment.start)}] ${segment.speaker}: ${segment.text}`).join("\n");
+  const text = String(diarizedText || data.text || "")
+    .trim()
+    .slice(0, 80_000);
+  if (!text) throw new Error("OPENAI_EMPTY_TRANSCRIPT");
+  return { text, model };
+}
 
 export async function generateOpenAiText(options: OpenAiTextOptions): Promise<OpenAiTextResult> {
   const { response, configuredModel } = await requestOpenAi(options, false);

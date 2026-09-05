@@ -20,7 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { getAdminSession, hasPermission } from "@/lib/adminAuth";
+import { getAdminSession } from "@/lib/adminAuth";
 import { api, type AvayaSyncStatus } from "@/lib/api";
 import {
   analyzeAvayaFiles,
@@ -165,7 +165,7 @@ const AdminAvayaReports = () => {
     { label: "أولوية مراجعة", value: summary.risks, icon: AlertTriangle, valueClass: "text-red-600 dark:text-red-300" },
   ];
 
-  if (!session || !hasPermission(session.role, "upload")) return <Navigate to="/admin" replace />;
+  if (!session || !["superadmin", "admin"].includes(session.role)) return <Navigate to="/admin" replace />;
 
   const chooseFile = (kind: AvayaFileKind, file?: File) => {
     if (!file) return;

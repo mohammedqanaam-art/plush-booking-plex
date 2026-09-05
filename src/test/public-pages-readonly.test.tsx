@@ -25,9 +25,10 @@ describe("public pages are read-only", () => {
     expect(fs.existsSync(path.join(process.cwd(), "src/pages/UploadCenter.tsx"))).toBe(false);
   });
 
-  it("keeps one public booking report and redirects the old employee route", () => {
+  it("keeps one public booking report and redirects the old employee route to the protected hub", () => {
     const app = fs.readFileSync(path.join(process.cwd(), "src/App.tsx"), "utf8");
-    expect(app).toContain('<Route path="/employees" element={<Navigate to="/booking-reports?section=employees" replace />} />');
+    expect(app).toContain('<Route path="/employees" element={<Navigate to="/assistant" replace />} />');
+    expect(app).toContain('<Route path="/assistant" element={<ProtectedRoute><EmployeeAssistant /></ProtectedRoute>} />');
     expect(app).toContain('<Route path="/booking-reports" element={<BookingReports />} />');
     expect(app).not.toContain('const Employees = lazy');
   });

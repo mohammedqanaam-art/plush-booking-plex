@@ -1,6 +1,5 @@
-import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, Building2, LayoutDashboard, MessageCircle, PhoneCall, Search, ShieldCheck } from "lucide-react";
+import { BarChart3, Building2, LayoutDashboard, PhoneCall, Search, ShieldCheck, UsersRound } from "lucide-react";
 import BottomNav from "./BottomNav";
 import RiyadhClock from "./RiyadhClock";
 import ViewerPreferences from "./ViewerPreferences";
@@ -8,30 +7,19 @@ import AnalyticsTracker from "./AnalyticsTracker";
 import BrandFooter from "./BrandFooter";
 import AiChat from "./AiChat";
 import VisitorChat from "./VisitorChat";
-import { warmVisitorAssistant } from "@/lib/visitorAssistantClient";
 
 const desktopNav = [
   { to: "/", label: "الرئيسية", icon: LayoutDashboard },
-  { to: "/assistant", label: "المساعد", icon: MessageCircle },
+  { to: "/assistant", label: "مركز الموظفين", icon: UsersRound },
   { to: "/operations", label: "البحث", icon: Search },
   { to: "/branches", label: "الفروع", icon: Building2 },
   { to: "/booking-reports", label: "التقارير", icon: BarChart3 },
   { to: "/contact-requests", label: "طلبات التواصل", icon: PhoneCall },
 ];
 
-const prewarmAssistant = () => {
-  void warmVisitorAssistant();
-};
-
 const Layout = () => {
   const location = useLocation();
   const isAdminArea = location.pathname.startsWith("/admin");
-
-  useEffect(() => {
-    if (isAdminArea) return undefined;
-    const timer = window.setTimeout(prewarmAssistant, 1_200);
-    return () => window.clearTimeout(timer);
-  }, [isAdminArea]);
 
   return (
     <div className={`app-shell ${isAdminArea ? "app-shell--admin" : "app-shell--public"} flex flex-col`}>
@@ -55,8 +43,6 @@ const Layout = () => {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  onPointerEnter={item.to === "/assistant" ? prewarmAssistant : undefined}
-                  onFocus={item.to === "/assistant" ? prewarmAssistant : undefined}
                   className={({ isActive }) => `app-desktop-nav__item ${isActive ? "is-active" : ""}`}
                 >
                   <item.icon className="w-4 h-4" strokeWidth={1.9} />

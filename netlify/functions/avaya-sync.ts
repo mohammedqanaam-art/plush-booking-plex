@@ -9,6 +9,7 @@ import {
   type AvayaFileKind,
   type AvayaReportResult,
 } from "../../src/lib/avayaReportProcessor";
+import type { CallCenterReportRoutingScope } from "../../src/lib/callCenterForecast";
 import { json, validateSession } from "./_shared/security";
 
 type UploadBody = {
@@ -36,6 +37,8 @@ export type StoredAvayaReport = AvayaReportResult & {
   reportId: string;
   syncedAt: string;
   sources: SourceRecord[];
+  /** Set only by a validated Queue/Skill report ingestion path. */
+  routingScope?: CallCenterReportRoutingScope;
 };
 
 export type AvayaReportRange = {
@@ -212,6 +215,9 @@ async function indexReport(store: ReturnType<typeof avayaStore>, report: StoredA
 async function getLatest(req: Request, context: Context) {
   const session = await validateSession(req);
   if (!session) return json({ error: "Unauthorized" }, 401);
+  if (session.role !== "admin" && session.role !== "superadmin") {
+    return json({ error: "Forbidden" }, 403);
+  }
 
   const store = avayaStore(context);
   const url = new URL(req.url);
