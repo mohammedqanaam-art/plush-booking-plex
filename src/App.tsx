@@ -28,6 +28,7 @@ const AdminUno = lazy(() => import("./pages/AdminUno"));
 const AdminOperaSearch = lazy(() => import("./pages/AdminOperaSearch"));
 const AdminAiMaintenance = lazy(() => import("./pages/AdminAiMaintenance"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const ADMIN_ROLES = ["superadmin", "admin"] as const;
 
 const App = () => (
   <>
@@ -37,11 +38,11 @@ const App = () => (
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/employees" element={<Navigate to="/booking-reports?section=employees" replace />} />
+            <Route path="/employees" element={<Navigate to="/assistant" replace />} />
             <Route path="/booking-reports" element={<BookingReports />} />
             <Route path="/operations" element={<HotelSearch />} />
             <Route path="/branches" element={<Branches />} />
-            <Route path="/assistant" element={<EmployeeAssistant />} />
+            <Route path="/assistant" element={<ProtectedRoute><EmployeeAssistant /></ProtectedRoute>} />
             <Route path="/knowledge-bank" element={<KnowledgeBank />} />
             <Route path="/policies" element={<Navigate to="/" replace />} />
             <Route path="/complaints" element={<Complaints />} />
@@ -52,21 +53,22 @@ const App = () => (
             <Route path="/contact-requests" element={<Contacts />} />
             <Route path="/contacts" element={<Navigate to="/contact-requests" replace />} />
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/admin/complaints" element={<ProtectedRoute><AdminComplaints /></ProtectedRoute>} />
-            <Route path="/admin/warnings" element={<ProtectedRoute><AdminWarnings /></ProtectedRoute>} />
-            <Route path="/admin/avaya-reports" element={<ProtectedRoute><AdminAvayaReports /></ProtectedRoute>} />
-            <Route path="/admin/shift-start" element={<ProtectedRoute><AdminShiftStartTools /></ProtectedRoute>} />
-            <Route path="/admin/cro-export" element={<ProtectedRoute><Navigate to="/admin/uno" replace /></ProtectedRoute>} />
-            <Route path="/admin/uno" element={<ProtectedRoute><AdminUno /></ProtectedRoute>} />
-            <Route path="/admin/opera-search" element={<ProtectedRoute><AdminOperaSearch /></ProtectedRoute>} />
-            <Route path="/admin/ai-maintenance" element={<ProtectedRoute><AdminAiMaintenance /></ProtectedRoute>} />
-            <Route path="/admin/ghost" element={<ProtectedRoute><AdminGhost /></ProtectedRoute>} />
-            <Route path="/admin/discounts" element={<ProtectedRoute><AdminDiscounts /></ProtectedRoute>} />
-            <Route path="/admin/enterprise-control" element={<ProtectedRoute><AdminEnterpriseControl /></ProtectedRoute>} />
-            <Route path="/admin/errors" element={<ProtectedRoute><AdminErrors /></ProtectedRoute>} />
-            <Route path="/admin/branches" element={<ProtectedRoute><AdminBranches /></ProtectedRoute>} />
-            <Route path="/admin/knowledge-bank" element={<ProtectedRoute><AdminKnowledgeBank /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/complaints" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminComplaints /></ProtectedRoute>} />
+            <Route path="/admin/warnings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminWarnings /></ProtectedRoute>} />
+            <Route path="/admin/avaya-reports" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminAvayaReports /></ProtectedRoute>} />
+            <Route path="/admin/call-center" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><EmployeeAssistant /></ProtectedRoute>} />
+            <Route path="/admin/shift-start" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminShiftStartTools /></ProtectedRoute>} />
+            <Route path="/admin/cro-export" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Navigate to="/admin/uno" replace /></ProtectedRoute>} />
+            <Route path="/admin/uno" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminUno /></ProtectedRoute>} />
+            <Route path="/admin/opera-search" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminOperaSearch /></ProtectedRoute>} />
+            <Route path="/admin/ai-maintenance" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminAiMaintenance /></ProtectedRoute>} />
+            <Route path="/admin/ghost" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminGhost /></ProtectedRoute>} />
+            <Route path="/admin/discounts" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminDiscounts /></ProtectedRoute>} />
+            <Route path="/admin/enterprise-control" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminEnterpriseControl /></ProtectedRoute>} />
+            <Route path="/admin/errors" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminErrors /></ProtectedRoute>} />
+            <Route path="/admin/branches" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminBranches /></ProtectedRoute>} />
+            <Route path="/admin/knowledge-bank" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminKnowledgeBank /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

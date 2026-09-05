@@ -1,71 +1,83 @@
-import type { Config } from "@netlify/functions";
+import type { Config, Context } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
 import {
   clearSessionCookie,
+  canonicalUsername,
   createSession,
   createSessionCookie,
+  environmentAdminCredentialIdentity,
   getSessionToken,
-  hashPassword,
   json,
-  needsPasswordRehash,
-  normalizeRole,
+  requireSameOrigin,
   sessionStorageKey,
   validateSession,
   verifyPassword,
   type UserRole,
 } from "./_shared/security";
+import { evaluateAdminNetwork } from "./_shared/corporateNetwork";
+import {
+  getStoredUserByUsername,
+  isEnvironmentManagedUser,
+  saveStoredUser,
+  type StoredUser,
+} from "./_shared/userDirectory";
 
-type StoredUser = {
-  username: string;
-  role: UserRole;
-  password?: string;
-  passwordHash?: string;
-};
-
-const authStore = (name: string) => getStore({ name, consistency: "strong" });
+const sessionStore = () => getStore({ name: "sessions", consistency: "strong" });
 
 const environmentAdmin = () => ({
   username: Netlify.env.get("ADMIN_USERNAME")?.trim() || "A",
-  password: Netlify.env.get("ADMIN_PASSWORD")?.trim() || "",
   passwordHash: Netlify.env.get("ADMIN_PASSWORD_HASH")?.trim() || "",
 });
 
 async function upsertEnvironmentAdmin(username: string, passwordHash: string) {
-  const store = authStore("users");
-  let users: StoredUser[] = [];
-  try {
-    const data = await store.get("all", { type: "json" });
-    if (Array.isArray(data)) users = data as StoredUser[];
-  } catch {
-    // Rebuild the authentication record below if the old representation is unreadable.
+  const existing = await getStoredUserByUsername(username);
+  if (existing?.credentialSource === "local") {
+    throw new Error("ENVIRONMENT_ADMIN_USERNAME_CONFLICT");
   }
-
+  const credentialsChanged = Boolean(existing && existing.passwordHash !== passwordHash);
+  if (existing
+    && existing.role === "superadmin"
+    && existing.credentialSource === "environment"
+    && !credentialsChanged) return existing;
   const record: StoredUser = {
+    id: existing?.id || crypto.randomUUID(),
     username,
     role: "superadmin",
+    authVersion: Number(existing?.authVersion || 1) + (credentialsChanged ? 1 : 0),
+    generation: existing?.generation || crypto.randomUUID(),
+    credentialSource: "environment",
     passwordHash,
   };
-  const index = users.findIndex((candidate) => candidate.username === username);
-  if (index >= 0) users[index] = record;
-  else users.push(record);
-  await store.setJSON("all", users);
-  return record;
+  return saveStoredUser(record, { allowRecreate: true });
 }
 
-async function issueSession(username: string, role: UserRole) {
+async function issueSession(user: Required<Pick<StoredUser, "id" | "username" | "role" | "authVersion">>) {
   const token = randomBytes(32).toString("hex");
-  const session = createSession(username, role);
-  await authStore("sessions").setJSON(sessionStorageKey(token), session);
-  return json({ username, role, expiresAt: session.expiresAt }, 200, {
+  const environmentCredential = environmentAdminCredentialIdentity();
+  const environmentCredentialFingerprint = environmentCredential.configured
+    && canonicalUsername(user.username) === canonicalUsername(environmentCredential.username)
+    ? environmentCredential.fingerprint || undefined
+    : undefined;
+  const session = createSession(
+    user.id,
+    user.username,
+    user.role,
+    user.authVersion,
+    environmentCredentialFingerprint,
+  );
+  await sessionStore().setJSON(sessionStorageKey(token), session);
+  return json({ username: user.username, role: user.role, expiresAt: session.expiresAt }, 200, {
     "Set-Cookie": createSessionCookie(token),
   });
 }
 
-export default async (req: Request) => {
+export default async (req: Request, context: Context) => {
   const method = req.method;
 
   if (method === "POST") {
+    const originError = requireSameOrigin(req);
+    if (originError) return originError;
     const contentLength = Number(req.headers.get("content-length") || 0);
     if (contentLength > 8 * 1024) return json({ error: "Request too large" }, 413);
 
@@ -85,57 +97,76 @@ export default async (req: Request) => {
     const matchesHashedRecovery = recovery.passwordHash
       ? verifyPassword(password, recovery.passwordHash)
       : false;
-    const matchesLegacyRecovery = recovery.password.length >= 4
-      ? password === recovery.password
-      : false;
+    const recoveryConfigured = Boolean(recovery.passwordHash);
+    const recoveryUsernameMatches = canonicalUsername(username) === canonicalUsername(recovery.username);
 
-    if (username === recovery.username && (matchesHashedRecovery || matchesLegacyRecovery)) {
-      const recoveryHash = recovery.passwordHash || hashPassword(password);
-      await upsertEnvironmentAdmin(recovery.username, recoveryHash);
-      return issueSession(recovery.username, "superadmin");
+    if (recoveryUsernameMatches && recoveryConfigured && !matchesHashedRecovery) {
+      return json({ error: "Invalid credentials" }, 401);
     }
 
-    let users: StoredUser[] = [];
-    const userStore = authStore("users");
+    if (recoveryUsernameMatches && matchesHashedRecovery) {
+      if (!evaluateAdminNetwork("superadmin", context.ip).allowed) {
+        return json({ error: "Corporate network required" }, 403);
+      }
+      try {
+        const user = await upsertEnvironmentAdmin(recovery.username, recovery.passwordHash);
+        return issueSession({
+          id: String(user.id),
+          username: user.username,
+          role: user.role,
+          authVersion: Number(user.authVersion || 1),
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message === "ENVIRONMENT_ADMIN_USERNAME_CONFLICT") {
+          return json({ error: "Environment administrator username conflicts with a local account" }, 409);
+        }
+        return json({ error: "Server error" }, 500);
+      }
+    }
+
     try {
-      const data = await userStore.get("all", { type: "json" });
-      if (Array.isArray(data)) users = data as StoredUser[];
+      const user = await getStoredUserByUsername(username);
+      if (user && isEnvironmentManagedUser(user)) {
+        return json({ error: "Invalid credentials" }, 401);
+      }
+      const valid = user
+        ? user.passwordHash
+          ? verifyPassword(password, user.passwordHash)
+          : false
+        : false;
+      if (!user || !valid) return json({ error: "Invalid credentials" }, 401);
+
+      if (!evaluateAdminNetwork(user.role, context.ip).allowed) {
+        return json({ error: "Corporate network required" }, 403);
+      }
+
+      return issueSession({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        authVersion: user.authVersion,
+      });
     } catch {
       return json({ error: "Server error" }, 500);
     }
-
-    const user = users.find((candidate) => candidate.username === username);
-    const valid = user
-      ? user.passwordHash
-        ? verifyPassword(password, user.passwordHash)
-        : typeof user.password === "string" && user.password === password
-      : false;
-    if (!user || !valid) return json({ error: "Invalid credentials" }, 401);
-
-    if (!user.passwordHash || needsPasswordRehash(user.passwordHash)) {
-      const index = users.findIndex((candidate) => candidate.username === user.username);
-      users[index] = {
-        username: user.username,
-        role: normalizeRole(user.role),
-        passwordHash: hashPassword(password),
-      };
-      await userStore.setJSON("all", users);
-    }
-
-    return issueSession(user.username, normalizeRole(user.role));
   }
 
   if (method === "GET") {
     const session = await validateSession(req);
     if (!session) return json({ error: "Invalid session" }, 401);
-    return json(session);
+    return json({
+      username: session.username,
+      role: session.role,
+      expiresAt: session.expiresAt,
+      network: evaluateAdminNetwork(session.role, context.ip),
+    });
   }
 
   if (method === "DELETE") {
     const token = getSessionToken(req);
     if (token) {
       try {
-        await authStore("sessions").delete(sessionStorageKey(token));
+        await sessionStore().delete(sessionStorageKey(token));
       } catch {
         // Session already gone.
       }

@@ -7,7 +7,7 @@ describe("protected visitor intelligence", () => {
     const app = fs.readFileSync(path.join(process.cwd(), "src/App.tsx"), "utf8");
     const layout = fs.readFileSync(path.join(process.cwd(), "src/components/Layout.tsx"), "utf8");
     expect(app).toContain('path="/admin/ghost"');
-    expect(app).toContain("<ProtectedRoute><AdminGhost /></ProtectedRoute>");
+    expect(app).toContain("<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminGhost /></ProtectedRoute>");
     expect(layout).not.toContain('/admin/ghost');
   });
 

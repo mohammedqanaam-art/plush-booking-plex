@@ -14,6 +14,7 @@ import {
   LogOut,
   MessageSquareMore,
   MoonStar,
+  PhoneCall,
   Radar,
   RefreshCw,
   Save,
@@ -74,9 +75,10 @@ const TAB_DEFINITIONS: Array<{ id: AdminTab; label: string; icon: typeof Gauge; 
 ];
 
 const ADMIN_TOOLS: AdminTool[] = [
+  { to: "/admin/call-center", label: "تشغيل الكول سنتر", icon: PhoneCall, roles: ["superadmin", "admin"] },
   { to: "/admin/uno", label: "UNO", icon: RefreshCw, roles: ["superadmin", "admin"] },
   { to: "/admin/opera-search", label: "OPERA", icon: CalendarSearch, roles: ["superadmin", "admin"] },
-  { to: "/admin/avaya-reports", label: "Avaya", icon: FileSpreadsheet, permission: "upload" },
+  { to: "/admin/avaya-reports", label: "Avaya", icon: FileSpreadsheet, roles: ["superadmin", "admin"] },
   { to: "/admin/shift-start", label: "بداية الشفت", icon: MoonStar, permission: "upload" },
   { to: "/admin/warnings", label: "إنذارات الموظفين", icon: FileWarning, permission: "manage_employees" },
   { to: "/admin/complaints", label: "إدارة الشكاوى", icon: MessageSquareMore, permission: "edit_settings" },
@@ -131,9 +133,6 @@ const AdminDashboard = () => {
   const [complaintEmailWebhook, setComplaintEmailWebhook] = useState("");
   const [complaintWhatsappNumber, setComplaintWhatsappNumber] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
 
   const employeeStats = useMemo(() => processBookings(bookings), [bookings]);
   const shownEmployees = useMemo(
@@ -495,7 +494,7 @@ const AdminDashboard = () => {
             <h2 className="section-title"><UserPlus className="ml-1 inline h-4 w-4" /> إضافة مستخدم</h2>
             <label className="block text-xs"><span className="mb-1 block text-muted-foreground">اسم المستخدم</span><input required className="h-11 w-full rounded-xl border bg-secondary/65 px-3" dir="ltr" value={username} onChange={(event) => setUsername(event.target.value)} /></label>
             <label className="block text-xs"><span className="mb-1 block text-muted-foreground">كلمة المرور</span><input required className="h-11 w-full rounded-xl border bg-secondary/65 px-3" dir="ltr" type="password" minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} /><small className="mt-1 block text-muted-foreground">12 حرفًا على الأقل.</small></label>
-            <label className="block text-xs"><span className="mb-1 block text-muted-foreground">الدور</span><select className="h-11 w-full rounded-xl border bg-secondary/65 px-3" value={role} onChange={(event) => setRole(event.target.value as UserRole)}><option value="viewer">مشاهد داخلي</option><option value="editor">محرر بيانات</option><option value="admin">مشرف</option><option value="superadmin">مدير النظام</option></select></label>
+            <label className="block text-xs"><span className="mb-1 block text-muted-foreground">الدور</span><select className="h-11 w-full rounded-xl border bg-secondary/65 px-3" value={role} onChange={(event) => setRole(event.target.value as UserRole)}><option value="viewer">مشاهد داخلي</option><option value="editor">محرر بيانات</option>{session?.role === "superadmin" ? <><option value="admin">مشرف</option><option value="superadmin">مدير النظام</option></> : null}</select></label>
             <button className="h-11 rounded-xl gold-gradient px-4 font-bold text-primary-foreground">حفظ المستخدم</button>
           </form>
           <section className="page-surface space-y-2">
@@ -522,13 +521,10 @@ const AdminDashboard = () => {
       {activeTab === "profile" ? (
         <div className="grid gap-4 md:grid-cols-2">
           <section className="page-surface space-y-3"><h2 className="section-title">معلومات الحساب</h2><div className="compact-card"><p className="text-xs text-muted-foreground">اسم المستخدم</p><p className="mt-1 font-bold">{session?.username}</p></div><div className="compact-card"><p className="text-xs text-muted-foreground">الدور</p><p className="mt-1 font-bold">{ROLE_LABELS[(session?.role as UserRole) || "viewer"]}</p></div></section>
-          <form className="page-surface space-y-3" onSubmit={async (event) => { event.preventDefault(); if (newPassword !== confirmPassword) { setMessage("كلمتا المرور غير متطابقتين."); return; } if (newPassword.length < 12) { setMessage("كلمة المرور الجديدة يجب أن تكون 12 حرفًا على الأقل."); return; } try { await api.changePassword(currentPassword, newPassword); setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); setMessage("تم تغيير كلمة المرور."); } catch (error) { setMessage(error instanceof Error ? error.message : "تعذر تغيير كلمة المرور."); } }}>
-            <h2 className="section-title">تغيير كلمة المرور</h2>
-            <input required className="h-11 w-full rounded-xl border bg-secondary/65 px-3" dir="ltr" type="password" placeholder="كلمة المرور الحالية" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
-            <input required className="h-11 w-full rounded-xl border bg-secondary/65 px-3" dir="ltr" type="password" minLength={12} placeholder="كلمة المرور الجديدة" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
-            <input required className="h-11 w-full rounded-xl border bg-secondary/65 px-3" dir="ltr" type="password" placeholder="تأكيد كلمة المرور" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
-            <button className="h-11 rounded-xl gold-gradient px-4 font-bold text-primary-foreground">حفظ كلمة المرور</button>
-          </form>
+          <section className="page-surface space-y-3">
+            <h2 className="section-title">إدارة بيانات الدخول</h2>
+            <p className="text-sm leading-7 text-muted-foreground">حُجب تغيير كلمة المرور الذاتي في مخزن التشغيل الحالي لتجنب تعارضات الكتابة المتزامنة. دوّر بيانات دخول المدير عبر إعدادات البيئة الآمنة، واستخدم موفّر هوية مؤسسي يدعم المعاملات وMFA قبل اعتماد الإنتاج.</p>
+          </section>
         </div>
       ) : null}
     </div>

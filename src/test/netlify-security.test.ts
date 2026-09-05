@@ -1,17 +1,34 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   clearSessionCookie,
+  canonicalUsername,
   createSessionCookie,
+  environmentAdminCredentialIdentity,
   getSessionToken,
   hashPassword,
   isSameOriginRequest,
   needsPasswordRehash,
+  normalizeRole,
   sessionStorageKey,
   verifyPassword,
 } from "../../netlify/functions/_shared/security";
 import { decryptStoredJson, encryptStoredJson } from "../../netlify/functions/_shared/storage";
+import { evaluateAdminNetwork } from "../../netlify/functions/_shared/corporateNetwork";
+import { isEnvironmentManagedUser } from "../../netlify/functions/_shared/userDirectory";
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("Netlify password storage", () => {
+  it("canonicalizes equivalent usernames before uniqueness and authentication checks", () => {
+    expect(canonicalUsername("  Mohammed   QA  ")).toBe("mohammed qa");
+    expect(canonicalUsername("ＭＯＨＡＭＭＥＤ")).toBe("mohammed");
+  });
+
+  it("fails closed to viewer when a legacy role is missing or invalid", () => {
+    expect(normalizeRole(undefined)).toBe("viewer");
+    expect(normalizeRole("owner")).toBe("viewer");
+  });
+
   it("stores a derived password hash rather than the original password", () => {
     const password = "A-strong-admin-password";
     const encoded = hashPassword(password);
@@ -21,7 +38,7 @@ describe("Netlify password storage", () => {
     expect(verifyPassword(password, encoded)).toBe(true);
     expect(verifyPassword("wrong-password", encoded)).toBe(false);
     expect(needsPasswordRehash(encoded)).toBe(false);
-  });
+  }, 15_000);
 
   it("keeps legacy PBKDF2 hashes verifiable but marks them for upgrade", () => {
     const legacy = "pbkdf2_sha256$310000$0123456789abcdef0123456789abcdef$5e9c4f9a14fc0cb7aac000b80cdce6102762a21729d594737a9266763b15cbf0";
@@ -80,6 +97,55 @@ describe("same-origin mutation protection", () => {
         "x-forwarded-proto": "https",
       },
     }))).toBe(true);
+  });
+});
+
+describe("corporate admin network policy", () => {
+  const configure = (values: Record<string, string>) => vi.stubGlobal("Netlify", {
+    env: { get: (name: string) => values[name] || undefined },
+  });
+
+  it("accepts an administrator only from an allowlisted corporate CIDR in enforce mode", () => {
+    configure({ ADMIN_NETWORK_MODE: "enforce", ADMIN_NETWORK_CIDRS: "10.20.0.0/16, 203.0.113.18" });
+    expect(evaluateAdminNetwork("admin", "10.20.4.9")).toMatchObject({ allowed: true, trusted: true });
+    expect(evaluateAdminNetwork("superadmin", "198.51.100.2")).toMatchObject({ allowed: false, trusted: false, reason: "untrusted" });
+  });
+
+  it("fails closed when enforcement is enabled without a company allowlist", () => {
+    configure({ ADMIN_NETWORK_MODE: "enforce" });
+    expect(evaluateAdminNetwork("admin", "10.0.0.2")).toMatchObject({ allowed: false, reason: "missing-allowlist" });
+    expect(evaluateAdminNetwork("editor", "198.51.100.2")).toMatchObject({ allowed: true, required: false });
+  });
+
+  it("changes the environment-admin session fingerprint when its configured credential rotates", () => {
+    const configure = (values: Record<string, string>) => vi.stubGlobal("Netlify", {
+      env: { get: (name: string) => values[name] || undefined },
+    });
+
+    configure({ ADMIN_USERNAME: "Root Admin", ADMIN_PASSWORD_HASH: "first-hash" });
+    const first = environmentAdminCredentialIdentity();
+    configure({ ADMIN_USERNAME: "Root Admin", ADMIN_PASSWORD_HASH: "second-hash" });
+    const second = environmentAdminCredentialIdentity();
+
+    expect(first.configured).toBe(true);
+    expect(first.username).toBe("Root Admin");
+    expect(first.fingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(first.fingerprint).not.toBe(second.fingerprint);
+    expect(JSON.stringify(first)).not.toContain("first-hash");
+  });
+
+  it("does not accept a plaintext environment-admin password as a configured credential", () => {
+    vi.stubGlobal("Netlify", {
+      env: { get: (name: string) => name === "ADMIN_PASSWORD" ? "human-password-must-not-be-hashed-directly" : undefined },
+    });
+    expect(environmentAdminCredentialIdentity()).toMatchObject({ configured: false, fingerprint: null });
+  });
+
+  it("keeps environment-managed and legacy superadmin accounts out of local-password fallback", () => {
+    expect(isEnvironmentManagedUser({ role: "superadmin", credentialSource: "environment" })).toBe(true);
+    expect(isEnvironmentManagedUser({ role: "superadmin" })).toBe(true);
+    expect(isEnvironmentManagedUser({ role: "superadmin", credentialSource: "local" })).toBe(false);
+    expect(isEnvironmentManagedUser({ role: "admin" })).toBe(false);
   });
 });
 

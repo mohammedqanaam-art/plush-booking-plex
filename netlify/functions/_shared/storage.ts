@@ -25,6 +25,8 @@ const APP_ENCRYPTED_STORES = new Set([
   "complaints",
   "contacts",
   "development-requests",
+  "employee-workspace",
+  "employee-workspace-backups",
   "users",
 ]);
 const LEGACY_ENCRYPTED_PLAINTEXT_STORES = new Set(["bookings", "settings"]);
@@ -110,6 +112,12 @@ export const getEncryptedEnvironmentStore = (name: string, options: StoreOptions
     },
     async delete(key: string) {
       return base.delete(key);
+    },
+    async list(listOptions: Parameters<RawStore["list"]>[0] = {}) {
+      return base.list(listOptions);
+    },
+    async *listPages(listOptions: Omit<Parameters<RawStore["list"]>[0], "paginate"> = {}) {
+      for await (const page of base.list({ ...listOptions, paginate: true })) yield page;
     },
   };
 };

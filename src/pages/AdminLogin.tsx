@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import { Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getAdminSession } from "@/lib/adminAuth";
 import { api } from "@/lib/api";
 import PageHeader from "@/components/PageHeader";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const rawRequestedPath = typeof location.state === "object" && location.state
+    && "from" in location.state && typeof location.state.from === "string"
+    ? location.state.from
+    : "/admin";
+  const requestedPath = rawRequestedPath.startsWith("/") && !rawRequestedPath.startsWith("//")
+    ? rawRequestedPath
+    : "/admin";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -14,9 +22,9 @@ const AdminLogin = () => {
 
   useEffect(() => {
     if (getAdminSession()) {
-      navigate("/admin", { replace: true });
+      navigate(requestedPath, { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, requestedPath]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -24,9 +32,12 @@ const AdminLogin = () => {
     setError(null);
     try {
       await api.login(username, password);
-      navigate("/admin", { replace: true });
-    } catch {
-      setError("بيانات الدخول غير صحيحة.");
+      navigate(requestedPath, { replace: true });
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "";
+      setError(message === "Corporate network required"
+        ? "حسابات الإدارة تتطلب الاتصال بشبكة الشركة أو الـ VPN المؤسسي المعتمد."
+        : "بيانات الدخول غير صحيحة.");
     } finally {
       setLoading(false);
     }
@@ -34,7 +45,7 @@ const AdminLogin = () => {
 
   return (
     <div className="page-wrap-narrow">
-      <PageHeader title="لوحة مدير ومشرفين إدارة الحجز" icon={Lock} />
+      <PageHeader title="دخول الموظفين والإدارة" icon={Lock} />
 
       <div className="glass-card p-8 text-center space-y-4">
         <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">

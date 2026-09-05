@@ -3,7 +3,9 @@ import { BHG_ASSISTANT_SCOPE, boudlScopeReply, classifyBoudlAssistantScope } fro
 import { lookupOfficialBoudlSources, type OfficialSource } from "./_shared/boudl-knowledge";
 import { buildEmployeeKnowledge, employeeGuideForModel, type EmployeeKnowledgeSource } from "./_shared/employeeKnowledge";
 import { generateOpenAiText, generateOpenAiTextStream, isOpenAiAvailable, type OpenAiTextOptions } from "./_shared/openai";
-import { json, requireSameOrigin } from "./_shared/security";
+import { consumeEmployeeQuota } from "./_shared/employeeQuota";
+import { redactSensitiveText } from "./_shared/redaction";
+import { json, requireSameOrigin, validateSession } from "./_shared/security";
 
 type ChatTurn = { role: "user" | "assistant"; content: string };
 type StreamStage = "preparing" | "sources" | "generating" | "fallback";
@@ -18,7 +20,10 @@ const cleanText = (value: unknown, maxLength: number) => String(value || "")
 const historyFromBody = (value: unknown): ChatTurn[] => Array.isArray(value)
   ? value.slice(-8).filter((item) => item && typeof item === "object").map((item) => item as Record<string, unknown>)
       .filter((item) => item.role === "user" || item.role === "assistant")
-      .map((item) => ({ role: item.role as ChatTurn["role"], content: cleanText(item.content, 1_500) })).filter((item) => item.content)
+      .map((item) => ({
+        role: item.role as ChatTurn["role"],
+        content: redactSensitiveText(cleanText(item.content, 1_500), 1_500, { redactAllPhoneLike: true }),
+      })).filter((item) => item.content)
   : [];
 
 const uniqueSources = (...groups: Array<Array<EmployeeKnowledgeSource | OfficialSource>>) => {
@@ -66,6 +71,9 @@ const eventStream = (run: (send: StreamSender) => Promise<void> | void) => {
 
 export default async (req: Request, context?: Context) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
+  const session = await validateSession(req);
+  if (!session) return json({ error: "Unauthorized" }, 401);
+  if (!new Set(["superadmin", "admin", "editor"]).has(session.role)) return json({ error: "Read-only account" }, 403);
   if (req.method === "GET" && new URL(req.url).searchParams.get("warm") === "1") {
     const warm = isOpenAiAvailable().catch(() => false); if (context) context.waitUntil(warm); else void warm;
     return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
@@ -75,7 +83,12 @@ export default async (req: Request, context?: Context) => {
   if (Number(req.headers.get("content-length") || 0) > 32 * 1024) return json({ error: "Request too large" }, 413);
   let body: { message?: string; sessionId?: string; history?: unknown };
   try { body = await req.json(); } catch { return json({ error: "Invalid request body" }, 400); }
-  const message = cleanText(body.message, 2_400); if (!message) return json({ error: "message is required" }, 400);
+  const message = redactSensitiveText(cleanText(body.message, 2_400), 2_400, { redactAllPhoneLike: true });
+  if (!message) return json({ error: "message is required" }, 400);
+  const withinQuota = await consumeEmployeeQuota(session.userId, {
+    namespace: "agents", units: 1, minuteLimit: 12, dailyLimit: 300,
+  }).catch(() => false);
+  if (!withinQuota) return json({ error: "Agent quota exceeded" }, 429);
   const history = historyFromBody(body.history);
   const requestedSessionId = String(body.sessionId || "").trim();
   const sessionId = /^[a-zA-Z0-9_-]{8,100}$/.test(requestedSessionId) ? requestedSessionId : `employee_${crypto.randomUUID()}`;
