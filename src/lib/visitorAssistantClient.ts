@@ -99,6 +99,7 @@ export async function streamVisitorAssistant(
   const contentType = response.headers.get("content-type") || "";
   if (!response.body || !contentType.includes("text/event-stream")) {
     const data = await response.json() as Partial<VisitorAgentResponse>;
+    if (data.error) throw new Error("لم تكتمل الإجابة. يرجى إعادة المحاولة.");
     const reply = String(data.reply || "").trim();
     if (!reply) throw new Error("تعذر الحصول على إجابة واضحة");
     handlers.onDelta(reply);

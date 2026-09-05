@@ -63,6 +63,9 @@ describe("confidential workspace boundaries", () => {
     const build = fs.readFileSync(path.join(process.cwd(), "vite.config.ts"), "utf8");
     expect(build).toContain("private-data-client-boundary");
     expect(build).toContain("this.error(");
+    const visitorKnowledge = fs.readFileSync(path.join(process.cwd(), "netlify/functions/_shared/visitorKnowledge.ts"), "utf8");
+    expect(visitorKnowledge).toContain('from "../../../src/data/publicBranches"');
+    expect(visitorKnowledge).not.toMatch(/sheetOperationalData|data\/hotels|employeeKnowledge/);
   });
 
   it("never labels a cached, local or different model response as Sol", () => {
