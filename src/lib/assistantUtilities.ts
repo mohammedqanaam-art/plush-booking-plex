@@ -77,7 +77,7 @@ const nonNameWords = /(?:^|\s)(?:كيف|كم|هل|متى|وين|ماذا|ما|ل
 
 export const formatNameSpelling = (spelling: string) => `${spelling}\nكتابة مقترحة للاسم بالإنجليزية؛ للحجز طابقها مع الهوية أو الجواز.`;
 
-export function assistantUtility(message: string): AssistantUtility | null {
+export function assistantUtility(message: string, previousUserMessages: string[] = []): AssistantUtility | null {
   if (message.length > 300) return null;
   const text = normalize(message);
   const amount = calculateAssistantAmount(text);
@@ -88,7 +88,7 @@ export function assistantUtility(message: string): AssistantUtility | null {
   const candidate = (explicit?.[1] || instruction?.[1] || text).replace(/^اسم\s+/, "").trim();
   if (!/^[\u0621-\u063a\u0641-\u064a]+(?:\s+[\u0621-\u063a\u0641-\u064a]+){0,5}$/.test(candidate) || candidate.length > 100) return null;
   if (nonNameWords.test(nameKey(candidate))) return null;
-  if (!explicit && !instruction && classifyBoudlAssistantScope(candidate) !== "out_of_scope") return null;
+  if (!explicit && !instruction && classifyBoudlAssistantScope(candidate, previousUserMessages) !== "out_of_scope") return null;
   const words = nameKey(candidate).replace(/عبد\s+(الله|الرحمن|العزيز|الاله|المجيد|الكريم|الرزاق)/g, "عبد$1").split(" ");
   const local = words.map((word) => spellings[word]);
   return local.every(Boolean)

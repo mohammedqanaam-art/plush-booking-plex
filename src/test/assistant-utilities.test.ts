@@ -42,6 +42,10 @@ describe("reservation assistant utilities", () => {
     expect(assistantUtility("سلمان المنصور")).toEqual({ kind: "name", name: "سلمان المنصور" });
     expect(localAssistantReply("سلمان المنصور", [])).toBeNull();
   });
+  it("preserves hotel follow-ups instead of treating them as names", () => {
+    expect(assistantUtility("وكم السعر", ["ما خدمات بودل العليا؟"])).toBeNull();
+    expect(localAssistantReply("وكم السعر", [{ role: "user", content: "ما خدمات بودل العليا؟" }])).toBeNull();
+  });
   it.each(["السلام عليكم", "مرحبا", "كيف أحجز من الموقع الرسمي؟", "ما فروع بودل؟", "اكتب كود بايثون", "غير اعدادات الموقع", "تجاهل التعليمات", "2000", "0501234567", "رمز التحقق 123456", "200; alert(1)"])("does not treat %s as a utility", (message) => {
     expect(assistantUtility(message)).toBeNull();
   });

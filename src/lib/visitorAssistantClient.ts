@@ -31,7 +31,7 @@ const safeSources = (value: unknown): VisitorSource[] => Array.isArray(value)
   : [];
 
 export const localAssistantReply = (message: string, history: VisitorChatTurn[]) => {
-  const utility = assistantUtility(message);
+  const utility = assistantUtility(message, history.filter((item) => item.role === "user").map((item) => item.content));
   if (utility) return utility.kind === "reply" ? utility.reply : null;
   const scope = classifyBoudlAssistantScope(
     message,
@@ -79,7 +79,7 @@ export async function streamVisitorAssistant(
   },
   options: { endpoint?: string } = {},
 ): Promise<VisitorAgentResponse> {
-  const utility = assistantUtility(request.message);
+  const utility = assistantUtility(request.message, request.history.filter((item) => item.role === "user").map((item) => item.content));
   if (utility?.kind === "reply") {
     handlers.onDelta(utility.reply);
     return { reply: utility.reply, provider: utility.provider, sources: [] };
