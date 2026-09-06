@@ -11,6 +11,8 @@ const HotelSearch = lazy(() => import("./pages/HotelSearch"));
 const Branches = lazy(() => import("./pages/Branches"));
 const KnowledgeBank = lazy(() => import("./pages/KnowledgeBank"));
 const EmployeeAssistant = lazy(() => import("./pages/EmployeeAssistant"));
+const OperationsPortal = lazy(() => import("./pages/OperationsPortal"));
+const AdminAccountRequests = lazy(() => import("./pages/AdminAccountRequests"));
 const Complaints = lazy(() => import("./pages/Complaints"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminDiscounts = lazy(() => import("./pages/AdminDiscounts"));
@@ -41,8 +43,9 @@ const App = () => (
             <Route path="/operations" element={<ProtectedRoute><HotelSearch /></ProtectedRoute>} />
             <Route path="/branches" element={<Branches />} />
             <Route path="/assistant" element={<ProtectedRoute><EmployeeAssistant /></ProtectedRoute>} />
+            <Route path="/workplace" element={<ProtectedRoute><OperationsPortal /></ProtectedRoute>} />
             <Route path="/knowledge-bank" element={<ProtectedRoute><KnowledgeBank /></ProtectedRoute>} />
-            <Route path="/policies" element={<Navigate to="/" replace />} />
+            <Route path="/policies" element={<Navigate to="/workplace?section=cancellation" replace />} />
             <Route path="/complaints" element={<Complaints />} />
             <Route path="/runner" element={<Navigate to="/" replace />} />
             <Route path="/relax" element={<Navigate to="/" replace />} />
@@ -52,6 +55,7 @@ const App = () => (
             <Route path="/contacts" element={<Navigate to="/contact-requests" replace />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/account-requests" element={<ProtectedRoute><AdminAccountRequests /></ProtectedRoute>} />
             <Route path="/admin/complaints" element={<ProtectedRoute><AdminComplaints /></ProtectedRoute>} />
             <Route path="/admin/warnings" element={<ProtectedRoute><AdminWarnings /></ProtectedRoute>} />
             <Route path="/admin/avaya-reports" element={<ProtectedRoute><AdminAvayaReports /></ProtectedRoute>} />

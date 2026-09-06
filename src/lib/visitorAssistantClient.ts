@@ -1,5 +1,6 @@
 import { redactSensitiveMessage } from "@/lib/redactSensitiveMessage";
 import { assistantUtility } from "@/lib/assistantUtilities";
+import { isOperationsQuestion } from "@/lib/operationsTypes";
 import {
   boudlScopeReply,
   classifyBoudlAssistantScope,
@@ -30,7 +31,8 @@ const safeSources = (value: unknown): VisitorSource[] => Array.isArray(value)
     )).slice(0, 6)
   : [];
 
-export const localAssistantReply = (message: string, history: VisitorChatTurn[]) => {
+export const localAssistantReply = (message: string, history: VisitorChatTurn[], employeeMode = false) => {
+  if (isOperationsQuestion(message)) return employeeMode ? null : "لمراجعة توافر الدخول المبكر والعملاء المحتملين وطلبات المشرفين، سجل دخولك وافتح المساعد في مساحة الموظفين.";
   const utility = assistantUtility(message, history.filter((item) => item.role === "user").map((item) => item.content));
   if (utility) return utility.kind === "reply" ? utility.reply : null;
   const scope = classifyBoudlAssistantScope(
@@ -79,7 +81,7 @@ export async function streamVisitorAssistant(
   },
   options: { endpoint?: string } = {},
 ): Promise<VisitorAgentResponse> {
-  const utility = assistantUtility(request.message, request.history.filter((item) => item.role === "user").map((item) => item.content));
+  const utility = isOperationsQuestion(request.message) ? null : assistantUtility(request.message, request.history.filter((item) => item.role === "user").map((item) => item.content));
   if (utility?.kind === "reply") {
     handlers.onDelta(utility.reply);
     return { reply: utility.reply, provider: utility.provider, sources: [] };

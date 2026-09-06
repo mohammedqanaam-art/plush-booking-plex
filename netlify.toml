@@ -66,6 +66,13 @@
     X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
 
 [[headers]]
+  for = "/workplace"
+  [headers.values]
+    Cache-Control = "private, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
+
+[[headers]]
   for = "/.netlify/functions/*"
   [headers.values]
     Cache-Control = "private, no-store, max-age=0"

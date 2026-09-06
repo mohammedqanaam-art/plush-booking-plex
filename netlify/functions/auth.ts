@@ -1,6 +1,8 @@
 import type { Config } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
+import { getRegisteredAccount } from "./_shared/accountRequests";
+import { getPrivateRecordStore } from "./_shared/storage";
 import {
   clearSessionCookie,
   createSession,
@@ -33,14 +35,10 @@ const environmentAdmin = () => ({
 });
 
 async function upsertEnvironmentAdmin(username: string, passwordHash: string) {
-  const store = authStore("users");
-  let users: StoredUser[] = [];
-  try {
-    const data = await store.get("all", { type: "json" });
-    if (Array.isArray(data)) users = data as StoredUser[];
-  } catch {
-    // Rebuild the authentication record below if the old representation is unreadable.
-  }
+  const store = getPrivateRecordStore("users", { consistency: "strong" });
+  const data = await store.get<StoredUser[]>("all");
+  if (data !== null && !Array.isArray(data)) throw new Error("INVALID_USER_STORE");
+  const users = data || [];
 
   const record: StoredUser = {
     username,
@@ -94,12 +92,13 @@ export default async (req: Request) => {
 
     if (username === recovery.username && (matchesHashedRecovery || matchesLegacyRecovery)) {
       const recoveryHash = recovery.passwordHash || hashPassword(password);
-      await upsertEnvironmentAdmin(recovery.username, recoveryHash);
+      try { await upsertEnvironmentAdmin(recovery.username, recoveryHash); }
+      catch { return json({ error: "Server error" }, 503); }
       return issueSession(recovery.username, "superadmin");
     }
 
     let users: StoredUser[] = [];
-    const userStore = authStore("users");
+    const userStore = getPrivateRecordStore("users", { consistency: "strong" });
     try {
       const data = await userStore.get("all", { type: "json" });
       if (Array.isArray(data)) users = data as StoredUser[];
@@ -107,7 +106,19 @@ export default async (req: Request) => {
       return json({ error: "Server error" }, 500);
     }
 
-    const user = users.find((candidate) => candidate.username === username);
+    const user = users.find((candidate) => username.includes("@")
+      ? candidate.username.toLowerCase() === username.toLowerCase() : candidate.username === username);
+    if (!user && username.includes("@")) {
+      try {
+        const account = await getRegisteredAccount(username);
+        if (account) {
+          if (account.status !== "approved" || !account.role || !verifyPassword(password, account.passwordHash)) {
+            return json({ error: "Invalid credentials or account not activated" }, 401);
+          }
+          return issueSession(account.email, account.role);
+        }
+      } catch { return json({ error: "Server error" }, 503); }
+    }
     const valid = user
       ? user.passwordHash
         ? verifyPassword(password, user.passwordHash)

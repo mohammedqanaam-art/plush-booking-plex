@@ -60,7 +60,7 @@ export const useVisitorAssistant = (options: {
     const history = items.slice(-10).map(({ role, content }) => ({ role, content }));
     const userId = newId("user");
     const assistantId = newId("assistant");
-    const localReply = localAssistantReply(text, history);
+    const localReply = localAssistantReply(text, history, endpoint === "/api/employee/agent");
 
     setModelLabel(localReply ? "إجابة محلية" : "مساعد BHG");
     setMessage("");

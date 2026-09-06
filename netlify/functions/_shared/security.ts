@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { createHash, pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
+import { getRegisteredAccount } from "./accountRequests";
 
 export { isSameOriginRequest, json, requireSameOrigin } from "./http";
 
@@ -67,6 +68,14 @@ export async function validateSession(req: Request): Promise<Session | null> {
     if (!createdAt || expiresAt <= Date.now()) {
       await store.delete(sessionStorageKey(token)).catch(() => undefined);
       return null;
+    }
+
+    if (raw.username.includes("@")) {
+      const account = await getRegisteredAccount(raw.username);
+      if (account && (account.status !== "approved" || account.role !== raw.role || createdAt < Date.parse(account.reviewedAt || ""))) {
+        await store.delete(sessionStorageKey(token)).catch(() => undefined);
+        return null;
+      }
     }
 
     return { username: raw.username, role: raw.role, createdAt, expiresAt };

@@ -97,6 +97,9 @@ export const decryptStoredJson = <T>(envelope: EncryptedEnvelope, storeName: str
 export const getEncryptedEnvironmentStore = (name: string, options: StoreOptions = {}) => {
   const base = getRawEnvironmentStore(name, options);
   return {
+    async list(options?: { prefix?: string }) {
+      return base.list(options);
+    },
     async get<T = unknown>(key: string, readOptions: { type?: "json" } = { type: "json" }): Promise<T | null> {
       if (readOptions.type && readOptions.type !== "json") throw new Error("Encrypted stores support JSON reads only.");
       const stored = await base.get(key, { type: "json" }) as unknown;
@@ -111,6 +114,28 @@ export const getEncryptedEnvironmentStore = (name: string, options: StoreOptions
     async delete(key: string) {
       return base.delete(key);
     },
+  };
+};
+
+// Account/workflow records are private Netlify Blobs (platform encryption at rest).
+// Retain an additional AES envelope when a data key is configured. Never replace
+// an existing encrypted record when its key is unavailable or invalid.
+export const getPrivateRecordStore = (name: string, options: StoreOptions = {}) => {
+  const base = getRawEnvironmentStore(name, options);
+  const configured = () => typeof Netlify !== "undefined" && Boolean(Netlify.env.get(DATA_KEY_ENV)?.trim());
+  return {
+    async list(options?: { prefix?: string }) { return base.list(options); },
+    async get<T = unknown>(key: string, _readOptions?: { type?: "json" }): Promise<T | null> {
+      const stored = await base.get(key, { type: "json" });
+      return isEncryptedEnvelope(stored) ? decryptStoredJson<T>(stored, name, key) : stored as T | null;
+    },
+    async setJSON(key: string, value: unknown) {
+      const existing = await base.get(key, { type: "json" });
+      if (isEncryptedEnvelope(existing)) decryptStoredJson(existing, name, key);
+      if (configured()) return base.setJSON(key, encryptStoredJson(value, name, key));
+      return base.setJSON(key, value);
+    },
+    async delete(key: string) { return base.delete(key); },
   };
 };
 

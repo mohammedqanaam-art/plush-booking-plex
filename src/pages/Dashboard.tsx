@@ -44,12 +44,16 @@ const publicEntries: PublicEntry[] = [
     tone: "red",
   },
   {
-    to: "/assistant",
+    to: "/workplace",
     label: "مساحة الموظفين",
-    description: "المساعد التشغيلي والتقارير والإجراءات للحسابات المخولة.",
+    description: "الدخول المبكر، العملاء المحتملون وطلبات المشرفين والمتابعة.",
     icon: LockKeyhole,
     tone: "violet",
   },
+  { to: "/workplace?section=calls", label: "المكالمات وخريطة البروتوكول", description: "خطوات استقبال المكالمة ومسار الحجز والمتابعة.", icon: Headphones, tone: "green" },
+  { to: "/workplace?section=escalation", label: "آلية تصعيد الشكاوى", description: "الأولوية وجهة التصعيد وملف الحالة.", icon: MessageSquareWarning, tone: "red" },
+  { to: "/workplace?section=cancellation", label: "سياسات الإلغاء", description: "مسار الإلغاء حسب مصدر الحجز وشروطه.", icon: Building2, tone: "orange" },
+  { to: "/workplace?section=feedback", label: "التغذية الراجعة", description: "سجل ملاحظتك أو اقتراحك وتابع النتيجة.", icon: PhoneCall, tone: "violet" },
 ];
 
 const cityCount = new Set(branches.map((branch) => branch.city)).size;
@@ -76,7 +80,7 @@ const Dashboard = () => (
           <span>الخدمات المتاحة</span>
           <h2 id="public-services-title">اختر ما تحتاجه</h2>
         </div>
-        <p>أبقينا الواجهة العامة بسيطة، وحجبنا المحتوى التشغيلي الحساس.</p>
+        <p>أدوات الحجز ودليل الفروع في مكان واحد.</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">

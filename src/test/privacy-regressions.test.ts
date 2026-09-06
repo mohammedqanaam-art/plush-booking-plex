@@ -12,7 +12,8 @@ describe("confidential workspace boundaries", () => {
 
     expect(bookings).toContain("const session = await validateSession(req)");
     expect(bookings).not.toContain("publicCachedJson");
-    expect(assistant).toContain("if (!await validateSession(req))");
+    expect(assistant).toContain("const employeeSession = await validateSession(req)");
+    expect(assistant).toContain("if (!employeeSession)");
   });
 
   it("redacts common contact and credential patterns before an assistant request", () => {
@@ -29,7 +30,7 @@ describe("confidential workspace boundaries", () => {
 
   it("marks every internal page as non-cacheable and non-indexable", () => {
     const config = fs.readFileSync(path.join(process.cwd(), "netlify.toml"), "utf8");
-    for (const route of ["/assistant", "/operations", "/booking-reports", "/knowledge-bank"]) {
+    for (const route of ["/assistant", "/workplace", "/operations", "/booking-reports", "/knowledge-bank"]) {
       expect(config).toContain(`for = "${route}"`);
     }
     expect(config).toContain("noindex, nofollow, noarchive, nosnippet");

@@ -14,7 +14,7 @@ const desktopNav = [
   { to: "/complaints", label: "شكوى", icon: MessageSquareWarning },
 ];
 
-const employeePaths = ["/assistant", "/operations", "/booking-reports", "/knowledge-bank"];
+const employeePaths = ["/assistant", "/workplace", "/operations", "/booking-reports", "/knowledge-bank"];
 
 const Layout = () => {
   const location = useLocation();
