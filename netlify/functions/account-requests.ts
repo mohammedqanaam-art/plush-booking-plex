@@ -1,7 +1,7 @@
 import type { Config } from "@netlify/functions";
 import { accountId, accountStore, accountSummary, validateRegistration, type AccountRequest } from "./_shared/accountRequests";
 import { hashPassword, json, requireSameOrigin, validateSession, type UserRole } from "./_shared/security";
-import { getEncryptedEnvironmentStore } from "./_shared/storage";
+import { getPrivateRecordStore } from "./_shared/storage";
 
 export default async (req: Request) => {
   const originError = requireSameOrigin(req); if (originError) return originError;
@@ -26,7 +26,7 @@ export default async (req: Request) => {
       try { fields = validateRegistration(body); } catch (e) { return json({ error: (e as Error).message }, 400); }
       const id = accountId(fields.email);
       const existing = await store.get<AccountRequest>(`account/${id}`);
-      const legacyUsers = await getEncryptedEnvironmentStore("users", { consistency: "strong" }).get<Array<{ username: string }>>("all");
+      const legacyUsers = await getPrivateRecordStore("users", { consistency: "strong" }).get<Array<{ username: string }>>("all");
       const alreadyRegistered = Array.isArray(legacyUsers) && legacyUsers.some((user) => user.username.toLowerCase() === fields.email);
       // Repeated public requests cannot reset credentials or approval on an existing record.
       if (!existing && !alreadyRegistered) await store.setJSON(`account/${id}`, {

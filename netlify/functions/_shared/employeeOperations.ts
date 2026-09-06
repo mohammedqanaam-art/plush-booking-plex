@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 import { publicBranches } from "../../../src/data/publicBranches";
 import { operationKinds, operationStatuses, isOperationsQuestion, type OperationRecord, type EarlyArrivalAvailability } from "../../../src/lib/operationsTypes";
 import { getRegisteredAccount, normalizedPhone } from "./accountRequests";
-import { getEncryptedEnvironmentStore } from "./storage";
+import { getPrivateRecordStore } from "./storage";
 import type { Session } from "./security";
 
-export const operationsStore = () => getEncryptedEnvironmentStore("employee-workflows", { consistency: "strong" });
+export const operationsStore = () => getPrivateRecordStore("employee-workflows", { consistency: "strong" });
 export const managesOperations = (session: Session) => ["superadmin", "admin"].includes(session.role);
 export const canSeeOperation = (session: Session, record: OperationRecord) => managesOperations(session) || record.createdBy === session.username || record.assignee === session.username;
 export const cleanField = (value: unknown, max = 200) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -21,7 +21,7 @@ export async function validAssignee(username: string, session: Session) {
     const account = await getRegisteredAccount(username);
     if (account) return account.status === "approved";
   }
-  const users = await getEncryptedEnvironmentStore("users", { consistency: "strong" }).get<Array<{ username: string }>>("all");
+  const users = await getPrivateRecordStore("users", { consistency: "strong" }).get<Array<{ username: string }>>("all");
   return Array.isArray(users) && users.some((user) => user.username === username);
 }
 

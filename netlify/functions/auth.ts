@@ -2,7 +2,7 @@ import type { Config } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
 import { getRegisteredAccount } from "./_shared/accountRequests";
-import { getEncryptedEnvironmentStore } from "./_shared/storage";
+import { getPrivateRecordStore } from "./_shared/storage";
 import {
   clearSessionCookie,
   createSession,
@@ -35,7 +35,7 @@ const environmentAdmin = () => ({
 });
 
 async function upsertEnvironmentAdmin(username: string, passwordHash: string) {
-  const store = getEncryptedEnvironmentStore("users", { consistency: "strong" });
+  const store = getPrivateRecordStore("users", { consistency: "strong" });
   const data = await store.get<StoredUser[]>("all");
   if (data !== null && !Array.isArray(data)) throw new Error("INVALID_USER_STORE");
   const users = data || [];
@@ -98,7 +98,7 @@ export default async (req: Request) => {
     }
 
     let users: StoredUser[] = [];
-    const userStore = getEncryptedEnvironmentStore("users", { consistency: "strong" });
+    const userStore = getPrivateRecordStore("users", { consistency: "strong" });
     try {
       const data = await userStore.get("all", { type: "json" });
       if (Array.isArray(data)) users = data as StoredUser[];

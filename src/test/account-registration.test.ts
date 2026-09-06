@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 const { memory, session } = vi.hoisted(() => ({ memory: new Map<string, unknown>(), session: vi.fn() }));
-vi.mock("../../netlify/functions/_shared/storage", () => ({ getEncryptedEnvironmentStore: (name: string) => ({
+vi.mock("../../netlify/functions/_shared/storage", () => ({ getPrivateRecordStore: (name: string) => ({
   get: async (key: string) => memory.get(`${name}:${key}`) || null,
   setJSON: async (key: string, value: unknown) => { memory.set(`${name}:${key}`, structuredClone(value)); },
   list: async ({ prefix = "" } = {}) => ({ blobs: [...memory.keys()].filter((key) => key.startsWith(`${name}:${prefix}`)).map((key) => ({ key: key.slice(name.length + 1) })) }),

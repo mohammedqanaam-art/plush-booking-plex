@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { getEncryptedEnvironmentStore } from "./storage";
+import { getPrivateRecordStore } from "./storage";
 import type { UserRole } from "./security";
 
 export type AccountRequest = {
@@ -7,7 +7,7 @@ export type AccountRequest = {
   passwordHash: string; status: "pending" | "approved" | "rejected" | "disabled";
   createdAt: string; reviewedAt?: string; reviewedBy?: string; role?: UserRole;
 };
-export const accountStore = () => getEncryptedEnvironmentStore("account-requests", { consistency: "strong" });
+export const accountStore = () => getPrivateRecordStore("account-requests", { consistency: "strong" });
 export const accountId = (email: string) => createHash("sha256").update(email.toLowerCase().trim()).digest("hex");
 export const getRegisteredAccount = (email: string) => accountStore().get<AccountRequest>(`account/${accountId(email)}`);
 export const accountSummary = ({ passwordHash: _secret, ...record }: AccountRequest) => record;

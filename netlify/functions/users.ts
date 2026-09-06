@@ -1,6 +1,6 @@
 import type { Config } from "@netlify/functions";
 import { hashPassword, json, requireSameOrigin, VALID_ROLES, validateSession, verifyPassword, type UserRole } from "./_shared/security";
-import { getEncryptedEnvironmentStore } from "./_shared/storage";
+import { getPrivateRecordStore } from "./_shared/storage";
 import { accountStore, getRegisteredAccount } from "./_shared/accountRequests";
 
 type User = { username: string; role: UserRole; password?: string; passwordHash?: string };
@@ -25,7 +25,7 @@ export default async (req: Request) => {
     if (originError) return originError;
   }
 
-  const userStore = getEncryptedEnvironmentStore("users", { consistency: "strong" });
+  const userStore = getPrivateRecordStore("users", { consistency: "strong" });
 
   if (method === "GET") {
     if (!hasPermission(session.role, "view_users")) {
