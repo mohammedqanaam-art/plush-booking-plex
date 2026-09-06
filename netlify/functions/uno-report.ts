@@ -275,7 +275,11 @@ const recordsFromPayload = (payload: unknown) => {
   const record = asRecord(payload);
   const body = asRecord(record.body);
   if (Array.isArray(body.reservationsRecords)) return body.reservationsRecords.map(asRecord);
-  return reservationArrays(payload).sort((left, right) => right.length - left.length)[0] || [];
+  if (Array.isArray(payload) && payload.length === 0) return [];
+  const records = reservationArrays(payload).sort((left, right) => right.length - left.length)[0];
+  // An error object (or a broken JSON response) is not evidence of zero bookings.
+  if (!records) throw new Error("UNO_REPORT_INVALID_RESPONSE");
+  return records;
 };
 
 const reportedTotalFromPayload = (payload: unknown) => {
@@ -283,8 +287,11 @@ const reportedTotalFromPayload = (payload: unknown) => {
   const body = asRecord(record.body);
   for (const candidate of [body, record]) {
     for (const key of ["totalRecords", "totalRecord", "totalCount", "recordCount", "totalRows", "TotalRecords", "TotalCount"]) {
-      const value = Number(candidate[key]);
-      if (Number.isFinite(value) && value >= 0) return Math.trunc(value);
+      const raw = candidate[key];
+      if (typeof raw !== "number" && typeof raw !== "string") continue;
+      if (typeof raw === "string" && !raw.trim()) continue;
+      const value = Number(raw);
+      if (Number.isInteger(value) && value >= 0) return value;
     }
   }
   return null;
@@ -312,9 +319,11 @@ const requestPage = async (
     body: JSON.stringify(searchPayload(session, filters)),
     signal: AbortSignal.timeout(28_000),
   });
-  const payload = await response.json().catch(() => ({}));
   if (response.status === 401 || response.status === 403) throw new Error("UNO_SESSION_EXPIRED");
   if (!response.ok) throw new Error(`UNO_REPORT_${response.status}`);
+  const payload = await response.json().catch(() => {
+    throw new Error("UNO_REPORT_INVALID_RESPONSE");
+  });
   return {
     records: recordsFromPayload(payload),
     reportedTotal: reportedTotalFromPayload(payload),
@@ -329,7 +338,7 @@ const pageFingerprint = (records: JsonRecord[]) => records.length
   ? [records.length, ...records.slice(0, 3).map(rawReservationKey), ...records.slice(-3).map(rawReservationKey)].join("|")
   : "empty";
 
-const fetchFullReport = async (
+export const fetchFullReport = async (
   configuration: ReturnType<typeof readConfiguration>,
   session: UnoSession,
   filters: UnoReportFilters,
@@ -339,6 +348,7 @@ const fetchFullReport = async (
   let fetchMode: FetchQuality["fetchMode"] = "unbounded";
   let pages = 1;
   let reportedTotal = unbounded.reportedTotal;
+  let paginationUnproven = false;
 
   // UNO has returned capped result sets in different builds. Any exact 1,000+ page-sized
   // response is validated with server pagination before the report is accepted.
@@ -350,30 +360,45 @@ const fetchFullReport = async (
     const fingerprints = new Set<string>();
     let pagedTotal = reportedTotal;
     let page = 1;
+    let reachedEnd = false;
 
     while (page <= MAX_PAGES && paged.length < MAX_REPORT_ROWS) {
       const response = await requestPage(configuration, session, filters, page, PAGED_SIZE, true);
+      if (response.reportedTotal !== null) {
+        // Keep the largest observed total, even if this page is repeated or the
+        // paged result is not selected. Otherwise a capped response can look complete.
+        pagedTotal = Math.max(pagedTotal ?? 0, response.reportedTotal);
+      }
       const fingerprint = pageFingerprint(response.records);
       if (fingerprints.has(fingerprint)) break;
       fingerprints.add(fingerprint);
-      if (!response.records.length) break;
+      if (!response.records.length) {
+        reachedEnd = true;
+        break;
+      }
       paged.push(...response.records);
-      if (response.reportedTotal !== null) pagedTotal = response.reportedTotal;
-      if (response.records.length < PAGED_SIZE) break;
-      if (pagedTotal !== null && paged.length >= pagedTotal) break;
+      if (response.records.length < PAGED_SIZE || (pagedTotal !== null && paged.length >= pagedTotal)) {
+        reachedEnd = true;
+        break;
+      }
       page += 1;
     }
 
+    reportedTotal = pagedTotal;
+    paginationUnproven = !reachedEnd;
     if (paged.length > chosen.length) {
       chosen = paged;
       fetchMode = "paged";
       pages = fingerprints.size;
-      reportedTotal = pagedTotal;
     }
   }
 
   if (chosen.length > MAX_REPORT_ROWS || (reportedTotal !== null && reportedTotal > MAX_REPORT_ROWS)) {
     throw new Error("UNO_REPORT_TOO_LARGE");
+  }
+  if ((reportedTotal !== null && chosen.length < reportedTotal)
+    || (paginationUnproven && reportedTotal === null)) {
+    throw new Error("UNO_REPORT_INCOMPLETE");
   }
 
   const normalized = chosen.map((record) => normalizeReservation(record) as UnoReservationRecord);
@@ -512,7 +537,7 @@ const executeReport = async (
     started: true as const,
     startedAt: Date.now(),
   }));
-  if (!attempt.started) {
+  if (attempt.started === false) {
     return json({
       ok: true,
       skipped: "already-running",
@@ -589,11 +614,15 @@ const executeReport = async (
     const requiresOtp = code === "UNO_SESSION_EXPIRED";
     const message = code === "UNO_REPORT_TOO_LARGE"
       ? "تقرير UNO تجاوز 50,000 سجل. اختر فترة أقصر حتى لا يتم اعتماد تقرير ناقص."
-      : requiresOtp
-        ? "انتهت جلسة UNO وتحتاج إلى OTP جديد."
-        : /^UNO_REPORT_\d+$/.test(code)
-          ? `رفض UNO طلب التقرير (${code.replace("UNO_REPORT_", "")}).`
-          : "تعذر جلب تقرير UNO الكامل. تم الحفاظ على آخر تقرير ناجح.";
+      : code === "UNO_REPORT_INCOMPLETE"
+        ? "لم تكتمل صفحات تقرير UNO أو لم تتطابق مع إجمالي المصدر؛ تم الحفاظ على آخر تقرير ناجح."
+        : code === "UNO_REPORT_INVALID_RESPONSE"
+          ? "أعاد UNO استجابة غير صالحة للتقرير؛ لم تُعتمد كحجوزات صفرية وتم الحفاظ على آخر تقرير ناجح."
+          : requiresOtp
+            ? "انتهت جلسة UNO وتحتاج إلى OTP جديد."
+            : /^UNO_REPORT_\d+$/.test(code)
+              ? `رفض UNO طلب التقرير (${code.replace("UNO_REPORT_", "")}).`
+              : "تعذر جلب تقرير UNO الكامل. تم الحفاظ على آخر تقرير ناجح.";
     if (isCanonicalFilters(filters)) {
       await updateSyncHealth(false, filters, {
         source,
