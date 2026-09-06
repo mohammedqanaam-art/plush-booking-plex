@@ -261,11 +261,17 @@ const headers = (session: UnoSession) => ({
   UserID: "VOICE",
 });
 
+const isReservationRecord = (record: JsonRecord) => {
+  const reservation = normalizeReservation(record);
+  return Boolean(reservation.unoNumber || reservation.pmsNumber
+    || (reservation.property && (reservation.bookingDate || reservation.checkIn || reservation.checkOut)));
+};
+
 const reservationArrays = (payload: unknown, depth = 0): JsonRecord[][] => {
   if (depth > 5) return [];
   if (Array.isArray(payload)) {
-    const records = payload.map(asRecord).filter((record) => Object.keys(record).length > 0);
-    return records.length ? [records] : [];
+    const records = payload.map(asRecord);
+    return records.length && records.every(isReservationRecord) ? [records] : [];
   }
   const record = asRecord(payload);
   return Object.values(record).flatMap((value) => reservationArrays(value, depth + 1));
@@ -274,7 +280,11 @@ const reservationArrays = (payload: unknown, depth = 0): JsonRecord[][] => {
 const recordsFromPayload = (payload: unknown) => {
   const record = asRecord(payload);
   const body = asRecord(record.body);
-  if (Array.isArray(body.reservationsRecords)) return body.reservationsRecords.map(asRecord);
+  if (Array.isArray(body.reservationsRecords)) {
+    const records = body.reservationsRecords.map(asRecord);
+    if (!records.every(isReservationRecord)) throw new Error("UNO_REPORT_INVALID_RESPONSE");
+    return records;
+  }
   if (Array.isArray(payload) && payload.length === 0) return [];
   const records = reservationArrays(payload).sort((left, right) => right.length - left.length)[0];
   // An error object (or a broken JSON response) is not evidence of zero bookings.
@@ -330,12 +340,10 @@ const requestPage = async (
   };
 };
 
-const rawReservationKey = (record: JsonRecord) => asString(
-  record.reservationNo || record.ReservationNo || record.reservationNumber || record.ReservationNumber || record.pmsid || record.pmsId,
-);
-
+// Reuse the full normalized schema so all supported identifier aliases work,
+// and distinct records without an identifier do not share an empty fingerprint.
 const pageFingerprint = (records: JsonRecord[]) => records.length
-  ? [records.length, ...records.slice(0, 3).map(rawReservationKey), ...records.slice(-3).map(rawReservationKey)].join("|")
+  ? createHash("sha256").update(JSON.stringify(records.map(normalizeReservation))).digest("hex")
   : "empty";
 
 export const fetchFullReport = async (
