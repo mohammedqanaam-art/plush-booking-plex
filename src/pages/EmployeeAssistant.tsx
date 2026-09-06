@@ -2,8 +2,12 @@ import { useEffect, useRef } from "react";
 import { ExternalLink, MessageCircle, Send, ShieldCheck, Sparkles } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { useVisitorAssistant } from "@/hooks/useVisitorAssistant";
+import { Link } from "react-router-dom";
 
 const quickPrompts = [
+  "هل يتوفر دخول مبكر في بريرا العليا اليوم؟",
+  "هل يوجد عملاء محتملون للحجز؟",
+  "ما طلبات المشرفين؟",
   "محمد الدوسري بالانجليزي",
   "2000 خصم 20",
   "كيف أتعامل مع شكوى الضيف؟",
@@ -40,7 +44,7 @@ const EmployeeAssistant = () => {
 
   return (
     <div className="page-wrap-narrow space-y-4">
-      <PageHeader title="مساعد قرارات الحجز" icon={MessageCircle} />
+      <PageHeader title="مساعد قرارات الحجز" icon={MessageCircle} actions={<Link to="/workplace" className="text-sm text-primary">مساحة العمل والمتابعة</Link>} />
 
       <section className="glass-card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-l from-emerald-950 to-emerald-800 px-4 py-4 text-white md:px-6">

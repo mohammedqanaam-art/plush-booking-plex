@@ -97,6 +97,9 @@ export const decryptStoredJson = <T>(envelope: EncryptedEnvelope, storeName: str
 export const getEncryptedEnvironmentStore = (name: string, options: StoreOptions = {}) => {
   const base = getRawEnvironmentStore(name, options);
   return {
+    async list(options?: { prefix?: string }) {
+      return base.list(options);
+    },
     async get<T = unknown>(key: string, readOptions: { type?: "json" } = { type: "json" }): Promise<T | null> {
       if (readOptions.type && readOptions.type !== "json") throw new Error("Encrypted stores support JSON reads only.");
       const stored = await base.get(key, { type: "json" }) as unknown;

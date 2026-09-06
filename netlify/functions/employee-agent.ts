@@ -5,6 +5,7 @@ import { lookupOfficialBoudlSources, type OfficialSource } from "./_shared/boudl
 import { buildEmployeeKnowledge, employeeGuideForModel, type EmployeeKnowledgeSource } from "./_shared/employeeKnowledge";
 import { generateOpenAiText, generateOpenAiTextStream, isOpenAiAvailable, type OpenAiTextOptions } from "./_shared/openai";
 import { json, requireSameOrigin, validateSession } from "./_shared/security";
+import { operationsAnswer } from "./_shared/employeeOperations";
 
 type ChatTurn = { role: "user" | "assistant"; content: string };
 type StreamStage = "preparing" | "sources" | "generating" | "fallback";
@@ -66,7 +67,8 @@ export default async (req: Request, context?: Context) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
   if (req.method !== "GET" && req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   const originError = requireSameOrigin(req); if (originError) return originError;
-  if (!await validateSession(req)) return json({ error: "Unauthorized" }, 401);
+  const employeeSession = await validateSession(req);
+  if (!employeeSession) return json({ error: "Unauthorized" }, 401);
   if (req.method === "GET" && new URL(req.url).searchParams.get("warm") === "1") {
     const warm = isOpenAiAvailable().catch(() => false); if (context) context.waitUntil(warm); else void warm;
     return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
@@ -80,6 +82,14 @@ export default async (req: Request, context?: Context) => {
   const requestedSessionId = String(body.sessionId || "").trim();
   const sessionId = /^[a-zA-Z0-9_-]{8,100}$/.test(requestedSessionId) ? requestedSessionId : `employee_${crypto.randomUUID()}`;
   const requestId = crypto.randomUUID(); const wantsStream = req.headers.get("accept")?.includes("text/event-stream") || false;
+  let operationalReply: string | null = null;
+  try { operationalReply = await operationsAnswer(message, employeeSession); }
+  catch { return json({ error: "تعذر التحقق من الطلبات والتوفر الآن. أعد المحاولة." }, 503); }
+  if (operationalReply) {
+    const payload: EmployeePayload = { reply: operationalReply, sources: [{ title: "مساحة العمل والمتابعة", url: "/workplace" }], sessionId, requestId,
+      provider: "bhg-operations-fast-path", model: null, scope: BHG_ASSISTANT_SCOPE };
+    return wantsStream ? eventStream((send) => { send("delta", { delta: payload.reply }); send("done", payload); }) : json(payload);
+  }
   const scope = classifyBoudlAssistantScope(message, history.filter((item) => item.role === "user").map((item) => item.content));
   if (scope !== "in_scope") {
     const payload: EmployeePayload = { reply: boudlScopeReply(scope), sources: [], sessionId, requestId,

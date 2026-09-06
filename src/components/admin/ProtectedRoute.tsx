@@ -31,7 +31,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <div className="grid min-h-[45vh] place-items-center text-sm text-muted-foreground">جاري التحقق من الوصول الآمن…</div>;
   }
   if (state === "denied") {
-    return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/admin/login" replace state={{ from: location.pathname + location.search }} />;
   }
   return children;
 };

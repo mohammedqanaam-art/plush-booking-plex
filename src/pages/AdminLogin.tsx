@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { getAdminSession } from "@/lib/adminAuth";
 import { api } from "@/lib/api";
 import PageHeader from "@/components/PageHeader";
+import RegistrationForm from "@/components/RegistrationForm";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [registering, setRegistering] = useState(false);
 
   useEffect(() => {
     if (getAdminSession()) {
@@ -34,7 +36,7 @@ const AdminLogin = () => {
       await api.login(username, password);
       navigate(returnTo, { replace: true });
     } catch {
-      setError("بيانات الدخول غير صحيحة.");
+      setError("تعذر الدخول. تحقق من البيانات ومن تفعيل الحساب لدى مدير النظام.");
     } finally {
       setLoading(false);
     }
@@ -44,7 +46,7 @@ const AdminLogin = () => {
     <div className="page-wrap-narrow">
       <PageHeader title="الدخول إلى مساحة العمل" icon={Lock} />
 
-      <div className="glass-card p-8 text-center space-y-4">
+      {registering ? <RegistrationForm onBack={() => setRegistering(false)} /> : <div className="glass-card p-8 text-center space-y-4">
         <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
           <Lock className="w-8 h-8 text-primary" />
         </div>
@@ -54,7 +56,9 @@ const AdminLogin = () => {
         <form onSubmit={handleSubmit} className="space-y-3 pt-2">
           <input
             type="text"
-            placeholder="اسم المستخدم"
+            placeholder="البريد الإلكتروني أو اسم المستخدم"
+            aria-label="البريد الإلكتروني أو اسم المستخدم"
+            autoComplete="username"
             dir="ltr"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
@@ -63,6 +67,8 @@ const AdminLogin = () => {
           <input
             type="password"
             placeholder="كلمة المرور"
+            aria-label="كلمة المرور"
+            autoComplete="current-password"
             dir="ltr"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -78,7 +84,8 @@ const AdminLogin = () => {
         </form>
 
         {error && <p className="text-xs text-destructive">{error}</p>}
-      </div>
+        <button onClick={() => setRegistering(true)} className="w-full max-w-sm h-11 rounded-lg border text-primary font-semibold">طلب تسجيل حساب جديد</button>
+      </div>}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import type { Config } from "@netlify/functions";
 import { hashPassword, json, requireSameOrigin, VALID_ROLES, validateSession, verifyPassword, type UserRole } from "./_shared/security";
 import { getEncryptedEnvironmentStore } from "./_shared/storage";
+import { accountStore, getRegisteredAccount } from "./_shared/accountRequests";
 
 type User = { username: string; role: UserRole; password?: string; passwordHash?: string };
 
@@ -61,6 +62,7 @@ export default async (req: Request) => {
     if (!role || !VALID_ROLES.includes(role as UserRole)) {
       return json({ error: "Invalid role" }, 400);
     }
+    if (role === "superadmin" && session.role !== "superadmin") return json({ error: "Only the system administrator can grant this role" }, 403);
     if (username.trim().length > 120 || password.length > 512) {
       return json({ error: "Invalid account fields" }, 400);
     }
@@ -99,6 +101,15 @@ export default async (req: Request) => {
     }
     if (newPassword.trim().length < 12 || newPassword.length > 512) {
       return json({ error: "New password must be between 12 and 512 characters" }, 400);
+    }
+
+    if (session.username.includes("@")) {
+      const account = await getRegisteredAccount(session.username);
+      if (account?.status === "approved") {
+        if (!verifyPassword(currentPassword, account.passwordHash)) return json({ error: "Current password is incorrect" }, 403);
+        await accountStore().setJSON(`account/${account.id}`, { ...account, passwordHash: hashPassword(newPassword) });
+        return json({ ok: true });
+      }
     }
 
     let users: User[] = [];

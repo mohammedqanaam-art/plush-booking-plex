@@ -4,6 +4,7 @@ import {
   BookOpenCheck,
   Building2,
   CalendarSearch,
+  ClipboardList,
   Download,
   Eye,
   EyeOff,
@@ -72,6 +73,8 @@ const TAB_DEFINITIONS: Array<{ id: AdminTab; label: string; icon: typeof Gauge; 
 
 const ADMIN_TOOLS: AdminTool[] = [
   { to: "/admin/uno", label: "UNO", icon: RefreshCw, roles: ["superadmin", "admin"] },
+  { to: "/workplace", label: "مساحة العمل والمتابعة", icon: ClipboardList },
+  { to: "/admin/account-requests", label: "طلبات تفعيل الحسابات", icon: Users, roles: ["superadmin"] },
   { to: "/admin/opera-search", label: "OPERA", icon: CalendarSearch, roles: ["superadmin", "admin"] },
   { to: "/admin/avaya-reports", label: "Avaya", icon: FileSpreadsheet, permission: "upload" },
   { to: "/admin/shift-start", label: "بداية الشفت", icon: MoonStar, permission: "upload" },
