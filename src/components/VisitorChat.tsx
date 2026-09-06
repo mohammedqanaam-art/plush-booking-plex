@@ -3,12 +3,13 @@ import { Bot, ExternalLink, Send, Sparkles, X } from "lucide-react";
 import { useVisitorAssistant } from "@/hooks/useVisitorAssistant";
 
 const starters = [
-  "أقرب فنادق BHG لبرج المملكة؟",
+  "محمد الدوسري بالانجليزي",
+  "2000 خصم 20",
   "ما الخدمات المتوفرة في بودل العليا؟",
   "كيف أحجز من الموقع الرسمي؟",
 ];
 
-const initialMessage = "أهلًا بك في مجموعة BHG. أساعدك في فنادق بودل، عابر، بريرا، نارسس وزمن: الفروع والمواقع والخدمات والحجز من المصادر المعتمدة.";
+const initialMessage = "أهلًا بك. أساعدك في كتابة الأسماء بالإنجليزية وحساب المبالغ والخصومات، ومعلومات فنادق وفروع مجموعة BHG. جرّب كتابة اسم، أو: 2000 خصم 20. ولخصم مبلغ ثابت اكتب: 2000 خصم 20 ريال.";
 
 const officialHref = (value: string) => {
   try {
@@ -93,7 +94,7 @@ const VisitorChat = () => {
                 <strong>مساعد BHG الذكي</strong>
                 <span className="visitor-chat-model">{modelLabel}</span>
               </div>
-              <small>بث فوري · مصادر BHG الرسمية أولًا</small>
+              <small>أسماء بالإنجليزية · حاسبة · فنادق BHG</small>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="visitor-chat-close" aria-label="إغلاق">
               <X className="h-4 w-4" />
@@ -155,7 +156,7 @@ const VisitorChat = () => {
                   if (canSend) void send();
                 }
               }}
-              placeholder="اكتب سؤالك عن أي فرع أو خدمة…"
+              placeholder="اكتب اسمًا، عملية حسابية، أو سؤالًا عن فرع…"
               aria-label="سؤالك لمساعد BHG"
               rows={1}
               dir="auto"
