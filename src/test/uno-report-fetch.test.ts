@@ -117,6 +117,38 @@ describe("UNO report completeness before publication", () => {
     await expect(run()).rejects.toThrow("UNO_REPORT_INVALID_RESPONSE");
   });
 
+  it.each([
+    { errors: [{ message: "unavailable" }] },
+    { body: { reservationsRecords: [{ message: "unavailable" }] } },
+    { body: { reservationsRecords: [...rows(1), null] } },
+  ])("rejects non-reservation objects instead of publishing empty or partial data: %j", async (payload) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json(payload));
+    await expect(run()).rejects.toThrow("UNO_REPORT_INVALID_RESPONSE");
+  });
+
+  it("selects a recognizable fallback reservation array instead of unrelated metadata", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json({
+      data: rows(1), warnings: [{ message: "one" }, { message: "two" }], totalRecords: 1,
+    }));
+    expect((await run()).reservations).toHaveLength(1);
+  });
+
+  it.each([
+    "reservationNo", "ReservationNo", "reservationNumber", "ReservationNumber",
+    "unoReservationNo", "otaBookingID", "OTABookingID", "pmsid", "pmsId", "PMSID",
+    "pmsConfirmationNo", "PMSConfirmationNo", "pmsReservationNo",
+  ])("distinguishes complete pages using the supported %s identifier", async (identifier) => {
+    const page = (offset: number) => rows(1000, offset).map(({ reservationNo, ...record }) => ({
+      ...record, [identifier]: reservationNo,
+    }));
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ body: { reservationsRecords: page(0) } }))
+      .mockResolvedValueOnce(Response.json({ body: { reservationsRecords: page(0) } }))
+      .mockResolvedValueOnce(Response.json({ body: { reservationsRecords: page(1000) } }))
+      .mockResolvedValueOnce(response([]));
+    expect((await run()).reservations).toHaveLength(2000);
+  });
+
   it("rejects malformed JSON instead of accepting an empty report", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response("<html>upstream error</html>"));
     await expect(run()).rejects.toThrow("UNO_REPORT_INVALID_RESPONSE");
