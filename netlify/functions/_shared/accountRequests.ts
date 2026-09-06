@@ -4,7 +4,7 @@ import type { UserRole } from "./security";
 
 export type AccountRequest = {
   id: string; email: string; firstName: string; lastName: string; phone: string;
-  passwordHash: string; status: "pending" | "approved" | "rejected";
+  passwordHash: string; status: "pending" | "approved" | "rejected" | "disabled";
   createdAt: string; reviewedAt?: string; reviewedBy?: string; role?: UserRole;
 };
 export const accountStore = () => getEncryptedEnvironmentStore("account-requests", { consistency: "strong" });

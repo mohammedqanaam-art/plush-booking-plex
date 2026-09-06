@@ -79,6 +79,15 @@ describe("account registration and approval", () => {
     expect(list.headers.get("cache-control")).toBe("no-store");
     expect(JSON.stringify(await list.json())).not.toContain("passwordHash");
   });
+  it("lets the system administrator revoke and later reactivate a registered account", async () => {
+    await handler(req(applicant)); session.mockResolvedValue(admin);
+    await handler(req({ id: record().id, action: "approve" }, "PATCH"));
+    expect((await handler(req({ id: record().id, action: "deactivate" }, "PATCH"))).status).toBe(200);
+    expect(record().status).toBe("disabled");
+    expect((await auth(req({ username: applicant.email, password: applicant.password }))).status).toBe(401);
+    expect((await handler(req({ id: record().id, action: "activate" }, "PATCH"))).status).toBe(200);
+    expect((await auth(req({ username: applicant.email, password: applicant.password }))).status).toBe(200);
+  });
   it.each([{ email: "bad" }, { firstName: "" }, { phone: "123" }, { password: "short" }])("validates %j before writing", async (fields) => {
     expect((await handler(req({ ...applicant, ...fields }))).status).toBe(400);
     expect(memory.size).toBe(0);

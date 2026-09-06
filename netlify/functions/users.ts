@@ -66,6 +66,7 @@ export default async (req: Request) => {
     if (username.trim().length > 120 || password.length > 512) {
       return json({ error: "Invalid account fields" }, 400);
     }
+    if (username.includes("@") && await getRegisteredAccount(username)) return json({ error: "Manage this registered account from account requests" }, 409);
 
     let users: User[] = [];
     try {

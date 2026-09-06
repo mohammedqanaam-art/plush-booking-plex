@@ -37,18 +37,24 @@ export default async (req: Request) => {
     }
     const id = typeof body.id === "string" ? body.id : "";
     const action = body.action;
-    if (!/^[a-f0-9]{64}$/.test(id) || !["approve", "reject"].includes(String(action))) return json({ error: "قرار غير صحيح." }, 400);
+    if (!/^[a-f0-9]{64}$/.test(id) || !["approve", "reject", "deactivate", "activate"].includes(String(action))) return json({ error: "قرار غير صحيح." }, 400);
     const record = await store.get<AccountRequest>(`account/${id}`);
     if (!record) return json({ error: "الطلب غير موجود." }, 404);
-    if (record.status !== "pending") return json({ error: "تمت مراجعة هذا الطلب مسبقًا." }, 409);
-    const role = (body.role || "viewer") as UserRole;
+    const validTransition = ((action === "approve" || action === "reject") && record.status === "pending")
+      || (action === "deactivate" && record.status === "approved") || (action === "activate" && record.status === "disabled");
+    if (!validTransition) return json({ error: "حالة الحساب تغيرت. حدث القائمة ثم أعد المحاولة." }, 409);
+    const role = (body.role || record.role || "viewer") as UserRole;
     if (!["viewer", "editor", "admin"].includes(role)) return json({ error: "الصلاحية غير صحيحة." }, 400);
-    const updated: AccountRequest = { ...record, status: action === "approve" ? "approved" : "rejected",
-      role: action === "approve" ? role : undefined, reviewedBy: session!.username, reviewedAt: new Date().toISOString() };
+    const updated: AccountRequest = { ...record, status: action === "deactivate" ? "disabled" : action === "reject" ? "rejected" : "approved",
+      role: action === "reject" ? undefined : role, reviewedBy: session!.username, reviewedAt: new Date().toISOString() };
     await store.setJSON(`account/${id}`, updated);
     return json({ request: accountSummary(updated) });
-  } catch {
-    return json({ error: "تعذر حفظ أو تحميل الطلبات. أعد المحاولة." }, 503);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    const code = message.includes("DATA_ENCRYPTION_KEY") ? "CONFIGURATION_REQUIRED"
+      : /locked|read.only|403/i.test(message) ? "STORAGE_LOCKED" : "STORAGE_UNAVAILABLE";
+    console.error("[account-requests] storage unavailable", { code, operation: req.method });
+    return json({ error: "تعذر حفظ أو تحميل الطلبات. أعد المحاولة.", code }, 503);
   }
 };
 export const config: Config = { path: "/api/account-requests", rateLimit: { windowLimit: 12, windowSize: 60, aggregateBy: ["ip"] } };
