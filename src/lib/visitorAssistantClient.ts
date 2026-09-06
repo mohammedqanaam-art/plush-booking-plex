@@ -1,4 +1,5 @@
 import { redactSensitiveMessage } from "@/lib/redactSensitiveMessage";
+import { assistantUtility } from "@/lib/assistantUtilities";
 import {
   boudlScopeReply,
   classifyBoudlAssistantScope,
@@ -30,6 +31,8 @@ const safeSources = (value: unknown): VisitorSource[] => Array.isArray(value)
   : [];
 
 export const localAssistantReply = (message: string, history: VisitorChatTurn[]) => {
+  const utility = assistantUtility(message);
+  if (utility) return utility.kind === "reply" ? utility.reply : null;
   const scope = classifyBoudlAssistantScope(
     message,
     history.filter((item) => item.role === "user").map((item) => item.content),
@@ -76,18 +79,24 @@ export async function streamVisitorAssistant(
   },
   options: { endpoint?: string } = {},
 ): Promise<VisitorAgentResponse> {
+  const utility = assistantUtility(request.message);
+  if (utility?.kind === "reply") {
+    handlers.onDelta(utility.reply);
+    return { reply: utility.reply, provider: utility.provider, sources: [] };
+  }
   const protectedRequest = {
     ...request,
     message: redactSensitiveMessage(request.message),
     history: request.history.map((item) => ({ ...item, content: redactSensitiveMessage(item.content) })),
   };
-  const response = await fetch(options.endpoint || "/api/visitor/agent", {
+  const response = await fetch(utility?.kind === "name" ? "/api/assistant/utility" : options.endpoint || "/api/visitor/agent", {
     method: "POST",
     headers: {
       Accept: "text/event-stream",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(protectedRequest),
+    // Name spelling requires only the extracted name, never prior conversation or account context.
+    body: JSON.stringify(utility?.kind === "name" ? { message: utility.name } : protectedRequest),
     credentials: "same-origin",
   });
 

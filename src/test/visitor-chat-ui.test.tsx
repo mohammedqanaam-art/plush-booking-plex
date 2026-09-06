@@ -8,6 +8,21 @@ describe("visitor BHG chat UI", () => {
     vi.unstubAllGlobals();
   });
 
+  it("lets employees use names and discounts from the public chat without signing in", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<VisitorChat />);
+    fireEvent.click(screen.getByRole("button", { name: "فتح مساعد BHG" }));
+    const input = screen.getByLabelText("سؤالك لمساعد BHG");
+    fireEvent.change(input, { target: { value: "محمد الدوسري" } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    expect(await screen.findByText(/Mohammed Al Dosari/)).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: "٢٠٠ - ٢٠٪؜" } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    expect(await screen.findByText(/المبلغ بعد الخصم: 160.00/)).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+  });
+
   it("renders model markdown as formatted content instead of raw symbols", async () => {
     const reply = "**بريرا العليا**\n\n[عرض الفندق](https://boudl.com/ar/hotel/example)";
     const body = [
