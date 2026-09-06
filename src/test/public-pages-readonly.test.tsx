@@ -3,11 +3,26 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Branches from "@/pages/Branches";
 import KnowledgeBank from "@/pages/KnowledgeBank";
+import Dashboard from "@/pages/Dashboard";
 import fs from "node:fs";
 import path from "node:path";
 
 describe("public pages are read-only", () => {
   afterEach(() => vi.unstubAllGlobals());
+  it("removes the green promotional panel while preserving all service links", () => {
+    const { container } = render(<MemoryRouter><Dashboard /></MemoryRouter>);
+    expect(container.querySelector(".privacy-hero")).toBeNull();
+    expect(screen.queryByText("PRIVACY FIRST")).toBeNull();
+    expect(screen.queryByText("خدمة أوضح، وصول أسرع، وخصوصية أعلى.")).toBeNull();
+    for (const [name, href] of [
+      ["دليل الفروع", "/branches"],
+      ["طلب تواصل", "/contact-requests"],
+      ["تسجيل شكوى", "/complaints"],
+      ["مساحة الموظفين", "/assistant"],
+    ]) {
+      expect(screen.getByRole("link", { name: new RegExp(name) }).getAttribute("href")).toBe(href);
+    }
+  });
   it("keeps the branches page concise", () => {
     render(<MemoryRouter><Branches /></MemoryRouter>);
     expect(screen.queryByText(/هذه الصفحة للعرض فقط/)).toBeNull();
