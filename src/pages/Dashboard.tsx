@@ -1,14 +1,11 @@
 import {
   ArrowLeft,
   Building2,
-  CheckCircle2,
   Headphones,
   LockKeyhole,
   MapPin,
   MessageSquareWarning,
   PhoneCall,
-  ShieldCheck,
-  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -55,46 +52,11 @@ const publicEntries: PublicEntry[] = [
   },
 ];
 
-const privacyPoints = [
-  "لا إعلانات أو بيع للبيانات",
-  "لا تتبع تفصيلي للزوار",
-  "بيانات الموظفين خلف تسجيل الدخول",
-];
-
 const cityCount = new Set(branches.map((branch) => branch.city)).size;
 
 const Dashboard = () => (
   <div className="page-wrap public-home">
     <PageHeader title="بوابة خدمات BHG" showBack={false} />
-
-    <section className="privacy-hero" aria-labelledby="privacy-hero-title">
-      <div className="privacy-hero__content">
-        <span className="privacy-hero__eyebrow"><Sparkles className="h-4 w-4" /> تجربة ضيافة رقمية موثوقة</span>
-        <h2 id="privacy-hero-title">خدمة أوضح، وصول أسرع، وخصوصية أعلى.</h2>
-        <p>واجهة مختصرة لخدمات الضيوف، ومساحة تشغيل منفصلة ومحمية لموظفي الحجز المركزي.</p>
-        <div className="privacy-hero__actions">
-          <Link to="/branches" className="privacy-hero__primary">
-            استكشف الفروع <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <Link to="/assistant" className="privacy-hero__secondary">
-            <LockKeyhole className="h-4 w-4" /> دخول الموظفين
-          </Link>
-        </div>
-      </div>
-
-      <aside className="privacy-shield" aria-label="التزامات الخصوصية">
-        <span className="privacy-shield__icon"><ShieldCheck className="h-7 w-7" /></span>
-        <div>
-          <span className="privacy-shield__label">PRIVACY FIRST</span>
-          <h3>السرية جزء من التصميم</h3>
-        </div>
-        <ul>
-          {privacyPoints.map((point) => (
-            <li key={point}><CheckCircle2 className="h-4 w-4" /> {point}</li>
-          ))}
-        </ul>
-      </aside>
-    </section>
 
     <section className="home-directory" aria-label="ملخص دليل الفروع">
       <div className="home-directory__identity">
