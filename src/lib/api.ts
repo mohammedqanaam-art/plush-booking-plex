@@ -29,6 +29,11 @@ export type PublicBookingReport = {
   period: { month: string; year: string; label: string };
   summary: {
     uploadedRecords: number;
+    duplicateRecords?: number;
+    conflictingRecords?: number;
+    missingReservationIds?: number;
+    displayedConfirmed?: number;
+    displayedCancelled?: number;
     classifiedTotal: number;
     confirmed: number;
     cancelled: number;
@@ -45,6 +50,10 @@ export type PublicBookingReport = {
     cancelled: number;
     total: number;
     confirmationRate: number;
+    sourceConfirmed?: number;
+    sourceCancelled?: number;
+    confirmedAdjustment?: number;
+    cancelledAdjustment?: number;
   }>;
 };
 
@@ -839,3 +848,4 @@ export const api = {
     return data.review;
   },
 };
+

@@ -1,3 +1,4 @@
+import { classifyReservationStatus, deduplicateReservationRows, reservationStatusValue, reservationAgent } from "../../../src/lib/reservationMetrics";
 export type BookingRecord = Record<string, string | number | undefined>;
 
 export type EmployeeReportSettings = {
@@ -18,6 +19,10 @@ export type PublicEmployeeReport = {
   cancelled: number;
   total: number;
   confirmationRate: number;
+  sourceConfirmed: number;
+  sourceCancelled: number;
+  confirmedAdjustment: number;
+  cancelledAdjustment: number;
 };
 
 export type PublicBookingReport = {
@@ -26,6 +31,11 @@ export type PublicBookingReport = {
   period: { month: string; year: string; label: string };
   summary: {
     uploadedRecords: number;
+    duplicateRecords: number;
+    conflictingRecords: number;
+    missingReservationIds: number;
+    displayedConfirmed: number;
+    displayedCancelled: number;
     classifiedTotal: number;
     confirmed: number;
     cancelled: number;
@@ -39,20 +49,11 @@ export type PublicBookingReport = {
 };
 
 export type BookingReportMetadata = {
+  duplicateReservations?: number;
+  sourceRows?: number;
   dateFrom?: string | null;
   dateTo?: string | null;
 };
-
-const normalizeKey = (value: string) =>
-  value
-    .replace(/^\uFEFF/, "")
-    .toLowerCase()
-    .replace(/[\u064B-\u0652]/g, "")
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي")
-    .replace(/[\s_\-/]+/g, "")
-    .trim();
 
 export const normalizeEmployeeId = (value: string) =>
   value.replace(/\s+/g, " ").trim().toLocaleLowerCase("en");
@@ -62,59 +63,9 @@ const isSystemEmployee = (value: string) => {
   return normalized === "unovoice" || normalized === "systemuno";
 };
 
-const getValue = (record: BookingRecord, keys: string[]): string => {
-  for (const key of keys) {
-    const value = record[key];
-    if (value !== undefined && String(value).trim()) return String(value);
-  }
-
-  const normalizedTargets = keys.map(normalizeKey);
-  for (const [rawKey, rawValue] of Object.entries(record)) {
-    if (rawValue === undefined || !String(rawValue).trim()) continue;
-    const normalized = normalizeKey(rawKey);
-    if (normalizedTargets.includes(normalized)) return String(rawValue);
-    if (normalizedTargets.some((target) => normalized.includes(target) || target.includes(normalized))) {
-      return String(rawValue);
-    }
-  }
-  return "";
-};
-
-const getEmployeeName = (record: BookingRecord) =>
-  getValue(record, [
-    "Agent name",
-    "Agent Name",
-    "agent name",
-    "Agent",
-    "Employee",
-    "Employee Name",
-    "User Name",
-    "اسم الموظف",
-    "الموظف",
-    "اسم المندوب",
-    "المندوب",
-  ]).replace(/\s+/g, " ").trim();
-
-const getStatus = (record: BookingRecord) =>
-  getValue(record, [
-    "All stute",
-    "All Stute",
-    "all stute",
-    "Status",
-    "status",
-    "Booking Status",
-    "BookingStatus",
-    "حالة الحجز",
-    "الحالة",
-  ]).trim().toUpperCase();
-
-const classifyStatus = (status: string): "confirmed" | "cancelled" | "ignored" => {
-  if (["1", "3", "M", "O", "N", "I"].includes(status)) return "confirmed";
-  if (["C", "NS"].includes(status)) return "cancelled";
-  if (/^CONFIRMED?$/i.test(status) || /^(MODIFIED|MODIFY)$/i.test(status) || /^(مؤكد|معدل|معدّل)$/i.test(status)) return "confirmed";
-  if (/CANCEL|NO[\s-]?SHOW|ملغي|ملغى|إلغاء|الغاء/i.test(status)) return "cancelled";
-  return "ignored";
-};
+const getEmployeeName = reservationAgent;
+const getStatus = reservationStatusValue;
+const classifyStatus = classifyReservationStatus;
 
 const toFiniteInteger = (value: unknown) => {
   const number = Number(value || 0);
@@ -130,13 +81,14 @@ export const buildPublicBookingReport = (
   updatedAt: string | null = null,
   metadata: BookingReportMetadata = {},
 ): PublicBookingReport => {
+  const deduplicated = deduplicateReservationRows(bookings);
   const employeeMap = new Map<string, { sourceName: string; confirmed: number; cancelled: number }>();
   let confirmed = 0;
   let cancelled = 0;
   let ignored = 0;
   let unattributed = 0;
 
-  for (const booking of bookings) {
+  for (const booking of deduplicated.bookings) {
     const status = classifyStatus(getStatus(booking));
     if (status === "ignored") {
       ignored += 1;
@@ -175,6 +127,8 @@ export const buildPublicBookingReport = (
         confirmed: employeeConfirmed,
         cancelled: employeeCancelled,
         total,
+        sourceConfirmed: value.confirmed, sourceCancelled: value.cancelled,
+        confirmedAdjustment: employeeConfirmed - value.confirmed, cancelledAdjustment: employeeCancelled - value.cancelled,
         confirmationRate: percentage(employeeConfirmed, total),
       };
     })
@@ -193,7 +147,12 @@ export const buildPublicBookingReport = (
     updatedAt,
     period: { month, year, label: periodLabel },
     summary: {
-      uploadedRecords: bookings.length,
+      uploadedRecords: Math.max(bookings.length, Number(metadata.sourceRows) || 0),
+      duplicateRecords: Math.max(deduplicated.duplicates, Number(metadata.duplicateReservations) || 0),
+      conflictingRecords: deduplicated.conflicts,
+      missingReservationIds: deduplicated.missingIds,
+      displayedConfirmed: employees.reduce((sum, row) => sum + row.confirmed, 0),
+      displayedCancelled: employees.reduce((sum, row) => sum + row.cancelled, 0),
       classifiedTotal,
       confirmed,
       cancelled,
@@ -206,3 +165,4 @@ export const buildPublicBookingReport = (
     employees,
   };
 };
+

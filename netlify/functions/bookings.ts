@@ -51,6 +51,8 @@ export default async (req: Request) => {
           settings,
           typeof stats.updatedAt === "string" ? stats.updatedAt : null,
           {
+            duplicateReservations: Number(stats.duplicateReservations || 0),
+            sourceRows: Number(stats.sourceRows || 0),
             dateFrom: typeof stats.dateFrom === "string" ? stats.dateFrom : null,
             dateTo: typeof stats.dateTo === "string" ? stats.dateTo : null,
           },
@@ -58,6 +60,7 @@ export default async (req: Request) => {
         return json(report);
       }
 
+      if (!["superadmin", "admin", "editor"].includes(session.role)) return json({ error: "Permission Denied" }, 403);
       return json({ bookings, stats });
     } catch (error) {
       console.error("[bookings] load failed", {
@@ -137,3 +140,4 @@ export default async (req: Request) => {
 
   return json({ error: "Method not allowed" }, 405);
 };
+

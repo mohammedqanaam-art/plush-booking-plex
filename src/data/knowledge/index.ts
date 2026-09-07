@@ -45,6 +45,7 @@ export type BranchRecord = {
   gymInfo: string;
   gymHours: string;
   roomTypes: string[];
+  roomDetails?: Array<{ type: string; area: string; description: string }>;
   roomSource: "internal" | "unverified";
   hallPackages: string[];
   notes: string;
@@ -185,6 +186,7 @@ const toBranchRecord = (item: (typeof hotelBranches)[number], idx: number): Bran
     gymInfo: cleanOperationalText(operational?.gym ?? master?.gym, "غير متوفر"),
     gymHours: parseHours(operational?.gym ?? master?.gym ?? ""),
     roomTypes,
+    roomDetails: knowledgeSeed.room_types.filter((room) => normalizeKey(room.branch) === lookupKey).map((room) => ({ type: room.room_type, area: room.room_size, description: room.room_description })),
     roomSource: roomTypes.length ? "internal" : "unverified",
     hallPackages: [
       cleanOperationalText(operational?.meetingHall ?? master?.meetingHall, "غير متوفر"),
@@ -227,3 +229,4 @@ export const branchInventoryByBrand = {
   Narcissus: branchesByBrand.Narcissus.map((b) => b.branch),
   "Z'MN": branchesByBrand["Z'MN"].map((b) => b.branch),
 };
+

@@ -1,3 +1,4 @@
+import EmployeeNav from "./EmployeeNav";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Building2, LayoutDashboard, MessageSquareWarning, PhoneCall, ShieldCheck } from "lucide-react";
 import BottomNav from "./BottomNav";
@@ -26,7 +27,7 @@ const Layout = () => {
     <div className={`app-shell ${isPrivateArea ? "app-shell--admin" : "app-shell--public"} flex flex-col`}>
       <header className="app-topbar safe-area-top sticky top-0 z-40">
         <div className="content-container app-topbar__inner">
-          <Link to={isPrivateArea ? "/admin" : "/"} className="app-brand" aria-label="مجموعة بودل للضيافة — إدارة الحجز المركزي">
+          <Link to={isEmployeeArea ? "/booking-reports?section=employees" : isAdminArea ? "/admin" : "/"} className="app-brand" aria-label="مجموعة بودل للضيافة — إدارة الحجز المركزي">
             <span className="app-brand__mark" aria-hidden="true">
               <img src="/bhg-hospitality-group.jpg" alt="" />
             </span>
@@ -81,6 +82,7 @@ const Layout = () => {
         </div>
       </header>
 
+      {isPrivateArea && location.pathname !== "/admin/login" ? <EmployeeNav /> : null}
       <main className="app-main flex-1 min-h-0 overflow-y-auto custom-scrollbar" key={location.pathname}>
         <div className="content-container app-main__inner">
           <Outlet />
@@ -102,3 +104,4 @@ const Layout = () => {
 };
 
 export default Layout;
+

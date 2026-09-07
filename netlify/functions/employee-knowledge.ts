@@ -1,3 +1,5 @@
+import { getLiveKnowledge } from "./_shared/liveKnowledge";
+import { protocolEntries } from "./_shared/protocolBank";
 import type { Config } from "@netlify/functions";
 import { json, validateSession } from "./_shared/security";
 
@@ -11,11 +13,15 @@ export default async (req: Request) => {
     import("../../src/data/knowledge"),
     import("../../src/data/operations"),
   ]);
+  const live = await getLiveKnowledge(knowledge.branchRecords);
   return json({
     branches: branches.branches,
-    branchRecords: knowledge.branchRecords,
-    knowledgeEntries: operations.knowledgeEntries,
+    branchRecords: live.branchRecords,
+    protocols: protocolEntries,
+    sync: live.sync,
+    knowledgeEntries: operations.buildKnowledgeEntries(live.branchRecords),
   });
 };
 
 export const config: Config = { path: "/api/employee/knowledge" };
+

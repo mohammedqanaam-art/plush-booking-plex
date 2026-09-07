@@ -1,4 +1,4 @@
-import { branchRecords, quickIntents as kbQuickIntents } from "@/data/knowledge";
+import { branchRecords, quickIntents as kbQuickIntents, type BranchRecord } from "@/data/knowledge";
 
 export type ThemePreset = {
   id: string;
@@ -40,7 +40,7 @@ const availableLines = (items: Array<[string, string]>) => items
   .filter(([, value]) => isAvailable(value))
   .map(([label, value]) => `${label}: ${value}`);
 
-const branchEntries: KnowledgeEntry[] = branchRecords.flatMap((branch) => {
+export const buildKnowledgeEntries = (records: BranchRecord[]): KnowledgeEntry[] => records.flatMap((branch) => {
   const contactLines = availableLines([
     ["الاستقبال", branch.receptionPhone],
     ["الفندق", branch.hotelPhone],
@@ -152,4 +152,5 @@ const branchEntries: KnowledgeEntry[] = branchRecords.flatMap((branch) => {
   return rows.filter((row): row is KnowledgeEntry => Boolean(row));
 });
 
-export const knowledgeEntries: KnowledgeEntry[] = branchEntries;
+export const knowledgeEntries: KnowledgeEntry[] = buildKnowledgeEntries(branchRecords);
+

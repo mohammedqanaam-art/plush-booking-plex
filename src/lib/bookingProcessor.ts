@@ -1,3 +1,4 @@
+import { classifyReservationStatus, deduplicateReservationRows, reservationStatusValue } from "./reservationMetrics";
 export type BookingRow = Record<string, string | number | undefined>
 
 export type AgentStats = {
@@ -46,35 +47,14 @@ function getAnyValue(record: BookingRow, keys: string[]): string {
   return ""
 }
 
-const CONFIRMED_STATUSES = new Set(["1", "3", "M", "O", "N", "I"])
-const CANCELLED_STATUSES = new Set(["C", "NS"])
-
-export function classifyBookingStatus(status: string): "confirmed" | "cancelled" | "ignored" {
-  const s = String(status || "").trim().toUpperCase()
-  if (CANCELLED_STATUSES.has(s)) return "cancelled"
-  if (CONFIRMED_STATUSES.has(s)) return "confirmed"
-  if (/^CONFIRMED?$/i.test(String(status || "").trim()) || /^(MODIFIED|MODIFY)$/i.test(String(status || "").trim()) || /^(مؤكد|معدل|معدّل)$/i.test(String(status || "").trim())) return "confirmed"
-  if (/CANCEL|NO[\s-]?SHOW|ملغي|ملغى|إلغاء|الغاء/i.test(String(status || ""))) return "cancelled"
-  return "ignored"
-}
+export const classifyBookingStatus = classifyReservationStatus;
 
 const isSystemAgent = (value: string) => {
   const normalized = value.toLocaleLowerCase("en").replace(/[\s_\-/]+/g, "")
   return normalized === "unovoice" || normalized === "systemuno"
 }
 
-const getBookingStatusValue = (row: BookingRow) =>
-  getAnyValue(row, [
-    "All stute",
-    "All Stute",
-    "all stute",
-    "Status",
-    "status",
-    "Booking Status",
-    "BookingStatus",
-    "حالة الحجز",
-    "الحالة",
-  ])
+const getBookingStatusValue = reservationStatusValue;
 
 export function processBookings(rows: BookingRow[], options?: ProcessBookingsOptions): AgentStats[] {
   const map = new Map<string, AgentStats>()
@@ -84,7 +64,7 @@ export function processBookings(rows: BookingRow[], options?: ProcessBookingsOpt
       .filter(Boolean),
   )
 
-  rows.forEach((row) => {
+  deduplicateReservationRows(rows).bookings.forEach((row) => {
     const agent = getAnyValue(row, [
       "Agent name",
       "Agent Name",
@@ -139,7 +119,7 @@ export function summarizeBookings(rows: BookingRow[]) {
   let confirmed = 0
   let cancelled = 0
 
-  rows.forEach((row) => {
+  deduplicateReservationRows(rows).bookings.forEach((row) => {
     const statusRaw = getBookingStatusValue(row)
 
     const status = classifyBookingStatus(statusRaw)
@@ -156,3 +136,4 @@ export function summarizeBookings(rows: BookingRow[]) {
     cancelRate: total ? Number(((cancelled / total) * 100).toFixed(1)) : 0,
   }
 }
+

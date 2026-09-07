@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { ExternalLink, MessageCircle, Send, ShieldCheck, Sparkles } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { useVisitorAssistant } from "@/hooks/useVisitorAssistant";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 const quickPrompts = [
   "هل يتوفر دخول مبكر في بريرا العليا اليوم؟",
@@ -34,6 +34,8 @@ const EmployeeAssistant = () => {
     endpoint: "/api/employee/agent",
     sessionPrefix: "employee",
   });
+  const [params] = useSearchParams();
+  useEffect(() => { const query = params.get("q"); if (query) setMessage(query.slice(0, 2400)); }, [params, setMessage]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,10 +56,10 @@ const EmployeeAssistant = () => {
             </div>
             <div>
               <strong className="block text-sm">إرشاد تشغيلي لموظفي الحجز</strong>
-              <span className="text-[11px] text-white/70">إجراء · صلاحية · تصعيد · صياغة للضيف</span>
+              <span className="text-xs text-white/70">إجراء · صلاحية · تصعيد · صياغة للضيف</span>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" aria-hidden="true" />
             {modelLabel}
           </span>
@@ -75,7 +77,7 @@ const EmployeeAssistant = () => {
                 type="button"
                 onClick={() => void send(prompt)}
                 disabled={loading}
-                className="rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground transition hover:bg-secondary disabled:opacity-50"
+                className="rounded-full border border-border bg-background px-3 py-2 text-sm text-foreground transition hover:bg-secondary disabled:opacity-50"
               >
                 {prompt}
               </button>
@@ -109,7 +111,7 @@ const EmployeeAssistant = () => {
                 )}
                 {item.role === "assistant" && item.sources?.length ? (
                   <div className="mt-3 space-y-1.5 border-t border-border/60 pt-2">
-                    <div className="text-[11px] font-semibold text-muted-foreground">المراجع المستخدمة</div>
+                    <div className="text-xs font-semibold text-muted-foreground">المراجع المستخدمة</div>
                     {item.sources.slice(0, 5).map((source) => (
                       <a
                         key={source.url}
@@ -160,7 +162,7 @@ const EmployeeAssistant = () => {
               <Send className="h-5 w-5" />
             </button>
           </form>
-          <p className="text-center text-[10px] text-muted-foreground">Enter للإرسال · Shift + Enter لسطر جديد</p>
+          <p className="text-center text-xs text-muted-foreground">Enter للإرسال · Shift + Enter لسطر جديد</p>
         </div>
       </section>
     </div>
@@ -168,3 +170,4 @@ const EmployeeAssistant = () => {
 };
 
 export default EmployeeAssistant;
+

@@ -46,5 +46,6 @@ export default function InternalKnowledgeBoundary({ children }: { children: Reac
   );
   if (!data) return <p className="p-8 text-center text-sm text-muted-foreground" role="status">جارٍ تحميل المعلومات المحمية…</p>;
   // Memory is scoped to this mounted page, never persisted in browser storage.
-  return <KnowledgeContext.Provider value={data}>{children}</KnowledgeContext.Provider>;
+  return <KnowledgeContext.Provider value={{ ...data, refresh: () => setAttempt((value) => value + 1) }}>{children}</KnowledgeContext.Provider>;
 }
+
