@@ -1,14 +1,21 @@
+import { branchRecords } from "../data/knowledge";
+import type { KnowledgeSyncStatus } from "../lib/knowledgeTypes";
 import { describe, expect, it } from "vitest";
-import { buildEmployeeKnowledge } from "../../netlify/functions/_shared/employeeKnowledge";
+import { buildEmployeeKnowledge, buildBranchKnowledge, branchForQuestion } from "../../netlify/functions/_shared/employeeKnowledge";
 
 describe("employee assistant knowledge", () => {
-  it("returns the branch wedding package without invoking a guessed general price", () => {
-    const result = buildEmployeeKnowledge("كم بكج العرسان في بريرا النخيل؟");
-    expect(result.fastReply).toContain("649 ريال");
-    expect(result.fastReply).toContain("1,149 ريال");
-    expect(result.fastReply).not.toContain("850 ريال");
-    expect(result.fastReply).toContain("تحقّق من الفرع");
-    expect(result.sources[0]?.title).toContain("معلومات الفنادق");
+  it("uses the branch sheet price and never substitutes a general brand package", () => {
+    const sync: KnowledgeSyncStatus = { state: "snapshot", checkedAt: "2026-09-07T12:00:00Z", snapshotDate: "2026-07-13", message: "نسخة محفوظة تحتاج التحقق", tabs: [] };
+    const result = buildBranchKnowledge("كم بكج العرسان في بريرا النخيل؟", branchRecords, sync);
+    expect(result.fastReply).toContain("850 ريال");
+    expect(result.fastReply).not.toContain("649 ريال");
+    expect(result.fastReply).toContain("تحتاج التحقق");
+    expect(result.sources[0]?.url).toContain("docs.google.com");
+  });
+  it("never picks the other brand at the same location", () => {
+    expect(branchForQuestion("بودل العليا", branchRecords)?.branch).toBe("بودل العليا");
+    expect(branchForQuestion("بريرا العليا", branchRecords)?.branch).toBe("بريرا العليا");
+    expect(branchForQuestion("العليا", branchRecords)).toBeNull();
   });
 
   it("asks for a branch when a wedding-package question is ambiguous", () => {
@@ -26,6 +33,7 @@ describe("employee assistant knowledge", () => {
   it("sends detailed complaint scenarios to the model with grounded evidence", () => {
     const result = buildEmployeeKnowledge("ضيف في الفرع لديه شكوى لأن حجزه المؤكد غير موجود في PMS ويطلب استردادًا فوريًا");
     expect(result.fastReply).toBeNull();
-    expect(result.evidence).toContain("اختلاف UNO/CRO مع PMS");
+    expect(result.evidence).toContain("اختلاف UNO أو CRO مع PMS");
   });
 });
+

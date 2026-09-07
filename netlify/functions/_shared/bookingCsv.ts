@@ -1,3 +1,4 @@
+import { classifyReservationStatus, deduplicateReservationRows, reservationStatusValue } from "../../../src/lib/reservationMetrics";
 import { updateBookingPhoneArchive, type PhoneArchiveStatus } from "./bookingPhoneArchive";
 import { getEnvironmentStore } from "./storage";
 
@@ -209,16 +210,7 @@ const getRecordValue = (record: BookingRecord, keys: string[]): string => {
   return "";
 };
 
-const bookingStatus = (record: BookingRecord) => getRecordValue(record, [
-  "St",
-  "All stute",
-  "All Stute",
-  "Status",
-  "Booking Status",
-  "BookingStatus",
-  "حالة الحجز",
-  "الحالة",
-]);
+const bookingStatus = reservationStatusValue;
 
 const bookingAgent = (record: BookingRecord) => getRecordValue(record, [
   "Agent name",
@@ -240,14 +232,7 @@ const reservationNumber = (record: BookingRecord) => getRecordValue(record, [
   "رقم الحجز",
 ]);
 
-export const classifyImportedBookingStatus = (status: string): "confirmed" | "cancelled" | "ignored" => {
-  const normalized = status.trim().toUpperCase();
-  if (["1", "3", "M", "O", "N", "I"].includes(normalized)) return "confirmed";
-  if (["C", "NS"].includes(normalized)) return "cancelled";
-  if (/^CONFIRMED?$/i.test(status.trim()) || /^(MODIFIED|MODIFY)$/i.test(status.trim()) || /^(مؤكد|معدل|معدّل)$/i.test(status.trim())) return "confirmed";
-  if (/CANCEL|NO[\s-]?SHOW|ملغي|ملغى|إلغاء|الغاء/i.test(status)) return "cancelled";
-  return "ignored";
-};
+export const classifyImportedBookingStatus = classifyReservationStatus;
 
 export const calculateBookingStats = (bookings: BookingRecord[]) => {
   let confirmed = 0;
@@ -284,21 +269,7 @@ const looksLikeUnoSpreadsheetXml = (text: string) => (
   && /urn:schemas-microsoft-com:office:spreadsheet/i.test(text)
 );
 
-const deduplicateUnoRecords = (bookings: BookingRecord[]) => {
-  const seen = new Set<string>();
-  const unique: BookingRecord[] = [];
-  let duplicates = 0;
-  for (const booking of bookings) {
-    const reservation = reservationNumber(booking).trim().toLocaleLowerCase("en");
-    if (reservation && seen.has(reservation)) {
-      duplicates += 1;
-      continue;
-    }
-    if (reservation) seen.add(reservation);
-    unique.push(booking);
-  }
-  return { bookings: unique, duplicates };
-};
+const deduplicateUnoRecords = deduplicateReservationRows;
 
 export const parseBookingReportText = (text: string, fileName = "report.csv"): ParsedBookingReport => {
   if (!text.trim()) throw new BookingCsvError("ملف الحجوزات فارغ.", 400);
@@ -493,3 +464,4 @@ export const saveBookingCsv = async (csvText: string, options: BookingSaveOption
     duplicateReservations: 0,
   }, options);
 };
+

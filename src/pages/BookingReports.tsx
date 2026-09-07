@@ -8,8 +8,8 @@ type ReportSection = "summary" | "employees";
 type SortKey = "confirmed" | "total" | "rate" | "name";
 
 const formatDate = (value: string | null) => {
-  if (!value) return "غير متاح";
-  return new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  if (!value || !Number.isFinite(Date.parse(value))) return "غير متاح";
+  return new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(value));
 };
 
 const BookingReports = () => {
@@ -87,7 +87,7 @@ const BookingReports = () => {
       <section className="page-surface flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" aria-label="تحديث تقرير الحجوزات">
         <div>
           <h2 className="section-title">أحدث تقرير UNO</h2>
-          <p className="mt-1 text-xs font-semibold text-emerald-700">المصدر الوحيد للأرقام: UNO Voice</p>
+          <p className="mt-1 text-sm font-semibold text-emerald-700">المصدر: تقرير UNO المحفوظ، مع أولوية حالة PMS عند إرفاق المطابقة</p>
         </div>
         <button
           type="button"
@@ -98,9 +98,12 @@ const BookingReports = () => {
           <RefreshCw className={`h-[18px] w-[18px] ${syncing ? "animate-spin" : ""}`} strokeWidth={1.9} />
           {syncing ? "جاري التحديث" : "تحديث العرض"}
         </button>
-        {syncMessage ? <p role="status" className={`text-xs font-semibold sm:order-3 sm:w-full ${syncError ? "text-destructive" : "text-primary"}`}>{syncMessage}</p> : null}
+        {syncMessage ? <p role="status" className={`text-sm font-semibold sm:order-3 sm:w-full ${syncError ? "text-destructive" : "text-primary"}`}>{syncMessage}</p> : null}
       </section>
 
+      <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-950">المؤكدة تشمل M وO وN وI وConfirmed وModified. الملغاة تشمل C وNS وCancelled. التكرار يُستبعد، والتعارض يحتاج مراجعة. كل رقم PMS مستقل يبقى سجلًا منفصلًا.</p>
+      {report && !report.summary.uploadedRecords ? <div className="page-surface text-sm" role="status">لم يتوفر تقرير محفوظ بعد. اطلب من المشرف استيراد التقرير أو التحقق من المزامنة.</div> : null}
+      {report && ((report.summary.duplicateRecords || 0) > 0 || (report.summary.conflictingRecords || 0) > 0) ? <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" role="status">تكرار مستبعد: {report.summary.duplicateRecords || 0} · سجلات متعارضة لم تدخل الإجماليات: {report.summary.conflictingRecords || 0}</p> : null}
       {loading ? <div className="page-surface text-sm text-muted-foreground">جاري تحميل التقرير…</div> : null}
       {error ? <div className="rounded-2xl border border-destructive/25 bg-destructive/5 p-4 text-sm text-destructive">{error}</div> : null}
 
@@ -181,8 +184,9 @@ const BookingReports = () => {
               <article key={employee.id} className="employee-report-row">
                 <span className="employee-rank">{index + 1}</span>
                 <div className="min-w-0 flex-1">
-                  <h3 className="truncate">{employee.name}</h3>
+                  <h3 className="break-words">{employee.name}</h3>
                   <p>{employee.total.toLocaleString("ar-SA")} إجمالي · {employee.cancelled.toLocaleString("ar-SA")} ملغي</p>
+                  {(employee.confirmedAdjustment || employee.cancelledAdjustment) ? <p className="mt-1 text-sm text-amber-800">قبل التسوية: {employee.sourceConfirmed} مؤكد، {employee.sourceCancelled} ملغي · تسوية المؤكد {employee.confirmedAdjustment! >= 0 ? "+" : ""}{employee.confirmedAdjustment} · تسوية الملغي {employee.cancelledAdjustment! >= 0 ? "+" : ""}{employee.cancelledAdjustment}</p> : null}
                 </div>
                 <div className="employee-primary-stat">
                   <strong>{employee.confirmed.toLocaleString("ar-SA")}</strong>
@@ -195,6 +199,8 @@ const BookingReports = () => {
               </article>
             ))}
           </div>
+          {employees.length ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-950"><strong>إجمالي الموظفين المعروضين ({employees.length})</strong><span>{employees.reduce((sum, row) => sum + row.confirmed, 0).toLocaleString("ar-SA")} حجز مؤكد</span><span>{employees.reduce((sum, row) => sum + row.cancelled, 0).toLocaleString("ar-SA")} ملغي</span></div> : null}
+          <p className="text-sm leading-7 text-muted-foreground">يتأثر هذا الإجمالي بالبحث والموظفين المخفيين والتسويات المعروضة؛ ملخص المصدر أعلاه يشمل جميع السجلات المصنفة.</p>
           {!employees.length ? <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">لا توجد نتائج مطابقة.</div> : null}
         </section>
       ) : null}
@@ -203,3 +209,4 @@ const BookingReports = () => {
 };
 
 export default BookingReports;
+

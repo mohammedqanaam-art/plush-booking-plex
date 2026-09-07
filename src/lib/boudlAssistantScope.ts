@@ -13,7 +13,7 @@ const normalize = (value: unknown) => String(value || "")
 
 const greetingPattern = /^(?:اهلا|اهلين|مرحبا|السلام عليكم|سلام|هلا|صباح الخير|مساء الخير|شكرا|شكرًا|thanks?|hello|hi|hey)[\s!.؟?]*$/i;
 const brandPattern = /(?:^|\s)(?:bhg|boudl|braira|aber|narcissus|zamn|zaman|بودل|بريرا|برايرا|عابر|نارسيس|نارسس|زمن)(?=\s|$)/i;
-const hospitalityPattern = /(?:^|\s)(?:احجز|الحجز|الحجوزات|الفندق|الفنادق|الفروع|الغرف|الاجنحه|الخدمات|المرافق|الموقع|فندق|فندقا|فنادق|فرع|فروع|حجز|حجوزات|غرف|غرفه|اجنحه|جناح|اقامه|ضيف|نزيل|وصول|مغادره|الغاء|الغاء الحجز|سياسه|خدمات|مرافق|مسبح|مطعم|افطار|سبا|نادي|مواقف|موقع|عنوان|رقم التواصل|رقم الفندق|سعر الغرفه|توفر الغرف|hotel|hotels|branch|branches|book|booking|reservation|room|suite|stay|guest|check in|check out|cancellation|facility|facilities|pool|restaurant|breakfast|spa|parking)(?=\s|$)/i;
+const hospitalityPattern = /(?:^|\s)(?:شكوي|شكوى|تصعيد|بروتوكول|استرداد|سداد|استقبال|انتظار|تحويل|دفع|شكوى|عرسان|زفاف|احجز|الحجز|الحجوزات|الفندق|الفنادق|الفروع|الغرف|الاجنحه|الخدمات|المرافق|الموقع|فندق|فندقا|فنادق|فرع|فروع|حجز|حجوزات|غرف|غرفه|اجنحه|جناح|اقامه|ضيف|نزيل|وصول|مغادره|الغاء|الغاء الحجز|سياسه|خدمات|مرافق|مسبح|مطعم|افطار|سبا|نادي|مواقف|موقع|عنوان|رقم التواصل|رقم الفندق|سعر الغرفه|توفر الغرف|hotel|hotels|branch|branches|book|booking|reservation|room|suite|stay|guest|check in|check out|cancellation|facility|facilities|pool|restaurant|breakfast|spa|parking)(?=\s|$)/i;
 const clearOutsidePattern = /(?:^|\s)(?:برمجه|كود|شفرة|جافاسكربت|بايثون|سياسه دوليه|رئيس|وزير|انتخابات|كره القدم|مباراه|دوري|اسهم|بورصه|ذهب|عملات|طب|دواء|تشخيص|مستشفي|طقس|اخبار|وصفه طبخ|قصيده|اغنيه|programming|javascript|python|politics|president|election|football|stocks?|crypto|medical|diagnosis|weather|news|recipe|poem|song)(?=\s|$)/i;
 const followUpPattern = /^(?:هل|طيب|تمام|وماذا|ماذا عن|ايضا|كمان|وكم|وين|متي|كيف|ليش|نعم|لا|هذا|هذه|هناك)(?:\s|$)/i;
 
@@ -43,3 +43,4 @@ export const BHG_ASSISTANT_SCOPE = "bhg-hotels" as const;
 export const boudlScopeReply = (scope: BoudlAssistantScope) => scope === "greeting"
   ? "أهلًا بك في مجموعة بودل للضيافة. أساعدك في كتابة الأسماء بالإنجليزية وحساب المبالغ والخصومات، وفنادق بودل وبريرا وعابر ونارسيس وزمن. اكتب اسمًا أو جرّب: 2000 خصم 20."
   : "أساعدك في فنادق مجموعة بودل للضيافة، وكتابة الأسماء بالإنجليزية وحساب المبالغ والخصومات. اكتب الاسم فقط، أو مثلًا: 2000 خصم 20. وللسؤال الفندقي اذكر الفرع أو الخدمة.";
+
