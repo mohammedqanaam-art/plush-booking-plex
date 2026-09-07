@@ -11,6 +11,9 @@ describe("employee assistant knowledge", () => {
     expect(result.fastReply).not.toContain("649 ريال");
     expect(result.fastReply).toContain("تحتاج التحقق");
     expect(result.sources[0]?.url).toContain("docs.google.com");
+    expect(result.sources[0]?.url).toContain("gid=966794486");
+    const rooms = buildBranchKnowledge("مساحة غرف بريرا النخيل", branchRecords, sync);
+    expect(rooms.sources[0]?.url).toBe("/knowledge-bank");
   });
   it("never picks the other brand at the same location", () => {
     expect(branchForQuestion("بودل العليا", branchRecords)?.branch).toBe("بودل العليا");
@@ -23,7 +26,7 @@ describe("employee assistant knowledge", () => {
     expect(result.fastReply).toContain("حدد اسم الفندق أو الفرع");
   });
 
-  it("returns the approved complaint escalation checklist for a generic question", () => {
+  it("returns the draft complaint escalation checklist for a generic question", () => {
     const result = buildEmployeeKnowledge("كيف أتعامل مع شكوى الضيف؟");
     expect(result.fastReply).toContain("تصعيد");
     expect(result.fastReply).toContain("تبقى مالك الحالة");
@@ -36,4 +39,3 @@ describe("employee assistant knowledge", () => {
     expect(result.evidence).toContain("اختلاف UNO أو CRO مع PMS");
   });
 });
-

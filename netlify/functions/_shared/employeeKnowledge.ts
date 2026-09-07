@@ -49,12 +49,25 @@ export function buildBranchKnowledge(message: string, records: BranchRecord[], s
   ];
   const matches = fields.filter(([pattern]) => pattern.test(message));
   const info = (matches.length ? matches : fields).map(([, label, value]) => `${label}: ${value}`).join("\n\n");
-  const sourceUrl = row.sourceFiles.find((value) => value.startsWith("https://")) || HOTEL_INFORMATION_SHEET_URL;
-  const sources: EmployeeKnowledgeSource[] = [{ title: `شيت معلومات الفنادق — ${row.branch}`, url: sourceUrl, snippet: sync.message }];
+  const labels = (matches.length ? matches : fields).map(([, label]) => label);
+  const sourceTabs = new Set<string>();
+  for (const label of labels) {
+    if (label === "تواصل الفرع") sourceTabs.add("أرقام الفنادق");
+    else if (label !== "الغرف") sourceTabs.add("hotels data");
+    if (["الإفطار", "الغداء", "العشاء"].includes(label)) sourceTabs.add("معلومات الوجبات بريرا");
+    if (label === "القاعات") sourceTabs.add("ارقام القاعات");
+  }
+  const gids: Record<string, number> = { "hotels data": 966794486, "معلومات الوجبات بريرا": 1886079416, "ارقام القاعات": 272896145, "أرقام الفنادق": 2119886361 };
+  const sources: EmployeeKnowledgeSource[] = [...sourceTabs].map((title) => ({
+    title: `${title === "hotels data" ? "معلومات مرافق الفنادق" : title} — ${row.branch}`,
+    url: sync.tabs.find((tab) => tab.title === title)?.url || `${HOTEL_INFORMATION_SHEET_URL}#gid=${gids[title]}`,
+    snippet: sync.message,
+  }));
+  if (labels.includes("الغرف")) sources.push({ title: `دليل الغرف المرفق — ${row.branch}`, url: "/knowledge-bank", snippet: "أنواع الغرف ومساحاتها من المرفقات المحفوظة؛ لا تمثل إتاحة حية." });
   const freshness = `${sync.message}\nتاريخ النسخة المحفوظة: ${sync.snapshotDate}.`;
   const evidence = `الفرع: ${row.branch}\n${info}\n${freshness}\nمصادر الفرع: ${row.sourceFiles.filter((url) => url.startsWith("https://")).join(" ")}`;
   // A direct factual answer is useful without model credentials. Complex decisions stay with the model.
-  const complex = /شكوى|شكوي|تصعيد|يرفض|مشكلة|مشكله|مقارنة|قارن|تعويض|إلغاء|الغاء|complaint|compare/i.test(message);
+  const complex = /شكوى|شكوي|غاضب|تصعيد|يرفض|مشكلة|مشكله|مقارنة|قارن|تعويض|إلغاء|الغاء|complaint|compare/i.test(message);
   const fastReply = matches.length && !complex ? `${row.branch}\n\n${info}\n\n${freshness}\nالرد المقترح: «سأتحقق من تفاصيل الخدمة وسريان السعر لدى الفرع قبل تأكيدها لكم.»\nعند تعارض الشيت مع تعميم أحدث يُرجع للمشرف؛ هذه المعلومات لا تضمن الإتاحة أو السعر.` : null;
   return { fastReply, evidence, sources };
 }
