@@ -27,9 +27,12 @@ describe("BHG hotel assistant scope", () => {
     expect(classifyBoudlAssistantScope("من فاز في المباراة؟")).toBe("out_of_scope");
   });
 
-  it("allows a short follow-up only after an in-scope user question", () => {
+  it("sends natural and ambiguous hotel requests to the grounded model", () => {
     expect(classifyBoudlAssistantScope("وكم السعر؟", ["ما خدمات بودل العليا؟"])).toBe("in_scope");
-    expect(classifyBoudlAssistantScope("وكم السعر؟", ["مرحبًا"])).toBe("out_of_scope");
+    expect(classifyBoudlAssistantScope("وكم السعر؟", ["مرحبًا"])).toBe("in_scope");
+    expect(classifyBoudlAssistantScope("اذكر أرقام التواصل الرسمية للحجز فقط")).toBe("in_scope");
+    expect(classifyBoudlAssistantScope("احسب 2000 بعد خصم 20%")).toBe("in_scope");
+    expect(classifyBoudlAssistantScope("ماهي الطلبات المتاحة للضيف")).toBe("in_scope");
   });
 
   it("caches only standalone questions with stable hotel facts", () => {
