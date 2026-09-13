@@ -82,6 +82,7 @@ const nonNameWords = /(?:^|\s)(?:كيف|كم|هل|متى|وين|ماذا|ما|ل
 export const formatNameSpelling = (spelling: string) => `${spelling}\nكتابة مقترحة للاسم بالإنجليزية؛ للحجز طابقها مع الهوية أو الجواز.`;
 
 export function assistantUtility(message: string, previousUserMessages: string[] = []): AssistantUtility | null {
+  void previousUserMessages;
   if (message.length > 300) return null;
   const text = normalize(message);
   const amount = calculateAssistantAmount(text);
