@@ -1,5 +1,3 @@
-import { classifyBoudlAssistantScope } from "./boudlAssistantScope";
-
 export type AssistantUtility =
   | { kind: "reply"; reply: string; provider: "calculator" | "name-spelling" }
   | { kind: "name"; name: string };
@@ -22,9 +20,15 @@ const money = (value: bigint) => `${value / 100n}.${String(value % 100n).padStar
 const calculation = (reply: string): AssistantUtility => ({ kind: "reply", reply, provider: "calculator" });
 
 export function calculateAssistantAmount(message: string): AssistantUtility | null {
-  const text = normalize(message).replace(/^احسب(?: لي)?\s+/u, "");
+  const text = normalize(message)
+    .replace(/[أإآ]/g, "ا")
+    .replace(/^(?:احسب(?:\s+لي)?|كم\s+(?:يصبح|يصير)|ما\s+(?:هو|هي)\s+(?:الناتج|السعر النهائي|المبلغ النهائي))\s+/u, "")
+    .replace(/\s+(?:بعد\s+(?:تطبيق\s+)?)خصم/u, " خصم")
+    .replace(/\s*[،,]?\s*(?:و?اعطني|و?اكتب|و?اذكر)\s+(?:لي\s+)?(?:السعر|المبلغ|الرقم|الناتج).*$/u, "")
+    .replace(/[.!؟?]+$/g, "")
+    .trim();
   if (text.length > 160 || !/\d/.test(text)) return null;
-  const match = text.match(/^([\d.,]+)\s*(?:ريال|ر\.س|SAR)?\s*(خصم(?:\s+(?:بنسبة|نسبة|قيمة))?|ناقص|[-+×*÷/])\s*([\d.,]+)\s*(%|بالمئة|بالمائة|ريال|ر\.س|SAR)?$/i);
+  const match = text.match(/^([\d.,]+)\s*(?:ريال|ر\.س|SAR)?\s*(خصم(?:\s+(?:بنسبة|نسبة|قيمة|قدره))?|ناقص|[-+×*÷/])\s*([\d.,]+)\s*(%|بالمئة|بالمائة|ريال|ر\.س|SAR)?$/i);
   if (!match) {
     if (/^-?[\d.,]+\s*(?:ريال\s*)?(?:خصم|[-+×*÷/])/.test(text)) {
       return calculation("اكتب العملية بوضوح، مثل: 2000 خصم 20%، أو 2000 خصم 20 ريال. استخدم رقمين فقط ومنزلتين عشريتين كحد أقصى.");
@@ -88,9 +92,11 @@ export function assistantUtility(message: string, previousUserMessages: string[]
   const candidate = (explicit?.[1] || instruction?.[1] || text).replace(/^اسم\s+/, "").trim();
   if (!/^[\u0621-\u063a\u0641-\u064a]+(?:\s+[\u0621-\u063a\u0641-\u064a]+){0,5}$/.test(candidate) || candidate.length > 100) return null;
   if (nonNameWords.test(nameKey(candidate))) return null;
-  if (!explicit && !instruction && classifyBoudlAssistantScope(candidate, previousUserMessages) !== "out_of_scope") return null;
   const words = nameKey(candidate).replace(/عبد\s+(الله|الرحمن|العزيز|الاله|المجيد|الكريم|الرزاق)/g, "عبد$1").split(" ");
   const local = words.map((word) => spellings[word]);
+  // Bare text is treated as a name only when every word is in the local dictionary.
+  // Explicit name requests may still use the protected spelling endpoint.
+  if (!explicit && !instruction && !local.every(Boolean)) return null;
   return local.every(Boolean)
     ? { kind: "reply", reply: formatNameSpelling(local.join(" ")), provider: "name-spelling" }
     : { kind: "name", name: candidate };
