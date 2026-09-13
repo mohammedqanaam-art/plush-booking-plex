@@ -1,4 +1,5 @@
 import { redactSensitiveMessage } from "../../src/lib/redactSensitiveMessage";
+import { calculateAssistantAmount } from "../../src/lib/assistantUtilities";
 import type { Config, Context } from "@netlify/functions";
 import {
   BHG_ASSISTANT_SCOPE,
@@ -408,6 +409,25 @@ export default async (req: Request, context?: Context) => {
   const history = historyFromBody(body.history);
   const requestId = crypto.randomUUID();
   const wantsStream = req.headers.get("accept")?.includes("text/event-stream") || false;
+
+  const localCalculation = calculateAssistantAmount(message);
+  if (localCalculation?.kind === "reply") {
+    const payload: AssistantPayload = {
+      reply: localCalculation.reply,
+      sessionId,
+      requestId,
+      provider: localCalculation.provider,
+      model: null,
+      sources: [],
+      scope: BHG_ASSISTANT_SCOPE,
+    };
+    if (!wantsStream) return json(payload);
+    return eventStream((send) => {
+      send("meta", { sessionId, requestId, scope: BHG_ASSISTANT_SCOPE });
+      send("delta", { delta: payload.reply });
+      send("done", payload);
+    });
+  }
 
   const scope = classifyBoudlAssistantScope(
     message,
