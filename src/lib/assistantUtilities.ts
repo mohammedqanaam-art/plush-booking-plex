@@ -77,7 +77,7 @@ const spellings: Record<string, string> = {
   بن: "bin", بنت: "bint", ابو: "Abu", ال: "Al",
 };
 const nameKey = (name: string) => name.replace(/[أإآ]/g, "ا");
-const nonNameWords = /(?:^|\s)(?:كيف|كم|هل|متى|وين|ماذا|ما|لماذا|ليش|لا|نعم|طيب|تمام|هذا|هذه|عن|عندي|احتاج|اريد|ابي|ابغى|اكتب|ترجم|اسم|بالانجليزي|برمجة|برمجه|كود|شفرة|شفره|سكريبت|جافاسكربت|بايثون|عدل|غير|تجاهل|تعليمات|التعليمات|الموقع|موقع|الاعدادات|اعدادات|كلمة|المرور|رمز|مفتاح|اسهم|بورصة|طقس|اخبار|سياسة|سياسه|دواء|طب|قصيدة|قصيده|اغنية|اغنيه|القدم|مباراة|مباراه|فروع|فنادق|تواصل|رقم|شكرا|اهلا|هلا|مرحبا)(?=\s|$)/;
+const nonNameWords = /(?:^|\s)(?:كيف|كم|هل|متى|وين|ماذا|ما|لماذا|ليش|لا|نعم|طيب|تمام|هذا|هذه|عن|عندي|احتاج|اريد|ابي|ابغى|اكتب|ترجم|اسم|بالانجليزي|برمجة|برمجه|كود|شفرة|شفره|سكريبت|جافاسكربت|بايثون|عدل|غير|تجاهل|تعليمات|التعليمات|الموقع|موقع|الاعدادات|اعدادات|كلمة|المرور|رمز|مفتاح|اسهم|بورصة|طقس|اخبار|سياسة|سياسه|دواء|طب|قصيدة|قصيده|اغنية|اغنيه|القدم|مباراة|مباراه|فروع|فنادق|فندق|فرع|حجز|حجوزات|غرف|غرفه|اجنحه|جناح|اسعار|سعر|خدمات|خدمه|مرافق|مطعم|افطار|الافطار|مسبح|سبا|مواقف|موقع|عنوان|شكوي|تصعيد|تواصل|اتصال|واتساب|هاتف|رقم|ارقام|شكرا|اهلا|هلا|مرحبا)(?=\s|$)/;
 
 export const formatNameSpelling = (spelling: string) => `${spelling}\nكتابة مقترحة للاسم بالإنجليزية؛ للحجز طابقها مع الهوية أو الجواز.`;
 
@@ -94,9 +94,6 @@ export function assistantUtility(message: string, previousUserMessages: string[]
   if (nonNameWords.test(nameKey(candidate))) return null;
   const words = nameKey(candidate).replace(/عبد\s+(الله|الرحمن|العزيز|الاله|المجيد|الكريم|الرزاق)/g, "عبد$1").split(" ");
   const local = words.map((word) => spellings[word]);
-  // Bare text is treated as a name only when every word is in the local dictionary.
-  // Explicit name requests may still use the protected spelling endpoint.
-  if (!explicit && !instruction && !local.every(Boolean)) return null;
   return local.every(Boolean)
     ? { kind: "reply", reply: formatNameSpelling(local.join(" ")), provider: "name-spelling" }
     : { kind: "name", name: candidate };
