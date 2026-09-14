@@ -12,7 +12,7 @@ export const employeeGuideForModel = [operationsGuide.governance,
 export const normalizeEmployeeIntent = (value: string) => normalizeKnowledgeText(value)
   .replace(/برير[اه]|براير[اه]/g, "بريرا")
   .replace(/نارسس|نارسيز/g, "نارسيس")
-  .replace(/شكو(?:ه|ا|اء)/g, "شكوي")
+  .replace(/شكو(?:اء|ه|ا)/g, "شكوي")
   .replace(/بكج/g, "باقه");
 
 const withinOneEdit = (left: string, right: string) => {
