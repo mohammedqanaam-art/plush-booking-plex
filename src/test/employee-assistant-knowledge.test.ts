@@ -1,7 +1,8 @@
+import { readFileSync } from "node:fs";
 import { branchRecords } from "../data/knowledge";
 import type { KnowledgeSyncStatus } from "../lib/knowledgeTypes";
 import { describe, expect, it } from "vitest";
-import { buildEmployeeKnowledge, buildBranchKnowledge, branchForQuestion } from "../../netlify/functions/_shared/employeeKnowledge";
+import { buildEmployeeKnowledge, buildBranchKnowledge, branchForQuestion, normalizeEmployeeIntent } from "../../netlify/functions/_shared/employeeKnowledge";
 
 describe("employee assistant knowledge", () => {
   it("uses the branch sheet price and never substitutes a general brand package", () => {
@@ -15,15 +16,26 @@ describe("employee assistant knowledge", () => {
     const rooms = buildBranchKnowledge("مساحة غرف بريرا النخيل", branchRecords, sync);
     expect(rooms.sources[0]?.url).toBe("/knowledge-bank");
   });
-  it("never picks the other brand at the same location", () => {
+  it("never picks the other brand and tolerates one-letter branch typos", () => {
     expect(branchForQuestion("بودل العليا", branchRecords)?.branch).toBe("بودل العليا");
     expect(branchForQuestion("بريرا العليا", branchRecords)?.branch).toBe("بريرا العليا");
+    expect(branchForQuestion("بريره النخيلل", branchRecords)?.branch).toBe("بريرا النخيل");
     expect(branchForQuestion("العليا", branchRecords)).toBeNull();
+    expect(normalizeEmployeeIntent("عندي شكواء في بريره")).toContain("شكوي في بريرا");
   });
 
-  it("asks for a branch when a wedding-package question is ambiguous", () => {
+  it("acknowledges the wedding-package intent before requesting the one blocking detail", () => {
     const result = buildEmployeeKnowledge("كم سعر بكج العرسان؟");
-    expect(result.fastReply).toContain("حدد اسم الفندق أو الفرع");
+    expect(result.fastReply).toContain("فهمت أنك تريد سعر باقة العرسان");
+    expect(result.fastReply).toContain("اكتب اسم الفرع فقط");
+    expect(result.fastReply).not.toContain("؟");
+  });
+
+  it("instructs the model to correct spelling silently and avoid question lists", () => {
+    const employeeAgent = readFileSync("netlify/functions/employee-agent.ts", "utf8");
+    expect(employeeAgent).toContain("صحح الأخطاء الإملائية واللهجية داخليًا");
+    expect(employeeAgent).toContain("لا تبدأ الرد بسؤال");
+    expect(employeeAgent).toContain("معلومة واحدة محددة فقط");
   });
 
   it("returns the draft complaint escalation checklist for a generic question", () => {
