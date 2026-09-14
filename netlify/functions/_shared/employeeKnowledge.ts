@@ -9,25 +9,51 @@ const guideSource: EmployeeKnowledgeSource = { title: "الدليل التشغي
 export const employeeGuideForModel = [operationsGuide.governance,
   ...protocolEntries.map((entry) => `${entry.title}\nالإجراء: ${entry.steps.join(" ")}\nالصياغة الإرشادية: ${entry.response}\nحدود الصلاحية: ${entry.caution}`)].join("\n\n");
 
+export const normalizeEmployeeIntent = (value: string) => normalizeKnowledgeText(value)
+  .replace(/برير[اه]|براير[اه]/g, "بريرا")
+  .replace(/نارسس|نارسيز/g, "نارسيس")
+  .replace(/شكو(?:ه|ا|اء)/g, "شكوي")
+  .replace(/بكج/g, "باقه");
+
+const withinOneEdit = (left: string, right: string) => {
+  if (left === right) return true;
+  if (left.length < 4 || right.length < 4 || Math.abs(left.length - right.length) > 1) return false;
+  let i = 0; let j = 0; let edits = 0;
+  while (i < left.length && j < right.length) {
+    if (left[i] === right[j]) { i += 1; j += 1; continue; }
+    edits += 1;
+    if (edits > 1) return false;
+    if (left.length > right.length) i += 1;
+    else if (right.length > left.length) j += 1;
+    else { i += 1; j += 1; }
+  }
+  return edits + (i < left.length || j < right.length ? 1 : 0) <= 1;
+};
+
 export const branchForQuestion = (message: string, records: BranchRecord[]) => {
-  const query = normalizeKnowledgeText(message).replace(/برايرا/g, "بريرا");
-  const brand = /(?:^|\s)(بودل|بريرا|عابر|نارسيس|نارسس)(?:\s|$)/.exec(query)?.[1]?.replace("نارسس", "نارسيس");
+  const query = normalizeEmployeeIntent(message);
+  const queryTokens = query.split(" ").filter(Boolean);
+  const brand = /(?:^|\s)(بودل|بريرا|عابر|نارسيس)(?:\s|$)/.exec(query)?.[1];
   const candidates = records.filter((row) => {
-    const name = normalizeKnowledgeText(row.branch).replace("نارسس", "نارسيس");
+    const name = normalizeEmployeeIntent(row.branch);
     if (brand && !name.startsWith(`${brand} `)) return false;
-    const location = name.split(" ").slice(1).join(" ");
-    return query.includes(name) || (location.length >= 3 && query.includes(location));
+    const locationTokens = name.split(" ").slice(1);
+    const location = locationTokens.join(" ");
+    const typoMatch = locationTokens.length > 0
+      && locationTokens.every((token) => queryTokens.some((queryToken) => withinOneEdit(queryToken, token)));
+    return query.includes(name) || (location.length >= 3 && query.includes(location)) || typoMatch;
   });
   return candidates.length === 1 ? candidates[0] : null;
 };
 
 export function buildEmployeeKnowledge(message: string) {
-  const complaint = /شكوى|شكوي|ضيف غاضب|تصعيد|complaint|escalat/i.test(message);
-  const wedding = /عرسان|زفاف|honeymoon|wedding/i.test(message);
+  const intent = normalizeEmployeeIntent(message);
+  const complaint = /شكوي|ضيف غاضب|تصعيد|complaint|escalat/i.test(intent);
+  const wedding = /عرسان|عروسان|زفاف|باقه.*عرس|honeymoon|wedding/i.test(intent);
   const protocol = protocolEntries.find((entry) => entry.id === "complaint")!;
   let fastReply: string | null = null;
   if (wedding && !/(بودل|بريرا|عابر|نارسيس|نارسس)\s+\S+/.test(message)) {
-    fastReply = "حدد اسم الفندق أو الفرع أولًا؛ تختلف باقات العرسان حسب الفرع، وسأراجع المعلومة في الشيت قبل إعطائك سعرًا.";
+    fastReply = "فهمت أنك تريد سعر باقة العرسان. السعر يختلف حسب الفندق ولا يصح اعتماد سعر عام للعلامة؛ اكتب اسم الفرع فقط لأعرض السعر المسجل ومصدره.";
   } else if (complaint && normalizeKnowledgeText(message).split(" ").length <= 9) {
     fastReply = [`${protocol.title} — إرشاد من مسودة 3.0، والتنفيذ حسب آخر تعميم معتمد.`, ...protocol.steps.map((step, index) => `${index + 1}. ${step}`), `صياغة للضيف: «${protocol.response}»`, protocol.caution].join("\n\n");
   }
@@ -35,7 +61,8 @@ export function buildEmployeeKnowledge(message: string) {
 }
 
 export function buildBranchKnowledge(message: string, records: BranchRecord[], sync: KnowledgeSyncStatus) {
-  const row = branchForQuestion(message, records);
+  const intent = normalizeEmployeeIntent(message);
+  const row = branchForQuestion(intent, records);
   if (!row) return { evidence: "", sources: [] as EmployeeKnowledgeSource[], fastReply: /عرسان|زفاف|honeymoon|wedding/i.test(message)
     ? "حدد اسم الفندق أو الفرع كاملًا للتحقق من باقات العرسان؛ لن أعتمد سعرًا عامًا للعلامة." : null };
   const fields: Array<[RegExp, string, string]> = [
@@ -47,7 +74,7 @@ export function buildBranchKnowledge(message: string, records: BranchRecord[], s
     [/قاعة|قاعات|hall/i, "القاعات", `${row.hallPackages[0] || "غير محدد"}\nتواصل القاعات: ${row.hallPhone}`],
     [/رقم|هاتف|اتصال|phone/i, "تواصل الفرع", row.receptionPhone],
   ];
-  const matches = fields.filter(([pattern]) => pattern.test(message));
+  const matches = fields.filter(([pattern]) => pattern.test(intent));
   const info = (matches.length ? matches : fields).map(([, label, value]) => `${label}: ${value}`).join("\n\n");
   const labels = (matches.length ? matches : fields).map(([, label]) => label);
   const sourceTabs = new Set<string>();
@@ -67,7 +94,7 @@ export function buildBranchKnowledge(message: string, records: BranchRecord[], s
   const freshness = `${sync.message}\nتاريخ النسخة المحفوظة: ${sync.snapshotDate}.`;
   const evidence = `الفرع: ${row.branch}\n${info}\n${freshness}\nمصادر الفرع: ${row.sourceFiles.filter((url) => url.startsWith("https://")).join(" ")}`;
   // A direct factual answer is useful without model credentials. Complex decisions stay with the model.
-  const complex = /شكوى|شكوي|غاضب|تصعيد|يرفض|مشكلة|مشكله|مقارنة|قارن|تعويض|إلغاء|الغاء|complaint|compare/i.test(message);
+  const complex = /شكوي|غاضب|تصعيد|يرفض|مشكلة|مشكله|مقارنة|قارن|تعويض|إلغاء|الغاء|complaint|compare/i.test(intent);
   const fastReply = matches.length && !complex ? `${row.branch}\n\n${info}\n\n${freshness}\nالرد المقترح: «سأتحقق من تفاصيل الخدمة وسريان السعر لدى الفرع قبل تأكيدها لكم.»\nعند تعارض الشيت مع تعميم أحدث يُرجع للمشرف؛ هذه المعلومات لا تضمن الإتاحة أو السعر.` : null;
   return { fastReply, evidence, sources };
 }
