@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  BarChart3,
   Building2,
   Headphones,
   LockKeyhole,
@@ -22,6 +23,7 @@ type PublicEntry = {
 };
 
 const publicEntries: PublicEntry[] = [
+  { to: "/booking-reports?section=employees", label: "تقارير الموظفين من UNO", description: "الحجوزات المؤكدة والملغاة لكل موظف وآخر تحديث للتقرير. يتطلب تسجيل الدخول.", icon: BarChart3, tone: "green" },
   {
     to: "/branches",
     label: "دليل الفروع",

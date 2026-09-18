@@ -618,6 +618,7 @@ const AdminUno = () => {
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h2 className="section-title">تصدير ومزامنة UNO</h2>
+              <Link to="/booking-reports?section=employees" className="text-sm text-primary underline">عرض تقرير الموظفين من UNO</Link>
             </div>
             <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${syncHealthy ? "bg-emerald-500/10 text-emerald-700" : syncState === "running" ? "bg-sky-500/10 text-sky-700" : "bg-amber-500/10 text-amber-800"}`}>
               {syncLabel}

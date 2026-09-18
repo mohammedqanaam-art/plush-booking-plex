@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BarChart3, CalendarDays, RefreshCw, Search } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { getAdminSession } from "@/lib/adminAuth";
 import PageHeader from "@/components/PageHeader";
 import { api, type PublicBookingReport } from "@/lib/api";
 
@@ -22,27 +23,49 @@ const BookingReports = () => {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState(false);
+  const [liveSyncing, setLiveSyncing] = useState(false);
+  const requestId = useRef(0);
+  const canSync = ["superadmin", "admin"].includes(getAdminSession()?.role || "");
 
   const section: ReportSection = searchParams.get("section") === "employees" ? "employees" : "summary";
 
   const loadReport = useCallback(async (silent = false, fresh = false) => {
+    const currentRequest = ++requestId.current;
     if (!silent) setLoading(true);
     try {
       const data = await api.getPublicBookingReport({ fresh });
+      if (currentRequest !== requestId.current) return false;
       setReport(data);
       setError("");
       return true;
     } catch {
-      setError("تعذر تحميل التقرير حاليًا.");
+      if (currentRequest === requestId.current) setError("تعذر تحميل التقرير حاليًا؛ الأرقام الظاهرة، إن وجدت، تخص آخر تحميل ناجح.");
       return false;
     } finally {
-      if (!silent) setLoading(false);
+      if (currentRequest === requestId.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadReport();
+    void loadReport(false, true);
+    return () => { requestId.current += 1; };
   }, [loadReport]);
+
+  const syncFromUno = async () => {
+    setLiveSyncing(true);
+    setSyncError(false);
+    setSyncMessage("جارٍ جلب حجوزات الشهر الحالي من UNO وتحديث نتائج الموظفين…");
+    try {
+      // The server selects the canonical month-to-date Booking Date range, all properties/statuses.
+      const result = await api.exportUnoReport();
+      if (!result.canonicalUpdated || !result.productivityReady) throw new Error(result.reportError || "لم يُحدَّث تقرير الموظفين؛ تم الاحتفاظ بالتقرير السابق.");
+      if (!await loadReport(true, true)) throw new Error("نجح حفظ تقرير UNO، لكن تعذر إعادة عرضه؛ اضغط تحديث العرض.");
+      setSyncMessage(`تم تحديث تقرير الموظفين من UNO بنجاح: ${result.productivityRecords ?? result.total} سجل، ${result.productivityEmployees ?? 0} موظف.`);
+    } catch (cause) {
+      setSyncError(true);
+      setSyncMessage(cause instanceof Error ? cause.message : "تعذرت مزامنة UNO؛ لم يتم اعتماد أرقام جديدة.");
+    } finally { setLiveSyncing(false); }
+  };
 
   const startSync = async () => {
     setSyncing(true);
@@ -88,16 +111,19 @@ const BookingReports = () => {
         <div>
           <h2 className="section-title">أحدث تقرير UNO</h2>
           <p className="mt-1 text-sm font-semibold text-emerald-700">المصدر: تقرير UNO المحفوظ، مع أولوية حالة PMS عند إرفاق المطابقة</p>
+          {report && <p className="mt-2 text-sm">الفترة: {report.source?.dateFrom && report.source?.dateTo ? `${report.source.dateFrom} — ${report.source.dateTo}` : report.period.label} · آخر تحديث ناجح: {formatDate(report.updatedAt)}</p>}
         </div>
         <button
           type="button"
           className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/8 px-4 text-sm font-bold text-primary disabled:cursor-wait disabled:opacity-60"
           onClick={() => void startSync()}
-          disabled={syncing}
+          disabled={syncing || liveSyncing || loading}
         >
           <RefreshCw className={`h-[18px] w-[18px] ${syncing ? "animate-spin" : ""}`} strokeWidth={1.9} />
           {syncing ? "جاري التحديث" : "تحديث العرض"}
         </button>
+        {canSync && <div className="flex flex-wrap items-center gap-3"><button type="button" className="min-h-11 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-60" disabled={syncing || liveSyncing || loading} onClick={() => void syncFromUno()}>{liveSyncing ? "جارٍ الجلب من UNO…" : "مزامنة الشهر الحالي من UNO"}</button><Link to="/admin/uno" className="text-sm text-primary underline">اتصال UNO واستيراد التقارير</Link></div>}
+        <p className="text-sm text-muted-foreground">تحديث العرض يقرأ التقرير المحفوظ. جلب حجوزات جديدة من UNO يتم عبر المزامنة بصلاحية المشرف.</p>
         {syncMessage ? <p role="status" className={`text-sm font-semibold sm:order-3 sm:w-full ${syncError ? "text-destructive" : "text-primary"}`}>{syncMessage}</p> : null}
       </section>
 
@@ -209,4 +235,3 @@ const BookingReports = () => {
 };
 
 export default BookingReports;
-
