@@ -49,12 +49,12 @@ describe("public pages are read-only", () => {
     expect(app).not.toContain('const Employees = lazy');
   });
 
-  it("routes the old policies link to the protected cancellation guide", () => {
+  it("opens the policies guide while protecting the workplace", () => {
     const app = fs.readFileSync(path.join(process.cwd(), "src/App.tsx"), "utf8");
     const dashboard = fs.readFileSync(path.join(process.cwd(), "src/pages/Dashboard.tsx"), "utf8");
-    expect(app).toContain('<Route path="/policies" element={<Navigate to="/workplace?section=cancellation" replace />} />');
+    expect(app).toContain('<Route path="/policies" element={<PublicHelp topic="cancellation" />} />');
     expect(app).toContain('<Route path="/workplace" element={<ProtectedRoute><OperationsPortal /></ProtectedRoute>} />');
     expect(app).not.toContain('const Policies = lazy');
-    expect(dashboard).not.toContain('to: "/policies"');
+    expect(dashboard).toContain('to: "/policies"');
   });
 });

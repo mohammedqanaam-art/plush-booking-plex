@@ -49,7 +49,7 @@ export default function Branches() {
       </Link>
       <Link to="/branches/information" className="page-surface flex items-start gap-4 border-primary/25 transition hover:shadow-md">
         <Building2 className="h-7 w-7 shrink-0 text-primary" aria-hidden="true" />
-        <div><h2 className="text-lg font-bold">معلومات الفنادق</h2><p className="mt-2 text-sm text-muted-foreground">اختر الفرع لعرض الغرف والمرافق والوجبات والقاعات وكافة التفاصيل المسجلة.</p><span className="mt-3 block text-sm text-primary">للمستخدمين المسجلين</span></div>
+        <div><h2 className="text-lg font-bold">معلومات الفنادق</h2><p className="mt-2 text-sm text-muted-foreground">اختر الفرع لعرض الغرف والمرافق والوجبات والقاعات وكافة التفاصيل المسجلة.</p><span className="mt-3 block text-sm text-primary">متاح للزوار دون تسجيل دخول</span></div>
       </Link>
     </section>
     <nav aria-label="مسار دليل الفروع" className="flex flex-wrap items-center gap-2 text-sm">

@@ -1,6 +1,6 @@
 import EmployeeNav from "./EmployeeNav";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { Building2, LayoutDashboard, MessageSquareWarning, PhoneCall, ShieldCheck } from "lucide-react";
+import { BookOpen, Building2, LayoutDashboard, MessageSquareWarning, PhoneCall, ShieldCheck } from "lucide-react";
 import BottomNav from "./BottomNav";
 import RiyadhClock from "./RiyadhClock";
 import ViewerPreferences from "./ViewerPreferences";
@@ -10,12 +10,13 @@ import VisitorChat from "./VisitorChat";
 
 const desktopNav = [
   { to: "/", label: "الرئيسية", icon: LayoutDashboard },
+  { to: "/help", label: "المساعدة", icon: BookOpen },
   { to: "/branches", label: "الفروع", icon: Building2 },
   { to: "/contact-requests", label: "طلب تواصل", icon: PhoneCall },
   { to: "/complaints", label: "شكوى", icon: MessageSquareWarning },
 ];
 
-const employeePaths = ["/assistant", "/workplace", "/operations", "/booking-reports", "/knowledge-bank", "/branches/information"];
+const employeePaths = ["/assistant", "/workplace", "/operations", "/booking-reports", "/knowledge-bank", "/branches/internal-information"];
 
 const Layout = () => {
   const location = useLocation();

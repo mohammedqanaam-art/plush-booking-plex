@@ -4,12 +4,14 @@ import Layout from "./components/Layout";
 import ProtectedRoute from "./components/admin/ProtectedRoute";
 import EnterpriseThemeLoader from "./components/EnterpriseThemeLoader";
 
+const PublicHelp = lazy(() => import("./pages/PublicHelp"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const BookingReports = lazy(() => import("./pages/BookingReports"));
 const Contacts = lazy(() => import("./pages/Contacts"));
 const HotelSearch = lazy(() => import("./pages/HotelSearch"));
 const Branches = lazy(() => import("./pages/Branches"));
 const HotelPhoneDirectory = lazy(() => import("./pages/HotelPhoneDirectory"));
+const InternalHotelInformation = lazy(() => import("./pages/HotelInformation").then(module => ({ default: module.InternalHotelInformation })));
 const HotelInformation = lazy(() => import("./pages/HotelInformation"));
 const KnowledgeBank = lazy(() => import("./pages/KnowledgeBank"));
 const EmployeeAssistant = lazy(() => import("./pages/EmployeeAssistant"));
@@ -45,11 +47,16 @@ const App = () => (
             <Route path="/operations" element={<ProtectedRoute><HotelSearch /></ProtectedRoute>} />
             <Route path="/branches" element={<Branches />} />
             <Route path="/branches/phones" element={<HotelPhoneDirectory />} />
-            <Route path="/branches/information" element={<ProtectedRoute><HotelInformation /></ProtectedRoute>} />
+            <Route path="/branches/information" element={<HotelInformation />} />
+            <Route path="/branches/internal-information" element={<ProtectedRoute><InternalHotelInformation /></ProtectedRoute>} />
             <Route path="/assistant" element={<ProtectedRoute><EmployeeAssistant /></ProtectedRoute>} />
             <Route path="/workplace" element={<ProtectedRoute><OperationsPortal /></ProtectedRoute>} />
             <Route path="/knowledge-bank" element={<ProtectedRoute><KnowledgeBank /></ProtectedRoute>} />
-            <Route path="/policies" element={<Navigate to="/workplace?section=cancellation" replace />} />
+            <Route path="/help" element={<PublicHelp />} />
+            <Route path="/guides/calls" element={<PublicHelp topic="calls" />} />
+            <Route path="/guides/escalation" element={<PublicHelp topic="escalation" />} />
+            <Route path="/guides/arrival" element={<PublicHelp topic="arrival" />} />
+            <Route path="/policies" element={<PublicHelp topic="cancellation" />} />
             <Route path="/complaints" element={<Complaints />} />
             <Route path="/runner" element={<Navigate to="/" replace />} />
             <Route path="/relax" element={<Navigate to="/" replace />} />
