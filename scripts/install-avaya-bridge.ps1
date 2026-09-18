@@ -2,8 +2,10 @@
 param(
     [string]$ExportDirectory = (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "Avaya Exports"),
     [string]$Endpoint = "https://www.res-dashbord.com/api/avaya/sync",
-    [ValidateRange(1, 60)]
-    [int]$IntervalMinutes = 5,
+    [ValidateRange(15, 1440)]
+    [int]$IntervalMinutes = 180,
+    [ValidateRange(3, 72)]
+    [int]$LookbackHours = 12,
     [SecureString]$ApiKey,
     [switch]$UserMode
 )
@@ -11,8 +13,14 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-if (-not $Endpoint.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
-    throw "Endpoint must use HTTPS."
+try { $endpointUri = [Uri]$Endpoint }
+catch { throw "Endpoint is invalid." }
+if ($endpointUri.Scheme -ne "https" -or
+    -not $endpointUri.Host.Equals("www.res-dashbord.com", [StringComparison]::OrdinalIgnoreCase) -or
+    -not $endpointUri.IsDefaultPort -or
+    $endpointUri.AbsolutePath.TrimEnd("/") -ne "/api/avaya/sync" -or
+    $endpointUri.Query) {
+    throw "Endpoint must be the approved RES Avaya HTTPS endpoint."
 }
 
 $sourceScript = Join-Path $PSScriptRoot "avaya-bridge.ps1"
@@ -72,6 +80,8 @@ else {
 @{
     exportDirectory = (Resolve-Path -LiteralPath $ExportDirectory).Path
     endpoint = $Endpoint
+    lookbackHours = $LookbackHours
+    maxFilesPerRun = 12
     secretFile = "secret.txt"
     secretProtection = $secretProtection
 } | ConvertTo-Json | Set-Content -LiteralPath $configPath -Encoding UTF8
@@ -90,7 +100,7 @@ if (-not $UserMode) {
 }
 
 $powerShell = Join-Path $PSHOME "powershell.exe"
-$action = New-ScheduledTaskAction -Execute $powerShell -Argument "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$installedScript`" -ConfigPath `"$configPath`""
+$action = New-ScheduledTaskAction -Execute $powerShell -Argument "-NoProfile -NonInteractive -File `"$installedScript`" -ConfigPath `"$configPath`""
 $repeatTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) `
     -RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes) `
     -RepetitionDuration (New-TimeSpan -Days 3650)

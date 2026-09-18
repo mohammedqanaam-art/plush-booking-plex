@@ -67,6 +67,8 @@ const AdminAvayaReports = () => {
   const [syncError, setSyncError] = useState("");
   const [syncConfigured, setSyncConfigured] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [bridgeLastSeenAt, setBridgeLastSeenAt] = useState<string | null>(null);
+  const [bridgeHealthy, setBridgeHealthy] = useState(false);
   const [availableRanges, setAvailableRanges] = useState<ReportRange[]>([]);
   const [reportFrom, setReportFrom] = useState("");
   const [reportTo, setReportTo] = useState("");
@@ -78,6 +80,8 @@ const AdminAvayaReports = () => {
       const data = await api.getLatestAvayaReport(range);
       setSyncConfigured(data.sync.configured);
       setLastSyncedAt(data.sync.updatedAt);
+      setBridgeLastSeenAt(data.sync.bridgeLastSeenAt || null);
+      setBridgeHealthy(Boolean(data.sync.bridgeHealthy));
       setAvailableRanges(data.availableRanges || []);
       if (data.report) {
         setReport(data.report);
@@ -218,7 +222,7 @@ const AdminAvayaReports = () => {
       <section className="page-surface mb-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className={`grid h-10 w-10 place-items-center rounded-xl ${syncConfigured ? "bg-emerald-500/12 text-emerald-600" : "bg-amber-500/12 text-amber-700"}`}>
+            <span className={`grid h-10 w-10 place-items-center rounded-xl ${syncConfigured && bridgeHealthy ? "bg-emerald-500/12 text-emerald-600" : "bg-amber-500/12 text-amber-700"}`}>
               <CloudDownload className="h-5 w-5" />
             </span>
             <div>
@@ -226,6 +230,15 @@ const AdminAvayaReports = () => {
               <p className="mt-1 text-xs text-muted-foreground">
                 {lastSyncedAt ? `آخر تحديث: ${new Date(lastSyncedAt).toLocaleString("ar-SA")}` : syncConfigured ? "بانتظار أول مجموعة تقارير مكتملة." : "مفتاح المزامنة غير مهيأ."}
               </p>
+              {syncConfigured ? (
+                <p className={`mt-1 text-[11px] font-bold ${bridgeHealthy ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}`}>
+                  {bridgeHealthy
+                    ? `وكيل Windows متصل${bridgeLastSeenAt ? ` • ${new Date(bridgeLastSeenAt).toLocaleString("ar-SA")}` : ""}`
+                    : bridgeLastSeenAt
+                      ? `وكيل Windows غير نشط • آخر اتصال ${new Date(bridgeLastSeenAt).toLocaleString("ar-SA")}`
+                      : "بانتظار تركيب وكيل Windows داخل شبكة الشركة."}
+                </p>
+              ) : null}
             </div>
           </div>
           <button type="button" disabled={syncLoading} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/50 px-3 text-xs font-bold disabled:opacity-50" onClick={loadNewest}>

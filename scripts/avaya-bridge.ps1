@@ -6,6 +6,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$BridgeVersion = "1.1.0"
 
 function Write-BridgeLog {
     param([string]$Message)
@@ -72,14 +73,30 @@ $config = Get-Content -Raw -LiteralPath $ConfigPath -Encoding UTF8 | ConvertFrom
 $configDirectory = Split-Path -Parent $ConfigPath
 $exportDirectory = [string]$config.exportDirectory
 $endpoint = [string]$config.endpoint
+$lookbackProperty = $config.PSObject.Properties["lookbackHours"]
+$lookbackHours = if ($lookbackProperty) { [int]$lookbackProperty.Value } else { 12 }
+$maxFilesProperty = $config.PSObject.Properties["maxFilesPerRun"]
+$maxFilesPerRun = if ($maxFilesProperty) { [int]$maxFilesProperty.Value } else { 12 }
 $secretPath = Join-Path $configDirectory ([string]$config.secretFile)
 $statePath = Join-Path $configDirectory "state.json"
 
 if (-not $exportDirectory -or -not (Test-Path -LiteralPath $exportDirectory -PathType Container)) {
     throw "Avaya export directory is unavailable: $exportDirectory"
 }
-if (-not $endpoint.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
-    throw "The bridge endpoint must use HTTPS."
+try { $endpointUri = [Uri]$endpoint }
+catch { throw "The bridge endpoint is invalid." }
+if ($endpointUri.Scheme -ne "https" -or
+    -not $endpointUri.Host.Equals("www.res-dashbord.com", [StringComparison]::OrdinalIgnoreCase) -or
+    -not $endpointUri.IsDefaultPort -or
+    $endpointUri.AbsolutePath.TrimEnd("/") -ne "/api/avaya/sync" -or
+    $endpointUri.Query) {
+    throw "The bridge endpoint must be the approved RES Avaya HTTPS endpoint."
+}
+if ($lookbackHours -lt 3 -or $lookbackHours -gt 72) {
+    throw "The report lookback must be between 3 and 72 hours."
+}
+if ($maxFilesPerRun -lt 3 -or $maxFilesPerRun -gt 24) {
+    throw "The per-run file limit must be between 3 and 24."
 }
 if (-not (Test-Path -LiteralPath $secretPath -PathType Leaf)) {
     throw "The encrypted bridge secret is missing."
@@ -105,6 +122,20 @@ if ([string]::IsNullOrWhiteSpace($token)) {
     throw "The encrypted bridge secret could not be decrypted for this Windows user."
 }
 
+$headers = @{
+    Authorization = "Bearer $token"
+    "X-Avaya-Bridge-Version" = $BridgeVersion
+}
+try {
+    $heartbeatHeaders = @{} + $headers
+    $heartbeatHeaders["X-Avaya-Agent-Event"] = "heartbeat"
+    Invoke-BridgeUpload -Uri $endpoint -Headers $heartbeatHeaders -Body "{}" | Out-Null
+}
+catch {
+    Write-BridgeLog "Heartbeat failed: $($_.Exception.Message)"
+    exit 1
+}
+
 $processedHashes = @()
 if (Test-Path -LiteralPath $statePath -PathType Leaf) {
     try {
@@ -122,8 +153,12 @@ foreach ($hash in $processedHashes) {
 }
 
 $files = Get-ChildItem -LiteralPath $exportDirectory -File -Filter "*.xlsx" |
-    Where-Object { $_.LastWriteTimeUtc -lt (Get-Date).ToUniversalTime().AddSeconds(-15) } |
-    Sort-Object LastWriteTimeUtc
+    Where-Object {
+        $_.LastWriteTimeUtc -ge (Get-Date).ToUniversalTime().AddHours(-$lookbackHours) -and
+        $_.LastWriteTimeUtc -lt (Get-Date).ToUniversalTime().AddSeconds(-15)
+    } |
+    Sort-Object LastWriteTimeUtc |
+    Select-Object -Last $maxFilesPerRun
 
 $hadError = $false
 foreach ($file in $files) {
@@ -141,9 +176,7 @@ foreach ($file in $files) {
             contentBase64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($file.FullName))
         } | ConvertTo-Json -Compress
 
-        $response = Invoke-BridgeUpload -Uri $endpoint -Headers @{
-            Authorization = "Bearer $token"
-        } -Body $payload
+        $response = Invoke-BridgeUpload -Uri $endpoint -Headers $headers -Body $payload
 
         $processedHashes += $hash
         $processedLookup[$hash] = $true
@@ -156,7 +189,7 @@ foreach ($file in $files) {
     }
 }
 
-$credential = $null
-$secureToken = $null
+$headers.Clear()
+$heartbeatHeaders.Clear()
 $token = $null
 if ($hadError) { exit 1 }
