@@ -42,6 +42,16 @@ export default function Branches() {
 
   return <div className="page-wrap">
     <PageHeader title="دليل الفروع وأرقام الاستقبال" icon={PhoneCall} onBack={brand || branchId ? back : undefined} />
+    <section aria-label="أقسام دليل الفروع" className="grid gap-4 sm:grid-cols-2">
+      <Link to="/branches/phones" target="_blank" rel="noopener noreferrer" className="page-surface flex items-start gap-4 border-primary/25 transition hover:shadow-md">
+        <PhoneCall className="h-7 w-7 shrink-0 text-primary" aria-hidden="true" />
+        <div><h2 className="text-lg font-bold">أرقام الفنادق</h2><p className="mt-2 text-sm text-muted-foreground">قائمة واحدة لجميع أرقام الاستقبال، مصنفة حسب البراند.</p><span className="mt-3 inline-flex items-center gap-2 text-sm text-primary">يفتح في تبويب جديد <ExternalLink className="h-4 w-4" aria-hidden="true" /></span></div>
+      </Link>
+      <Link to="/branches/information" className="page-surface flex items-start gap-4 border-primary/25 transition hover:shadow-md">
+        <Building2 className="h-7 w-7 shrink-0 text-primary" aria-hidden="true" />
+        <div><h2 className="text-lg font-bold">معلومات الفنادق</h2><p className="mt-2 text-sm text-muted-foreground">اختر الفرع لعرض الغرف والمرافق والوجبات والقاعات وكافة التفاصيل المسجلة.</p><span className="mt-3 block text-sm text-primary">للمستخدمين المسجلين</span></div>
+      </Link>
+    </section>
     <nav aria-label="مسار دليل الفروع" className="flex flex-wrap items-center gap-2 text-sm">
       <Link to={href()} className="rounded-lg px-3 py-2 text-primary hover:bg-secondary">البراندات</Link>
       {(brand || branch) && <><span aria-hidden="true">/</span><Link to={href(brand || branch?.brand)} className="rounded-lg px-3 py-2 text-primary hover:bg-secondary">{brand || branch?.brand}</Link></>}
