@@ -17,17 +17,26 @@ export default async (req: Request) => {
     if (!session) return json({ error: "Unauthorized" }, 401);
 
     try {
-      const [unoBookings, unoStats, legacyBookings, legacyStats] = await Promise.all([
-        store.get("uno-data", { type: "json" }).catch(() => null),
-        store.get("uno-stats", { type: "json" }).catch(() => null),
-        store.get("data", { type: "json" }).catch(() => null),
-        store.get("stats", { type: "json" }).catch(() => null),
-      ]) as [Record<string, string>[] | null, Record<string, unknown> | null, Record<string, string>[] | null, Record<string, unknown> | null];
+      const [unoBookings, unoStats] = await Promise.all([
+        store.get("uno-data", { type: "json" }),
+        store.get("uno-stats", { type: "json" }),
+      ]) as [Record<string, string>[] | null, Record<string, unknown> | null];
+      // A missing key is not a storage failure. Never turn failed reads into zero bookings,
+      // or pair dedicated UNO rows with metadata from another report.
+      const hasUno = unoBookings !== null || unoStats !== null;
+      if (hasUno && (!Array.isArray(unoBookings) || !unoStats || typeof unoStats !== "object")) {
+        throw new Error("UNO_REPORT_STORAGE_INCOMPLETE");
+      }
+      const [legacyBookings, legacyStats] = hasUno ? [null, null] : await Promise.all([
+        store.get("data", { type: "json" }),
+        store.get("stats", { type: "json" }),
+      ]) as [Record<string, string>[] | null, Record<string, unknown> | null];
       // Backward compatibility for the last successful UNO sync that predates the
       // dedicated keys. Generic CSV/CRO data is never accepted as report input.
       const legacyFileName = String(legacyStats?.sourceFileName || "");
       const legacyIsUno = isUnoBookingSourceFormat(legacyStats?.sourceFormat)
         || /^uno-(?:live|reconciled)-/i.test(legacyFileName);
+      if (legacyIsUno && !Array.isArray(legacyBookings)) throw new Error("UNO_LEGACY_REPORT_INCOMPLETE");
       const bookings = Array.isArray(unoBookings)
         ? unoBookings
         : legacyIsUno && Array.isArray(legacyBookings)
@@ -57,7 +66,12 @@ export default async (req: Request) => {
             dateTo: typeof stats.dateTo === "string" ? stats.dateTo : null,
           },
         );
-        return json(report);
+        return json({ ...report, source: {
+          system: "UNO", kind: "saved", format: String(stats.sourceFormat || ""),
+          label: String(stats.sourceLabel || "UNO"),
+          dateFrom: typeof stats.dateFrom === "string" ? stats.dateFrom : null,
+          dateTo: typeof stats.dateTo === "string" ? stats.dateTo : null,
+        } });
       }
 
       if (!["superadmin", "admin", "editor"].includes(session.role)) return json({ error: "Permission Denied" }, 403);
@@ -140,4 +154,3 @@ export default async (req: Request) => {
 
   return json({ error: "Method not allowed" }, 405);
 };
-

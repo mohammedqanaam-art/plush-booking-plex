@@ -25,9 +25,42 @@ const report: PublicBookingReport = {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  sessionStorage.clear();
 });
 
 describe("public read-only reports", () => {
+  it("syncs UNO for an authorized supervisor and reads the newly published report", async () => {
+    sessionStorage.setItem("admin_session", JSON.stringify({ username: "test-admin", role: "admin" }));
+    const reload = vi.spyOn(api, "getPublicBookingReport").mockResolvedValue(report);
+    const sync = vi.spyOn(api, "exportUnoReport").mockResolvedValue({ reservations: [], total: 10, searchedAt: "2026-09-18T10:00:00Z", canonicalUpdated: true, productivityReady: true, productivityRecords: 10, productivityEmployees: 1 });
+    render(<MemoryRouter><BookingReports /></MemoryRouter>);
+    await screen.findByText("حالة الحجوزات");
+    fireEvent.click(screen.getByRole("button", { name: "مزامنة الشهر الحالي من UNO" }));
+    await waitFor(() => expect(sync).toHaveBeenCalledWith());
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(2));
+    expect(reload).toHaveBeenLastCalledWith({ fresh: true });
+    expect(await screen.findByText(/تم تحديث تقرير الموظفين من UNO بنجاح/)).toBeDefined();
+  });
+  it("does not report success when UNO fetch succeeds but productivity publication fails", async () => {
+    sessionStorage.setItem("admin_session", JSON.stringify({ username: "test-admin", role: "admin" }));
+    const reload = vi.spyOn(api, "getPublicBookingReport").mockResolvedValue(report);
+    vi.spyOn(api, "exportUnoReport").mockResolvedValue({ reservations: [], total: 10, searchedAt: "2026-09-18T10:00:00Z", canonicalUpdated: true, productivityReady: false, reportError: "بيانات الموظف ناقصة" });
+    render(<MemoryRouter><BookingReports /></MemoryRouter>);
+    await screen.findByText("حالة الحجوزات");
+    fireEvent.click(screen.getByRole("button", { name: "مزامنة الشهر الحالي من UNO" }));
+    expect(await screen.findByText("بيانات الموظف ناقصة")).toBeDefined();
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/تم تحديث تقرير الموظفين من UNO بنجاح/)).toBeNull();
+  });
+  it("keeps existing figures visible when a saved-report refresh fails", async () => {
+    vi.spyOn(api, "getPublicBookingReport").mockResolvedValueOnce(report).mockRejectedValueOnce(new Error("storage unavailable"));
+    render(<MemoryRouter initialEntries={["/booking-reports?section=employees"]}><BookingReports /></MemoryRouter>);
+    await screen.findByText("موظف تجريبي");
+    fireEvent.click(screen.getByRole("button", { name: "تحديث العرض" }));
+    expect(await screen.findByText(/الأرقام الظاهرة، إن وجدت، تخص آخر تحميل ناجح/)).toBeDefined();
+    expect(screen.getByText("موظف تجريبي")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "مزامنة الشهر الحالي من UNO" })).toBeNull();
+  });
   it("shows employee aggregates inside the booking report without management controls", async () => {
     vi.spyOn(api, "getPublicBookingReport").mockResolvedValue(report);
     const { container } = render(<MemoryRouter initialEntries={["/booking-reports?section=employees"]}><BookingReports /></MemoryRouter>);

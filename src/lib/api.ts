@@ -24,6 +24,7 @@ export type AppSettings = {
 };
 
 export type PublicBookingReport = {
+  source?: { system: "UNO"; kind: "saved"; format: string; label: string; dateFrom: string | null; dateTo: string | null };
   generatedAt: string;
   updatedAt: string | null;
   period: { month: string; year: string; label: string };
@@ -433,27 +434,31 @@ const API_BASE = "/.netlify/functions";
 const OPERA_SEARCH_API = "/api/admin/opera-search";
 const AVAYA_SYNC_API = "/api/avaya/sync";
 const PUBLIC_REPORT_MEMORY_TTL_MS = 30_000;
+let publicReportGeneration = 0;
 
 let publicReportMemory: { report: PublicBookingReport; expiresAt: number } | null = null;
 let publicReportRequest: Promise<PublicBookingReport> | null = null;
 
 const clearPublicReportMemory = () => {
+  publicReportGeneration += 1;
   publicReportMemory = null;
   publicReportRequest = null;
 };
 
 const fetchPublicBookingReport = async (fresh = false): Promise<PublicBookingReport> => {
+  if (fresh) clearPublicReportMemory();
   if (!fresh && publicReportMemory && publicReportMemory.expiresAt > Date.now()) {
     return publicReportMemory.report;
   }
   if (!fresh && publicReportRequest) return publicReportRequest;
 
+  const generation = publicReportGeneration;
   const request = (async () => {
     const suffix = fresh ? "&fresh=1" : "";
-    const res = await fetch(`${API_BASE}/bookings?view=summary${suffix}`, fresh ? { cache: "no-store" } : undefined);
+    const res = await fetch(`${API_BASE}/bookings?view=summary${suffix}`, { cache: "no-store", credentials: "same-origin" });
     if (!res.ok) throw new Error("تعذر تحميل التقرير");
     const report = await res.json() as PublicBookingReport;
-    publicReportMemory = { report, expiresAt: Date.now() + PUBLIC_REPORT_MEMORY_TTL_MS };
+    if (generation === publicReportGeneration) publicReportMemory = { report, expiresAt: Date.now() + PUBLIC_REPORT_MEMORY_TTL_MS };
     return report;
   })();
 
@@ -462,7 +467,7 @@ const fetchPublicBookingReport = async (fresh = false): Promise<PublicBookingRep
   try {
     return await request;
   } finally {
-    publicReportRequest = null;
+    if (generation === publicReportGeneration) publicReportRequest = null;
   }
 };
 
@@ -475,13 +480,14 @@ const unoAction = async <T>(payload: Record<string, unknown>): Promise<T> => {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(payload),
   });
-  const data = await res.json().catch(() => ({})) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error || "تعذر تنفيذ طلب UNO");
+  const data = await res.json().catch(() => ({})) as T & { error?: string; requiresOtp?: boolean };
+  if (!res.ok) throw new Error(data.requiresOtp ? "انتهت جلسة UNO؛ افتح اتصال UNO وأكمل التحقق برمز OTP، ثم أعد المزامنة." : data.error || "تعذر تنفيذ طلب UNO");
   return data;
 };
 
 export const api = {
   async login(username: string, password: string) {
+    clearPublicReportMemory();
     const res = await fetch(`${API_BASE}/auth`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -500,6 +506,7 @@ export const api = {
   },
 
   async logout() {
+    clearPublicReportMemory();
     await fetch(`${API_BASE}/auth`, { method: "DELETE", headers: authHeaders() }).catch(() => null);
     sessionStorage.removeItem("admin_session");
   },
@@ -671,7 +678,9 @@ export const api = {
   },
 
   async exportUnoReport(filters?: UnoReportFilters) {
-    return unoAction<UnoSearchResponse>({ action: "export", ...(filters ? { filters } : {}) });
+    const response = await unoAction<UnoSearchResponse>({ action: "export", ...(filters ? { filters } : {}) });
+    if (response.productivityReady) clearPublicReportMemory();
+    return response;
   },
 
   async getUnoSnapshot(query: UnoSnapshotQuery = {}) {
@@ -848,4 +857,3 @@ export const api = {
     return data.review;
   },
 };
-
