@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import ProtectedRoute from "./components/admin/ProtectedRoute";
 import EnterpriseThemeLoader from "./components/EnterpriseThemeLoader";
 
+const PublicHelp = lazy(() => import("./pages/PublicHelp"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const BookingReports = lazy(() => import("./pages/BookingReports"));
 const Contacts = lazy(() => import("./pages/Contacts"));
@@ -51,7 +52,11 @@ const App = () => (
             <Route path="/assistant" element={<ProtectedRoute><EmployeeAssistant /></ProtectedRoute>} />
             <Route path="/workplace" element={<ProtectedRoute><OperationsPortal /></ProtectedRoute>} />
             <Route path="/knowledge-bank" element={<ProtectedRoute><KnowledgeBank /></ProtectedRoute>} />
-            <Route path="/policies" element={<Navigate to="/workplace?section=cancellation" replace />} />
+            <Route path="/help" element={<PublicHelp />} />
+            <Route path="/guides/calls" element={<PublicHelp topic="calls" />} />
+            <Route path="/guides/escalation" element={<PublicHelp topic="escalation" />} />
+            <Route path="/guides/arrival" element={<PublicHelp topic="arrival" />} />
+            <Route path="/policies" element={<PublicHelp topic="cancellation" />} />
             <Route path="/complaints" element={<Complaints />} />
             <Route path="/runner" element={<Navigate to="/" replace />} />
             <Route path="/relax" element={<Navigate to="/" replace />} />

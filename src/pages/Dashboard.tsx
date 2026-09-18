@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   BarChart3,
+  BookOpen,
   Building2,
   Headphones,
   LockKeyhole,
@@ -23,7 +24,9 @@ type PublicEntry = {
 };
 
 const publicEntries: PublicEntry[] = [
-  { to: "/booking-reports?section=employees", label: "تقارير الموظفين من UNO", description: "الحجوزات المؤكدة والملغاة لكل موظف وآخر تحديث للتقرير. يتطلب تسجيل الدخول.", icon: BarChart3, tone: "green" },
+  { to: "/help", label: "مركز المساعدة", description: "الإرشادات العامة والأسئلة الشائعة، متاحة دون تسجيل دخول.", icon: BookOpen, tone: "green" },
+  { to: "/branches/information", label: "معلومات الفنادق", description: "الغرف والمرافق والوجبات والقاعات حسب الفرع المختار.", icon: Building2, tone: "violet" },
+  { to: "/branches/phones", label: "أرقام الفنادق", description: "قائمة واحدة بأرقام الاستقبال، مصنفة حسب البراند.", icon: PhoneCall, tone: "orange" },
   {
     to: "/branches",
     label: "دليل الفروع",
@@ -45,17 +48,10 @@ const publicEntries: PublicEntry[] = [
     icon: MessageSquareWarning,
     tone: "red",
   },
-  {
-    to: "/workplace",
-    label: "مساحة الموظفين",
-    description: "الدخول المبكر، العملاء المحتملون وطلبات المشرفين والمتابعة.",
-    icon: LockKeyhole,
-    tone: "violet",
-  },
-  { to: "/workplace?section=calls", label: "المكالمات وخريطة البروتوكول", description: "خطوات استقبال المكالمة ومسار الحجز والمتابعة.", icon: Headphones, tone: "green" },
-  { to: "/workplace?section=escalation", label: "آلية تصعيد الشكاوى", description: "الأولوية وجهة التصعيد وملف الحالة.", icon: MessageSquareWarning, tone: "red" },
-  { to: "/workplace?section=cancellation", label: "سياسات الإلغاء", description: "مسار الإلغاء حسب مصدر الحجز وشروطه.", icon: Building2, tone: "orange" },
-  { to: "/workplace?section=feedback", label: "التغذية الراجعة", description: "سجل ملاحظتك أو اقتراحك وتابع النتيجة.", icon: PhoneCall, tone: "violet" },
+  { to: "/guides/calls", label: "المكالمات وخريطة البروتوكول", description: "خطوات استقبال المكالمة ومسار الحجز والمتابعة.", icon: Headphones, tone: "green" },
+  { to: "/guides/escalation", label: "آلية التعامل مع الشكاوى", description: "خطوات تسجيل الملاحظة وتوجيهها ومتابعة النتيجة.", icon: MessageSquareWarning, tone: "red" },
+  { to: "/policies", label: "إرشادات الإلغاء والتعديل", description: "مسار الإلغاء حسب مصدر الحجز وشروطه.", icon: Building2, tone: "orange" },
+  { to: "/guides/arrival", label: "الدخول المبكر والطلبات الخاصة", description: "ما يلزم معرفته قبل التواصل مع الفندق لتأكيد الطلب.", icon: Building2, tone: "violet" },
 ];
 
 const cityCount = new Set(branches.map((branch) => branch.city)).size;
@@ -79,7 +75,7 @@ const Dashboard = () => (
     <section aria-labelledby="public-services-title" className="space-y-3">
       <div className="home-section-heading">
         <div>
-          <span>الخدمات المتاحة</span>
+          <span>متاح دون تسجيل دخول</span>
           <h2 id="public-services-title">اختر ما تحتاجه</h2>
         </div>
         <p>أدوات الحجز ودليل الفروع في مكان واحد.</p>
@@ -96,6 +92,14 @@ const Dashboard = () => (
             <ArrowLeft className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-x-0.5" strokeWidth={1.8} />
           </Link>
         ))}
+      </div>
+    </section>
+    <section className="page-surface space-y-3" aria-labelledby="employee-entry-title">
+      <h2 id="employee-entry-title" className="flex items-center gap-2 font-bold"><LockKeyhole className="h-5 w-5 text-primary" />خدمات الموظفين — تتطلب تسجيل الدخول</h2>
+      <div className="flex flex-wrap gap-4 text-sm text-primary">
+        <Link to="/workplace" className="underline">مساحة الموظفين</Link>
+        <Link to="/booking-reports?section=employees" className="inline-flex items-center gap-2 underline"><BarChart3 className="h-4 w-4" />تقارير الموظفين من UNO</Link>
+        <Link to="/workplace?section=feedback" className="underline">التغذية الراجعة والمتابعة الداخلية</Link>
       </div>
     </section>
   </div>

@@ -1,10 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Building2, LayoutDashboard, LockKeyhole, MessageSquareWarning, PhoneCall } from "lucide-react";
+import { BookOpen, Building2, LayoutDashboard, LockKeyhole, MessageSquareWarning } from "lucide-react";
 
 const mainNavItems = [
   { path: "/", label: "الرئيسية", icon: LayoutDashboard },
   { path: "/branches", label: "الفروع", icon: Building2 },
-  { path: "/contact-requests", label: "تواصل", icon: PhoneCall },
+  { path: "/help", label: "المساعدة", icon: BookOpen },
   { path: "/complaints", label: "شكوى", icon: MessageSquareWarning },
   { path: "/admin/login", label: "دخول", icon: LockKeyhole },
 ];
