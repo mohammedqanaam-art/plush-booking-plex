@@ -313,7 +313,7 @@ export const hotelBranches: HotelBranch[] = [
   },
   {
     id: "boudl-moaz",
-    name: "بودل المعذر",
+    name: "بودل المصيف",
     group: "بودل",
     city: "الرياض",
     phone: "114559841",

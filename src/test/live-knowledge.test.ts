@@ -18,7 +18,7 @@ describe("sheet-backed knowledge", () => {
     }
   });
   it("updates only the matching branch and preserves differing branch meal hours", () => {
-    const originals = branchRecords.filter((row) => ["بريرا النخيل", "بودل النخيل"].includes(row.branch));
+    const originals = branchRecords.filter((row) => ["بريرا النخيل", "بودل النخيل"].includes(row.branch)).map(row => ({ ...row, workbook: undefined }));
     const result = applyLiveKnowledge(originals, [{ key: "meals", fetchedAt: "2026-09-07T12:00:00Z", url: "https://docs.google.com/example", rows: [["Barirra Nakheel", "89 ريال", "حسب الطلب", "حسب الطلب"]] }]);
     expect(result.find((row) => row.branch === "بريرا النخيل")?.breakfastInfo).toBe("89 ريال");
     expect(result.find((row) => row.branch === "بودل النخيل")?.breakfastInfo).toBe(originals.find((row) => row.branch === "بودل النخيل")?.breakfastInfo);

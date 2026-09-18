@@ -22,7 +22,7 @@ describe("hotel directory sections", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     render(<MemoryRouter><HotelPhoneDirectory /></MemoryRouter>);
-    for (const branch of publicBranches) expect(screen.getByText(branch.name)).toBeDefined();
+    for (const branch of publicBranches) expect(screen.getByText(branch.name, { selector: "td" })).toBeDefined();
     expect(screen.getAllByRole("table")).toHaveLength(new Set(publicBranches.map(row => row.brand)).size);
     fireEvent.click(screen.getByRole("button", { name: "نسخ رقم بريرا العليا" }));
     expect(await screen.findByText("تم نسخ رقم بريرا العليا")).toBeDefined();

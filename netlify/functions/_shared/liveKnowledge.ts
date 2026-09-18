@@ -79,7 +79,7 @@ export function applyLiveKnowledge(records: BranchRecord[], tabs: TabResult[]) {
     const row = { ...original, sourceFiles: [...original.sourceFiles], hallPackages: [...original.hallPackages] };
     const find = (key: Tab["key"], column: number) => byKey.get(key)?.rows.find((cells) => branchKey(cells[column] || "") === branchKey(row.branch));
     const facilities = find("facilities", 0);
-    if (facilities) {
+    if (facilities && !row.workbook) {
       const mapping = { breakfastInfo: 1, poolInfo: 2, coffeeShopInfo: 3, restaurantInfo: 4, balconyInfo: 5, parkingInfo: 6,
         gymInfo: 9, laundryInfo: 10, outdoorSeatingInfo: 11, spaInfo: 12, jacuzziInfo: 13, kidsSectionInfo: 14 } as const;
       for (const [field, index] of Object.entries(mapping)) (row as unknown as Record<string, unknown>)[field] = facilities[index] || "غير محدد في الشيت";
@@ -87,16 +87,16 @@ export function applyLiveKnowledge(records: BranchRecord[], tabs: TabResult[]) {
     }
     const meals = find("meals", 0);
     if (meals) {
-      row.breakfastInfo = meals[1] || "غير محدد في الشيت";
+      if (!row.workbook) row.breakfastInfo = meals[1] || "غير محدد في الشيت";
       row.lunchInfo = meals[2] || "غير محدد في الشيت"; row.dinnerInfo = meals[3] || "غير محدد في الشيت";
       const hours = byKey.get("meals")?.rows.find((cells) => normalizeKnowledgeText(cells[0] || "") === "الاوقات");
-      if (hours) { row.breakfastInfo += ` · الوقت العام في الشيت: ${hours[1] || "غير محدد"}`; row.lunchInfo += ` · ${hours[2] || ""}`; row.dinnerInfo += ` · ${hours[3] || ""}`; }
-      if (facilities?.[1]) row.breakfastInfo += `\nمواعيد سجل الفرع: ${facilities[1]}\nعند اختلاف المواعيد يرجى التحقق من الفرع.`;
+      if (hours) { if (!row.workbook) row.breakfastInfo += ` · الوقت العام في الشيت: ${hours[1] || "غير محدد"}`; row.lunchInfo += ` · ${hours[2] || ""}`; row.dinnerInfo += ` · ${hours[3] || ""}`; }
+      if (facilities?.[1] && !row.workbook) row.breakfastInfo += `\nمواعيد سجل الفرع: ${facilities[1]}\nعند اختلاف المواعيد يرجى التحقق من الفرع.`;
     }
     const halls = find("halls", 3); if (halls) row.hallPhone = halls[4] || "غير محدد في الشيت";
     const contacts = byKey.get("contacts")?.rows.flatMap((cells) => [0, 3, 6, 9].map((column) => ({ name: cells[column] || "", phone: cells[column + 1] || "" })))
       .find((item) => branchKey(item.name) === branchKey(row.branch));
-    if (contacts) { row.receptionPhone = contacts.phone || "غير محدد في الشيت"; row.hotelPhone = row.receptionPhone; }
+    if (contacts && !row.workbook) { row.receptionPhone = contacts.phone || "غير محدد في الشيت"; row.hotelPhone = row.receptionPhone; }
     const used = [contacts ? byKey.get("contacts") : null, facilities ? byKey.get("facilities") : null, meals ? byKey.get("meals") : null, halls ? byKey.get("halls") : null].filter((item): item is TabResult => Boolean(item));
     if (used.length) row.sourceFiles = [...used.map((item) => item.url), ...row.sourceFiles];
     row.notes = "بيانات وصفية للفرع؛ لا تمثل إتاحة حية أو سعر حجز مضمون. راجع مصدر كل معلومة وتأكد من الشروط قبل الوعد للضيف.";
@@ -128,5 +128,10 @@ export async function getLiveKnowledge(records: BranchRecord[]) {
     message: count === knowledgeTabs.length ? "تمت قراءة الشيت؛ تُحدّث القراءة كل خمس دقائق." : count ? "تحديث جزئي؛ المصادر غير المتاحة تعرض النسخة المحفوظة وتحتاج التحقق." : "تعذر التحقق من الشيت الآن؛ المعروض نسخة محفوظة تحتاج التحقق قبل التأكيد.",
     tabs: knowledgeTabs.map((tab) => { const value = result.tabs.find((item) => item.key === tab.key); return { title: tab.title, url: `${HOTEL_INFORMATION_SHEET_URL}#gid=${tab.gid}`, fetchedAt: value?.fetchedAt || null, available: Boolean(value) }; }),
   };
+  const imported = records.find(row => row.workbook)?.workbook;
+  if (imported) {
+    sync.snapshotDate = imported.importedOn;
+    sync.message = `بيانات الفنادق من الملف المرفوع بتاريخ ${imported.importedOn}. ${count ? "قراءة الشيت المتصل تكمل بيانات الوجبات وجهات الاتصال الداخلية فقط." : "تعذر تحديث البيانات المكملة من الشيت المتصل؛ بقيت النسخة المحفوظة."}`;
+  }
   return { branchRecords: applyLiveKnowledge(records, result.tabs), sync };
 }

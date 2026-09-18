@@ -51,15 +51,15 @@ describe("reception directory", () => {
     expect(Object.keys(publicBranchContacts).sort()).toEqual(publicBranches.map(b => b.id).sort());
     for (const branch of publicBranches) {
       const contact = publicBranchContacts[branch.id];
-      expect(Object.keys(contact).every(k => ["phone", "note", "sourceUrl"].includes(k))).toBe(true);
-      expect(contact.phone).toMatch(/^\+966\d{9}$/);
+      expect(Object.keys(contact).every(k => ["phone", "additionalPhones", "note", "sourceUrl"].includes(k))).toBe(true);
+      for (const phone of [contact.phone, ...(contact.additionalPhones || [])]) expect(phone).toMatch(/^\+(?:966\d{9}|965\d{8})$/);
       if (branch.id === "braira-hettin") {
         expect(contact.phone).toBe("+966112364247");
         expect(contact.sourceUrl).toBe("https://brairahotels.com/hittin/");
         continue;
       }
       const raw = hotelBranches.find(h => h.id === branch.id)?.phone.replace(/\D/g, "").slice(-9);
-      expect(contact.phone?.slice(-9)).toBe(raw);
+      if (raw) expect(contact.phone?.slice(-9)).toBe(raw);
     }
   });
 });

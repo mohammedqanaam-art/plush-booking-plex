@@ -28,7 +28,7 @@ export default function HotelPhoneDirectory() {
             return <TableRow key={branch.id}>
               <TableCell className="min-w-36 font-semibold">{branch.name}{contact?.note && <p className="mt-2 text-sm font-normal text-muted-foreground">{contact.note}</p>}</TableCell>
               <TableCell>{branch.city}</TableCell>
-              <TableCell>{contact?.phone ? <a className="inline-block select-all whitespace-nowrap py-3 text-base font-semibold text-primary" dir="ltr" href={`tel:${contact.phone}`}>{contact.phone}</a> : "غير مسجل"}{contact?.sourceUrl && <a href={contact.sourceUrl} target="_blank" rel="noopener noreferrer" className="block text-sm text-primary underline">مصدر الرقم</a>}</TableCell>
+              <TableCell>{contact?.phone ? <a className="inline-block select-all whitespace-nowrap py-3 text-base font-semibold text-primary" dir="ltr" href={`tel:${contact.phone}`}>{contact.phone}</a> : "غير مسجل"}{!!contact?.additionalPhones?.length && <div className="mt-2 border-t pt-2"><span className="text-xs text-muted-foreground">أرقام إضافية في الشيت</span>{contact.additionalPhones.map(phone => <a key={phone} className="block w-fit select-all whitespace-nowrap py-2 text-primary" dir="ltr" href={`tel:${phone}`}>{phone}</a>)}</div>}{contact?.sourceUrl && <a href={contact.sourceUrl} target="_blank" rel="noopener noreferrer" className="block text-sm text-primary underline">مصدر الرقم</a>}</TableCell>
               <TableCell>{contact?.phone && <button type="button" onClick={() => void copy(contact.phone!, branch.name)} aria-label={`نسخ رقم ${branch.name}`} className="rounded-lg border p-3 hover:bg-secondary"><Copy className="h-4 w-4" aria-hidden="true" /></button>}</TableCell>
             </TableRow>;
           })}</TableBody>

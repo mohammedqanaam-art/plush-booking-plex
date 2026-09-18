@@ -83,10 +83,12 @@ export default function Branches() {
           </div>
           <p role="status" className="mt-2 text-xs text-muted-foreground">{copyStatus}</p>
           {contact.note && <p className="mt-3 text-xs leading-6 text-amber-800">{contact.note}</p>}
+          {!!contact.additionalPhones?.length && <div className="mt-4 space-y-2"><p className="text-xs text-muted-foreground">أرقام إضافية واردة في الشيت</p>{contact.additionalPhones.map(phone => <a key={phone} href={`tel:${phone}`} dir="ltr" className="block w-fit py-2 text-primary underline">{phone}</a>)}</div>}
           {contact.sourceUrl && <a href={contact.sourceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-primary underline">مصدر الرقم الرسمي<ExternalLink className="h-3 w-3" /></a>}
         </> : <p className="text-sm text-muted-foreground">لم يُسجّل رقم استقبال لهذا الفرع بعد.</p>}
       </div>
       <div className="flex flex-wrap gap-3">
+        <Link to={`/branches/information?branch=${encodeURIComponent(branch.id)}`} className="inline-flex min-h-11 items-center rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground">معلومات الفندق كاملة</Link>
         <Link to={href(branch.brand)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2 text-sm">العودة إلى الفروع<ArrowLeft className="h-4 w-4" /></Link>
         <Link to={href()} className="inline-flex min-h-11 items-center rounded-xl border px-4 py-2 text-sm">جميع البراندات</Link>
       </div>

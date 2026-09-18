@@ -15,7 +15,7 @@ export default defineConfig({
     apply: "build",
     generateBundle(_options, bundle) {
       // A login screen cannot protect data embedded in downloadable JS chunks.
-      const privateData = /\/src\/data\/(?:hotels\.|hotelMasterData\.|sheetOperationalData\.|knowledge\/|knowledge_bank_seed\.|branches\.|operations\.|branchDataReview\.)/;
+      const privateData = /\/src\/data\/(?:hotels\.|hotelMasterData\.|sheetOperationalData\.|hotelWorkbook\.|hotelWorkbookSnapshot\.|knowledge\/|knowledge_bank_seed\.|branches\.|operations\.|branchDataReview\.)/;
       for (const item of Object.values(bundle)) {
         if (item.type !== "chunk") continue;
         if (Object.keys(item.modules).some((id) => privateData.test(id.replaceAll("\\", "/")))) {
