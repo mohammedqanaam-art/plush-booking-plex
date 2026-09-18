@@ -3,20 +3,22 @@ import type { BranchRecord } from "../../src/data/knowledge";
 import { publicBranches } from "../../src/data/publicBranches";
 import { publicBranchContacts } from "../../src/data/publicBranchContacts";
 import { json } from "./_shared/security";
+import { publicWorkbookDetails } from "../../src/lib/hotelWorkbook";
 
 const guestFields = ["region", "overview", "breakfastInfo", "lunchInfo", "dinnerInfo", "poolInfo", "poolHours", "coffeeShopInfo", "restaurantInfo", "restaurantHours", "balconyInfo", "parkingInfo", "kidsSectionInfo", "jacuzziInfo", "bathtubInfo", "spaInfo", "spaHours", "laundryInfo", "outdoorSeatingInfo", "gymInfo", "gymHours"] as const;
 // Construct a new object: never serialize operational records or their future fields.
-export function publicHotelRecords(records: BranchRecord[]) {
-  return publicBranches.map(identity => {
+export function publicHotelRecords(records: BranchRecord[]): BranchRecord[] {
+  return publicBranches.map<BranchRecord>(identity => {
     const record = records.find(row => row.id === identity.id);
-    const details = Object.fromEntries(guestFields.map(key => [key, record?.[key] || ""]));
+    const details = Object.fromEntries(guestFields.map(key => [key, record?.[key] || ""])) as Pick<BranchRecord, typeof guestFields[number]>;
     return {
-      ...details, id: identity.id, branch: identity.name, brand: identity.brandCode, city: identity.city,
+      ...details, id: identity.id, branch: identity.name, brand: identity.brandCode as BranchRecord["brand"], city: identity.city,
       receptionPhone: publicBranchContacts[identity.id]?.phone || "",
       roomTypes: record?.roomTypes.map(value => String(value)) || [],
       roomDetails: record?.roomDetails?.map(room => ({ type: room.type, area: room.area, description: room.description })) || [],
       roomSource: record?.roomSource || "unverified",
       hallPackages: record?.hallPackages.map(value => String(value)) || [],
+      workbook: publicWorkbookDetails(record?.workbook),
       // Blank compatibility fields are never populated from private records.
       hotelPhone: "", salesPhone: "", hallPhone: "", whatsappNumber: "", managerName: "", managerPhone: "", managerEmail: "",
       notes: "", attachments: [], sourceFiles: [], visibility: "public", priority: 0,

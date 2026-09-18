@@ -1,6 +1,8 @@
 import { hotelBranches } from "@/data/hotels";
 import { masterHotels } from "@/data/hotelMasterData";
 import knowledgeSeed from "@/data/knowledge_bank_seed.json";
+import { enrichWithHotelWorkbook } from "@/data/hotelWorkbook";
+import type { HotelWorkbookDetails } from "@/lib/hotelWorkbook";
 import {
   getSheetHallContact,
   getSheetMealInfo,
@@ -53,6 +55,7 @@ export type BranchRecord = {
   sourceFiles: string[];
   visibility: "public" | "internal";
   priority: number;
+  workbook?: HotelWorkbookDetails;
 };
 
 const brandMap: Record<string, BrandKey> = {
@@ -210,7 +213,7 @@ for (const [idx, row] of hotelBranches.entries()) {
   const key = `${branch.brand}::${normalizeKey(branch.branch)}`;
   if (!deduped.has(key)) deduped.set(key, branch);
 }
-export const branchRecords: BranchRecord[] = [...deduped.values()].sort((a, b) => a.brand.localeCompare(b.brand) || a.branch.localeCompare(b.branch));
+export const branchRecords: BranchRecord[] = enrichWithHotelWorkbook([...deduped.values()]).sort((a, b) => a.brand.localeCompare(b.brand) || a.branch.localeCompare(b.branch));
 
 export const branchesByBrand: Record<BrandKey, BranchRecord[]> = {
   Braira: branchRecords.filter((row) => row.brand === "Braira"),
@@ -229,4 +232,3 @@ export const branchInventoryByBrand = {
   Narcissus: branchesByBrand.Narcissus.map((b) => b.branch),
   "Z'MN": branchesByBrand["Z'MN"].map((b) => b.branch),
 };
-

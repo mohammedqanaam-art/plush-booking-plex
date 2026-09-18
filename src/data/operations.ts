@@ -1,4 +1,5 @@
 import { branchRecords, quickIntents as kbQuickIntents, type BranchRecord } from "@/data/knowledge";
+import { workbookKnowledgeLines } from "@/lib/hotelWorkbook";
 
 export type ThemePreset = {
   id: string;
@@ -76,7 +77,7 @@ export const buildKnowledgeEntries = (records: BranchRecord[]): KnowledgeEntry[]
     branch: branch.branch,
     title: branch.branch,
     summary: `${branch.city} · ${branch.region}`,
-    body: `المدينة: ${branch.city}\nالمنطقة: ${branch.region}`,
+    body: [`المدينة: ${branch.city}`, `المنطقة: ${branch.region}`, branch.overview, ...workbookKnowledgeLines(branch.workbook)].join("\n"),
     tags: [branch.brand, branch.city, "نبذة"],
     contacts: [{ label: "الاستقبال", value: branch.receptionPhone }],
     priority: branch.priority,
@@ -153,4 +154,3 @@ export const buildKnowledgeEntries = (records: BranchRecord[]): KnowledgeEntry[]
 });
 
 export const knowledgeEntries: KnowledgeEntry[] = buildKnowledgeEntries(branchRecords);
-

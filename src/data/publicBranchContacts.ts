@@ -1,7 +1,6 @@
-// Reception-only snapshot from hotelBranches.phone, matched by exact public branch ID.
-// Do not import private datasets or include employee, manager or sales contacts here.
-// Braira Hittin corrected against its official contact page; Khamis conflict is disclosed.
-export type PublicBranchContact = { phone: string | null; note?: string; sourceUrl?: string };
+// Public hotel reception numbers only. Workbook column D, imported 2026-09-18.
+// Existing conflicting numbers are retained and disclosed; no manager or hall contacts.
+export type PublicBranchContact = { phone: string | null; additionalPhones?: string[]; note?: string; sourceUrl?: string };
 export const publicBranchContacts: Record<string, PublicBranchContact> = {
   "aber-abha": {
     "phone": "+966172740880"
@@ -16,20 +15,29 @@ export const publicBranchContacts: Record<string, PublicBranchContact> = {
     "phone": "+966112637693"
   },
   "aber-yasmin": {
-    "phone": "+966112114980"
+    "phone": "+966112114980",
+    "additionalPhones": [
+      "+966113114981"
+    ]
   },
   "boudl-bani-amro": {
     "phone": "+966172820001"
   },
   "aber-khamis": {
     "phone": "+966172389777",
-    "note": "رقم الدليل المسجل؛ يوجد اختلاف بين المصادر ويحتاج إلى تأكيد من الفرع."
+    "note": "يختلف رقم الشيت الجديد عن الرقم المسجل في الدليل؛ يرجى تأكيده مع الفرع.",
+    "additionalPhones": [
+      "+966509150191"
+    ]
   },
   "aber-city-center": {
     "phone": "+966137239361"
   },
   "aber-uniza": {
-    "phone": "+966163632785"
+    "phone": "+966163632785",
+    "additionalPhones": [
+      "+966163632629"
+    ]
   },
   "boudl-abha": {
     "phone": "+966172322222"
@@ -38,7 +46,11 @@ export const publicBranchContacts: Record<string, PublicBranchContact> = {
     "phone": "+966122614131"
   },
   "boudl-jubail": {
-    "phone": "+966133454111"
+    "phone": "+966133454111",
+    "note": "يختلف رقم الشيت الجديد عن الرقم المسجل في الدليل؛ يرجى تأكيده مع الفرع.",
+    "additionalPhones": [
+      "+966133454930"
+    ]
   },
   "boudl-rass": {
     "phone": "+966163512288"
@@ -53,10 +65,16 @@ export const publicBranchContacts: Record<string, PublicBranchContact> = {
     "phone": "+966138091117"
   },
   "boudl-sahafa": {
-    "phone": "+966114107033"
+    "phone": "+966114107033",
+    "additionalPhones": [
+      "+966114107022"
+    ]
   },
   "boudl-taif": {
-    "phone": "+966127433030"
+    "phone": "+966127433030",
+    "additionalPhones": [
+      "+966127340395"
+    ]
   },
   "boudl-olaya": {
     "phone": "+966114626883"
@@ -107,7 +125,10 @@ export const publicBranchContacts: Record<string, PublicBranchContact> = {
     "phone": "+966138993000"
   },
   "boudl-khamis": {
-    "phone": "+966172240152"
+    "phone": "+966172240152",
+    "additionalPhones": [
+      "+966546841665"
+    ]
   },
   "boudl-quraish": {
     "phone": "+966126334445"
@@ -116,22 +137,34 @@ export const publicBranchContacts: Record<string, PublicBranchContact> = {
     "phone": "+966172855549"
   },
   "boudl-makkah": {
-    "phone": "+966125506660"
+    "phone": "+966125506660",
+    "additionalPhones": [
+      "+966125508880"
+    ]
   },
   "boudl-wadi-dawasir": {
     "phone": "+966115554655"
   },
   "braira-abha": {
-    "phone": "+966172266622"
+    "phone": "+966172266622",
+    "additionalPhones": [
+      "+966172227666"
+    ]
   },
   "braira-ahsa": {
-    "phone": "+966135833338"
+    "phone": "+966135833338",
+    "additionalPhones": [
+      "+966135834334"
+    ]
   },
   "braira-dammam": {
     "phone": "+966138348289"
   },
   "braira-rass": {
-    "phone": "+966163252410"
+    "phone": "+966163252410",
+    "additionalPhones": [
+      "+966163252416"
+    ]
   },
   "braira-aziziya": {
     "phone": "+966136649999"
@@ -149,14 +182,20 @@ export const publicBranchContacts: Record<string, PublicBranchContact> = {
     "phone": "+966112114646"
   },
   "braira-jazan": {
-    "phone": "+966173265555"
+    "phone": "+966173265555",
+    "additionalPhones": [
+      "+966173278888"
+    ]
   },
   "braira-hettin": {
     "phone": "+966112364247",
     "sourceUrl": "https://brairahotels.com/hittin/"
   },
   "braira-hafr": {
-    "phone": "+966137257397"
+    "phone": "+966137257397",
+    "additionalPhones": [
+      "+966137237891"
+    ]
   },
   "braira-qurtubah": {
     "phone": "+966112254614"
@@ -171,6 +210,27 @@ export const publicBranchContacts: Record<string, PublicBranchContact> = {
     "phone": "+966122617700"
   },
   "narcissus-royal": {
-    "phone": "+966114061515"
+    "phone": "+966114061515",
+    "additionalPhones": [
+      "+966114061529"
+    ]
+  },
+  "braira-jubail": {
+    "phone": "+966135120987"
+  },
+  "boudl-salmia": {
+    "phone": "+96525757999",
+    "additionalPhones": [
+      "+96525748782"
+    ]
+  },
+  "boudl-fahahil": {
+    "phone": "+96523922507",
+    "additionalPhones": [
+      "+96523922506"
+    ]
+  },
+  "zamn-riyadh": {
+    "phone": "+966549427334"
   }
 };

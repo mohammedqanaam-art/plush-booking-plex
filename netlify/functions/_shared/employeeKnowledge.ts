@@ -3,6 +3,7 @@ import { HOTEL_INFORMATION_SHEET_URL } from "../../../src/data/sheetOperationalD
 import { normalizeKnowledgeText, type KnowledgeSyncStatus } from "../../../src/lib/knowledgeTypes";
 import { operationsGuide } from "./operationsGuide";
 import { protocolEntries } from "./protocolBank";
+import { hotelFactLabels, type HotelFactKey } from "../../../src/lib/hotelWorkbook";
 
 export type EmployeeKnowledgeSource = { title: string; url: string; snippet?: string };
 const guideSource: EmployeeKnowledgeSource = { title: "الدليل التشغيلي BHG — مسودة 3.0 للاعتماد", url: "/workplace?section=calls" };
@@ -65,6 +66,7 @@ export function buildBranchKnowledge(message: string, records: BranchRecord[], s
   const row = branchForQuestion(intent, records);
   if (!row) return { evidence: "", sources: [] as EmployeeKnowledgeSource[], fastReply: /عرسان|زفاف|honeymoon|wedding/i.test(message)
     ? "حدد اسم الفندق أو الفرع كاملًا للتحقق من باقات العرسان؛ لن أعتمد سعرًا عامًا للعلامة." : null };
+  const facts = (keys: HotelFactKey[]) => keys.map(key => `${hotelFactLabels[key]}: ${row.workbook?.facts[key] || "غير مسجل في المصدر"}`).join("\n");
   const fields: Array<[RegExp, string, string]> = [
     [/عرسان|زفاف|honeymoon|wedding/i, "بكج العرسان", row.hallPackages[1] || "غير محدد في الشيت"],
     [/افطار|إفطار|فطور|breakfast/i, "الإفطار", row.breakfastInfo], [/غداء|lunch/i, "الغداء", row.lunchInfo], [/عشاء|dinner/i, "العشاء", row.dinnerInfo],
@@ -73,12 +75,22 @@ export function buildBranchKnowledge(message: string, records: BranchRecord[], s
     [/غرف|جناح|اجنحة|أجنحة|سرير|مساحة|room|suite/i, "الغرف", row.roomDetails?.map((room) => `${room.type} · مساحة الغرفة ${room.area || "غير محددة"} · ${room.description}`).join("\n") || row.roomTypes.join("\n")],
     [/قاعة|قاعات|hall/i, "القاعات", `${row.hallPackages[0] || "غير محدد"}\nتواصل القاعات: ${row.hallPhone}`],
     [/رقم|هاتف|اتصال|phone/i, "تواصل الفرع", row.receptionPhone],
+    [/عنوان|موقع|معلم|معالم|قريب|اقرب|location|address/i, "الموقع والمعالم", `${facts(["address"])}\n${row.overview}\nالمسافات والأوقات تقريبية بحسب الشيت.`],
+    [/دخول|خروج|مبكر|check.?in|check.?out/i, "مواعيد الإقامة", facts(["checkIn", "checkOut", "earlyCheckIn"])],
+    [/كونكت|متصل|ربط|connecting/i, "الغرف المتصلة", `${facts(["connectingRooms"])}\n${row.workbook?.connectingRoomTypes.join("\n") || "الأنواع غير مفصلة في المصدر"}`],
+    [/سرير|رضيع|اطفال|طفل|تدخين|مدخن|مطار|extra bed|cot|smoking|transfer/i, "خدمات الإقامة", facts(["smokingRooms", "extraBed", "extraBedFee", "babyCot", "airportTransfer"])],
   ];
   const matches = fields.filter(([pattern]) => pattern.test(intent));
-  const info = (matches.length ? matches : fields).map(([, label, value]) => `${label}: ${value}`).join("\n\n");
+  const info = [(matches.length ? matches : fields).map(([, label, value]) => `${label}: ${value}`).join("\n\n"), ...(row.workbook?.warnings.map(value => `يحتاج تأكيدًا: ${value}`) || [])].join("\n");
   const labels = (matches.length ? matches : fields).map(([, label]) => label);
   const sourceTabs = new Set<string>();
   for (const label of labels) {
+    if (row.workbook) {
+      if (["الغداء", "العشاء"].includes(label)) sourceTabs.add("معلومات الوجبات بريرا");
+      if (label === "القاعات") sourceTabs.add("ارقام القاعات");
+      if (info.includes("تفاصيل من الدليل السابق")) sourceTabs.add("hotels data");
+      continue;
+    }
     if (label === "تواصل الفرع") sourceTabs.add("أرقام الفنادق");
     else if (label !== "الغرف") sourceTabs.add("hotels data");
     if (["الإفطار", "الغداء", "العشاء"].includes(label)) sourceTabs.add("معلومات الوجبات بريرا");
@@ -91,6 +103,7 @@ export function buildBranchKnowledge(message: string, records: BranchRecord[], s
     snippet: sync.message,
   }));
   if (labels.includes("الغرف")) sources.push({ title: `دليل الغرف المرفق — ${row.branch}`, url: "/knowledge-bank", snippet: "أنواع الغرف ومساحاتها من المرفقات المحفوظة؛ لا تمثل إتاحة حية." });
+  if (row.workbook) sources.push({ title: `${row.workbook.sourceName} — ${row.branch}`, url: `/branches/information?branch=${encodeURIComponent(row.id)}`, snippet: `تاريخ الاستيراد: ${row.workbook.importedOn}؛ نسخة من الملف المرفوع وليست قراءة حية.` });
   const freshness = `${sync.message}\nتاريخ النسخة المحفوظة: ${sync.snapshotDate}.`;
   const evidence = `الفرع: ${row.branch}\n${info}\n${freshness}\nمصادر الفرع: ${row.sourceFiles.filter((url) => url.startsWith("https://")).join(" ")}`;
   // A direct factual answer is useful without model credentials. Complex decisions stay with the model.
