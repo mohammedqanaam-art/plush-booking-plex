@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Branches from "@/pages/Branches";
 import HotelPhoneDirectory from "@/pages/HotelPhoneDirectory";
-import HotelInformation, { HotelInformationContent } from "@/pages/HotelInformation";
+import HotelInformation, { HotelInformationContent, InternalHotelInformation } from "@/pages/HotelInformation";
 import { KnowledgeContext } from "@/hooks/useInternalKnowledge";
 import { branchRecords } from "@/data/knowledge";
 import { publicBranches } from "@/data/publicBranches";
@@ -40,7 +40,7 @@ describe("hotel directory sections", () => {
   });
   it("never loads operational records without an authenticated server response", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
-    render(<MemoryRouter><HotelInformation /></MemoryRouter>);
+    render(<MemoryRouter><InternalHotelInformation /></MemoryRouter>);
     expect(await screen.findByText("يلزم تسجيل الدخول لعرض المعلومات التشغيلية.")).toBeDefined();
     expect(screen.queryByLabelText("الفرع")).toBeNull();
   });

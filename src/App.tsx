@@ -10,6 +10,7 @@ const Contacts = lazy(() => import("./pages/Contacts"));
 const HotelSearch = lazy(() => import("./pages/HotelSearch"));
 const Branches = lazy(() => import("./pages/Branches"));
 const HotelPhoneDirectory = lazy(() => import("./pages/HotelPhoneDirectory"));
+const InternalHotelInformation = lazy(() => import("./pages/HotelInformation").then(module => ({ default: module.InternalHotelInformation })));
 const HotelInformation = lazy(() => import("./pages/HotelInformation"));
 const KnowledgeBank = lazy(() => import("./pages/KnowledgeBank"));
 const EmployeeAssistant = lazy(() => import("./pages/EmployeeAssistant"));
@@ -45,7 +46,8 @@ const App = () => (
             <Route path="/operations" element={<ProtectedRoute><HotelSearch /></ProtectedRoute>} />
             <Route path="/branches" element={<Branches />} />
             <Route path="/branches/phones" element={<HotelPhoneDirectory />} />
-            <Route path="/branches/information" element={<ProtectedRoute><HotelInformation /></ProtectedRoute>} />
+            <Route path="/branches/information" element={<HotelInformation />} />
+            <Route path="/branches/internal-information" element={<ProtectedRoute><InternalHotelInformation /></ProtectedRoute>} />
             <Route path="/assistant" element={<ProtectedRoute><EmployeeAssistant /></ProtectedRoute>} />
             <Route path="/workplace" element={<ProtectedRoute><OperationsPortal /></ProtectedRoute>} />
             <Route path="/knowledge-bank" element={<ProtectedRoute><KnowledgeBank /></ProtectedRoute>} />
