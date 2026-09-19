@@ -1,0 +1,4898 @@
+[
+  {
+    "id": "narcissus-royal",
+    "name": "نارسيس رويال",
+    "city": "الرياض",
+    "brand": "Narcissus",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "10:00am-10:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "10:00-10:00",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: متوفر",
+        "متوفر"
+      ],
+      "overview": "يقع في حي العليا (Olaya) على شارع العليا في وسط مدينة الرياض.\n• قريب جدًا من برج الفيصلية ومول الفيصلية في نفس المنطقة، وهو من أكثر المواقع حيوية للتسوق والمطاعم والأعمال."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Narcissus The Royal",
+        "openingYear": "2023",
+        "stars": "⭐⭐⭐⭐⭐",
+        "checkIn": "15:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "برسوم إضافية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "للجميع",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "",
+        "extraBedFee": "",
+        "babyCot": "متوفر",
+        "airportTransfer": "متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "متوفر",
+        "weddingPackage": "متوفر",
+        "address": "وسط الرياض\nحي العليا شارع العليا العام"
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966114061515",
+        "+966114061529"
+      ],
+      "warnings": [
+        "وقت النادي: 10:00-10:00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            2
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            63,
+            64
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "narcissus-riyadh",
+    "name": "نارس الرياض",
+    "city": "الرياض",
+    "brand": "Narcissus",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "10:00am-10:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: متوفر",
+        "متوفر"
+      ],
+      "overview": "• يقع أيضًا في حي العليا – شارع العليا عند زاوية شارع التحلية (Tahlia) في وسط الرياض.\n• موقع مركزي جدًا قريب من الأبراج، المولات، والمناطق التجارية في قلب العاصمة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Narcissus Riyadh",
+        "openingYear": "2018",
+        "stars": "⭐⭐⭐⭐⭐",
+        "checkIn": "15:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "برسوم إضافية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "للجميع",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "",
+        "extraBedFee": "",
+        "babyCot": "",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "متوفر",
+        "weddingPackage": "متوفر",
+        "address": "وسط الرياض حي العليا شارع العليا العام"
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966112946300"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            3
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            65,
+            66
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "narcissus-obhur",
+    "name": "نارسيس أبحر",
+    "city": "جدة",
+    "brand": "Narcissus",
+    "region": "الغربية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "8:00am-8:00pm",
+      "coffeeShopInfo": "يوجد+لاونج شيشة",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "10:00-10:00",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "منتجع فاخر 5 نجوم شمال مدينة جدة بحيث يتكون من فلل ولاتوجد غرف وسويتات يقع على الشاطئ مباشرة له اطلالة على البحر الأحمر, المسجد العائم يبعد عنه10 دقائق ومناطق التسوق تبعد 15 دقيقه,وذلك مطار الملك عبدالعزيز الدولي35 دقيقة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Narcissus Obhur",
+        "openingYear": "2018",
+        "stars": "⭐⭐⭐⭐⭐",
+        "checkIn": "15:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "برسوم إضافية",
+        "breakfastHours": "06:30 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "للجميع",
+        "smokingRooms": "غير متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "",
+        "extraBedFee": "",
+        "babyCot": "",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينة جدة-ابحر الشمالية- شارع الأمير عبدالله الفيصل"
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966126099100"
+      ],
+      "warnings": [
+        "وقت النادي: 10:00-10:00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            4
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            98
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "narcissus-hamra",
+    "name": "نارسيس الحمراء",
+    "city": "جدة",
+    "brand": "Narcissus",
+    "region": "الغربية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "8:00am-7:00pm",
+      "coffeeShopInfo": "يوجد+لاونج شيشة",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "مواقف داخلي",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "10:00-10:00",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "فندق 5 نجوم وقريب من نافورة الملك فهد امامة اوبأطلاله قريبة ,يبعد عن شارع التحلية 5 دقائق يتواجد داخل منطقة حيوية ويعد عن مطار الملك عبدالعزيز حوالي 20-30 دقيقة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Narcissus Alhamra",
+        "openingYear": "2019",
+        "stars": "⭐⭐⭐⭐⭐",
+        "checkIn": "15:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "برسوم إضافية",
+        "breakfastHours": "06:30 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "للجميع",
+        "smokingRooms": "غير متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "",
+        "extraBedFee": "",
+        "babyCot": "",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينة جدة-حي الرويس-شارع كورنيش جدة"
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966122617700"
+      ],
+      "warnings": [
+        "وقت النادي: 10:00-10:00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            5
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            97
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-wezarat",
+    "name": "بريرا الوزارات",
+    "city": "الرياض",
+    "brand": "Braira",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "08:00-18:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "08:00-22:00",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "• قريب من الوزارات والجهات الحكومية الرسمية\nيبعد عن مستشفى قوى الامن 8 دقائق ,,وعن المدينة الطبية 10 دقائق ومستشفى مدينة الأمير سلطان(العسكري) 9 دقائق.بالقرب من بودل السليمانية 10 دقائق\n• قريب من بعض المنتزهات الصغيرة والمناطق الخضراء في وسط المدينة\n• موقع مناسب للتنقل لمراكز الأعمال والخدمات الحكومية."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira Wezarat",
+        "openingYear": "2018",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متعارض في المصدر — يلزم تأكيد الفرع",
+        "extraBed": "متوفر",
+        "extraBedFee": "173 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "وسط الرياض\nيقع في حي الوزارات على شارع الملك عبدالعزيز في جنوب الرياض."
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112765440"
+      ],
+      "warnings": [
+        "الغرف المتصلة: يوجد اختلاف بين قاعدة البيانات وجدول أنواع الكونكت؛ يلزم تأكيد الفرع."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            6
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            53,
+            54,
+            55,
+            56
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            52
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-qurtubah",
+    "name": "بريرا قرطبة",
+    "city": "الرياض",
+    "brand": "Braira",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "08:00-18:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر- نساء",
+      "spaHours": "13:00-02:00",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "06:00-22:00",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: متوفر",
+        "متوفر"
+      ],
+      "overview": "• قريب من Riyadh Boulevard (واجهة الرياض)\n• قريب من مراكز التسوق والخدمات الحديثة شرق المدينة\n• موقع يسهل منه الوصول إلى طريق الدمام المؤدي إلى مطار الملك خالد الدولي."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira Qurtubah",
+        "openingYear": "2018",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "173 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "متوفر",
+        "weddingPackage": "متوفر",
+        "address": "شرق الرياض\nيقع في حي قرطبة على طريق الرشد في شمال شرق الرياض."
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112254614"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            7
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            46,
+            47,
+            48
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            51
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-olaya",
+    "name": "بريرا العليا",
+    "city": "الرياض",
+    "brand": "Braira",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "10:00-18:00",
+      "coffeeShopInfo": "يوجد+لاونج شيشة",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "24 ساعة",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:30 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: متوفر",
+        "متوفر"
+      ],
+      "overview": "• قريب جداً من برج الفيصلية (حوالي 5 دقائق مشي)\n• قريب من مكتبة وحديقة الملك فهد الوطنية (حوالي 3 دقائق مشي)\n• على بعد مسافة قصيرة من Panorama Mall ومركز المملكة ومنطقة المطاعم والخدمات."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira Olaya",
+        "openingYear": "2015",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:30 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "172 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "متوفر",
+        "weddingPackage": "متوفر",
+        "address": "وسط الرياض\nيقع على شارع العليا (Olaya Street) في حي العليا، أحد أهم الشوارع التجارية في الرياض."
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112933354"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            8
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            42,
+            43,
+            44
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            50
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-nakheel",
+    "name": "بريرا النخيل",
+    "city": "الرياض",
+    "brand": "Braira",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "08:00-22:00",
+      "coffeeShopInfo": "يوجد+لاونج شيشة",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "09:00-22:00",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "09:00-22:00",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:30 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: متوفر",
+        "متوفر"
+      ],
+      "overview": "• النخيل مول أمام الفندق (مشي 3–5 دقائق)\n• مجمعات مطاعم ومحلات حول المول\n• مناطق ترفيهية وخدمية في حي النخيل."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira Nakheel",
+        "openingYear": "2018",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:30 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "للجميع",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "173 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "متوفر",
+        "weddingPackage": "متوفر",
+        "address": "شمال شرق الرياض\nيقع على طريق الإمام سعود بن عبدالعزيز الفرعي في حي النخيل، أمام النخيل مول مباشرة."
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112523444"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            9
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            49,
+            50,
+            51
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            49
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-jazan",
+    "name": "بريرا جازان",
+    "city": "جازان",
+    "brand": "Braira",
+    "region": "الجنوبية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة خارجي",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "24 ساعة",
+      "balconyInfo": "",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: متوفر",
+        ""
+      ]
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira Jazan",
+        "openingYear": "2025",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "172 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "متوفر",
+        "weddingPackage": "",
+        "address": ""
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966173265555",
+        "+966173278888"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            10
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            54
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-hettin",
+    "name": "بريرا حطين",
+    "city": "الرياض",
+    "brand": "Braira",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "",
+      "poolHours": "",
+      "coffeeShopInfo": "",
+      "restaurantInfo": "",
+      "parkingInfo": "",
+      "kidsSectionInfo": "",
+      "jacuzziInfo": "",
+      "spaInfo": "",
+      "spaHours": "",
+      "laundryInfo": "",
+      "outdoorSeatingInfo": "",
+      "gymInfo": "",
+      "gymHours": "",
+      "balconyInfo": "",
+      "breakfastInfo": "",
+      "hallPackages": [
+        "اجتماعات: غير مسجل في المصدر\nمؤتمرات: غير مسجل في المصدر\nمناسبات: غير مسجل في المصدر",
+        ""
+      ]
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira Hettin",
+        "openingYear": "",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "",
+        "checkOut": "",
+        "earlyCheckIn": "",
+        "breakfastHours": "",
+        "restaurantType": "",
+        "view": "",
+        "poolAudience": "",
+        "smokingRooms": "",
+        "connectingRooms": "",
+        "extraBed": "",
+        "extraBedFee": "",
+        "babyCot": "",
+        "airportTransfer": "",
+        "meetingRooms": "",
+        "conferenceHall": "",
+        "eventHall": "",
+        "weddingPackage": "",
+        "address": ""
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966112364247"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            11
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-hafr",
+    "name": "بريرا حفر الباطن",
+    "city": "حفر الباطن",
+    "brand": "Braira",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "7:00 -19:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "يبعد عن بودل الميدان 4دقائق وعن عابر سيتي سنتر 2 دقيقة يتواجد بالقرب من بودل لاند للترفية والألعاب,يبعد عن العثيم مول 5-10 دقائق,يبعد عن مطار القيصومة -حفر الباطن 20-25 دقيقة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira Hafar ALBatin",
+        "openingYear": "2025",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "173 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينة حفرالباطن-حي العزيزية-شارع عبدالعزيز بن سعود"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966137257397",
+        "+966137237891"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            12
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            152
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            53
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-yarmouk",
+    "name": "بريرا اليرموك",
+    "city": "الرياض",
+    "brand": "Braira",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "08:00-18:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "• قريب من محطة مترو الشرق، ما يسهل التنقل داخل الرياض,يقع على امتداد طريق الامام وبريرا النخيل يبعد عنه 14دقيقة\n• في منطقة شرق الرياض مع خدمات ومولات قريبة\n• موقع جيد للمسافرين واللي يعتمدون وسائل نقل عامة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira ALYarmouk",
+        "openingYear": "2021",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متعارض في المصدر — يلزم تأكيد الفرع",
+        "extraBed": "متوفر",
+        "extraBedFee": "173 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "شرق الرياض\nيقع في حي اليرموك على شارع الإمام عبدالله بن سعود."
+      },
+      "connectingRoomTypes": [
+        "غرفة بريميوم+سبيوريورtwin)بيكون مدخلهم واحد ولكل غرفة سعرها الخاص"
+      ],
+      "receptionPhones": [
+        "+966112114646"
+      ],
+      "warnings": [
+        "الغرف المتصلة: يوجد اختلاف بين قاعدة البيانات وجدول أنواع الكونكت؛ يلزم تأكيد الفرع."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            13
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            57,
+            58,
+            59
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            46
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-dammam",
+    "name": "بريرا الدمام",
+    "city": "الدمام",
+    "brand": "Braira",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "24 ساعة",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "يبعد عن كورنيش الدمام 2-5 دقائق بالسياره , وحوالي 10-15دقيقه مشي\nبالقرب من بودل الكورنيش وبودل الشاطئ يبعد عنهم 6 دقائق ويبعد 20 -30دقيقه عن مطار الملك فهد الدولي ,قريب من أماكن الترفيه مثل جزيره المرجان وهابي لاند.يتواجد بالقرب من الشاطئ مول."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira ALDammam",
+        "openingYear": "2017",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "150 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينة الدمام-حي الشاطئ الشرقي-شارع الأمير محمد بن فهد"
+      },
+      "connectingRoomTypes": [
+        "بريميوم +ديلوكس twin"
+      ],
+      "receptionPhones": [
+        "+966138348289"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            14
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            80,
+            81
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            47
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-aziziya",
+    "name": "بريرا العزيزية",
+    "city": "الخبر",
+    "brand": "Braira",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "09:00 - 21:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "مواقف داخلي",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "08:00 - 19:00",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "منتجع بحري فاخر على البحر ومطل مباشره عليه ,يشمل مرافق خاصه بالمنتجع شاطئ خاص وجلسات علئ البحر -مسبح خارجي كبير -منطقه العاب أطفال -نادي رياضي-مطعم وجلسات وكوفي خاص بالمنتجع."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira ALAzizya",
+        "openingYear": "2016",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "175 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينه الخبر-يقع على طريق الملك فهد – حي العزيزية، قريب من كورنيش الخبر."
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966136649999"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            15
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            82
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-ahsa",
+    "name": "بريرا الأحساء",
+    "city": "الأحساء",
+    "brand": "Braira",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "7:00-10",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "غير متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "8:00-7:00",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: متوفر",
+        "متوفر"
+      ],
+      "overview": "موقعه يعتبر وسط الاحساء قريب من جامعة الملك فيصل يبعد حوالي 7-10 دقائق وكذلك قريب من اشهر مولات الاحساءlolo mall ويبعد عن محطة قطارالهفوف 10-15 دقيقة ."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira ALAhsa",
+        "openingYear": "2022",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "172 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينة الاحساء-الهفوف-حي السليمانية-طريق الملك عبدالله."
+      },
+      "connectingRoomTypes": [
+        "جراند ديلوكس+ديلوكس twin"
+      ],
+      "receptionPhones": [
+        "+966135833338",
+        "+966135834334"
+      ],
+      "warnings": [
+        "وقت المسبح: 7:00-10؛ الفترة صباحًا أو مساءً غير واضحة في الشيت.",
+        "وقت النادي: 8:00-7:00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            16
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            84
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            48
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-rass",
+    "name": "بريرا الرس",
+    "city": "الرس",
+    "brand": "Braira",
+    "region": "القصيم",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "8:00-6:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: متوفر",
+        "غير متوفر"
+      ],
+      "overview": "قريب من مركز الأمير سلطان الحضاري يتواجد في منطقة مطاعم ومجمعات تجارية ,موقعه استراتيجي داخل الرس يسهل الوصول له من اغلب الاحياء."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira AL Rass",
+        "openingYear": "2024",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "172 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "متوفر",
+        "weddingPackage": "غير متوفر",
+        "address": "مدينة الرس- يقع على طريق الملك فهد،"
+      },
+      "connectingRoomTypes": [
+        "سوبوريورking+ديلوكس king المطله ع المسبح",
+        "سبيريورking +سبيريور twin"
+      ],
+      "receptionPhones": [
+        "+966163252410",
+        "+966163252416"
+      ],
+      "warnings": [
+        "وقت المسبح: 8:00-6:00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            17
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            119
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            56,
+            57
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-jubail",
+    "name": "بريرا الجبيل",
+    "city": "الجبيل",
+    "brand": "Braira",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "",
+      "kidsSectionInfo": "",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "",
+      "outdoorSeatingInfo": "",
+      "gymInfo": "",
+      "gymHours": "",
+      "balconyInfo": "",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ]
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira AL Jubail",
+        "openingYear": "",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "غير متوفر",
+        "extraBedFee": "",
+        "babyCot": "",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": ""
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966135120987"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            18
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "braira-abha",
+    "name": "بريرا أبها",
+    "city": "أبها",
+    "brand": "Braira",
+    "region": "الجنوبية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "10:00 - 19:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "10:00 - 23:00",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "24 ساعة",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ]
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Braira Abha",
+        "openingYear": "2025",
+        "stars": "⭐⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "175 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": ""
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966172266622",
+        "+966172227666"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            19
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            55
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-woroud",
+    "name": "بودل الورود",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "10:00-10:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "6:00-9:00",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "قريب من طريق الملك عبدالله، وبجوار Riyadh Park Mall وبوليفارد الرياض، وسهل الوصول لطريق الملك فهد.بالقرب من بودل المصيف.\nمناسب للترفيه"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Wourood",
+        "openingYear": "2012",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "أطفال فقط",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متعارض في المصدر — يلزم تأكيد الفرع",
+        "extraBed": "متوفر",
+        "extraBedFee": "57 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "شمال الرياض\nحي الورود – طريق الملك عبدالله"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966114561294"
+      ],
+      "warnings": [
+        "الغرف المتصلة: يوجد اختلاف بين قاعدة البيانات وجدول أنواع الكونكت؛ يلزم تأكيد الفرع.",
+        "وقت المسبح: 10:00-10:00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت.",
+        "وقت النادي: 6:00-9:00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            20
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            12,
+            13
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            8
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-wadi-dawasir",
+    "name": "بودل وادي الدواسر",
+    "city": "وادي الدواسر",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "غير متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "غير متوفر"
+      ],
+      "overview": "يقع على طريق وادي الدواسر العام قريب من الخدمات الأساسية ,يكون موقعه على طريق الخميس -السليل"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Wadi ALDawassir",
+        "openingYear": "2022",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "0 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "غير متوفر",
+        "address": "حي الصالحية -طريق وادي الدواسر العام"
+      },
+      "connectingRoomTypes": [
+        "ستاندرking+ستاندرد twin"
+      ],
+      "receptionPhones": [
+        "+966115554655"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            21
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            26
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            16
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-taif",
+    "name": "بودل الطائف",
+    "city": "الطائف",
+    "brand": "Boudl",
+    "region": "الغربية",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 10:30 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "يتواجد في منطقة مطاعم وصيدليات وكافيهات يبعد عن جوري مول 10-15 دقيقة وسوق البلد6 كيلو,يبعد عن مطارالطائف الدولي 50 دقيقة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Taif",
+        "openingYear": "2012",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 10:30 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينة الطائف-حي السداد-طريق الشفا,طريق شهار- الشفا الرئيسي"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966127433030",
+        "+966127340395"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            22
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            93
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            31
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-tahlia",
+    "name": "بودل التحلية",
+    "city": "جدة",
+    "brand": "Boudl",
+    "region": "الغربية",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "8:00am-8:00pm",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 10:30 am",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "يبعد عن نارسيس الحمراء 12 دقيقة ويتواجد بالقرب من مركز جدة الدولي للمعارض ,الفندق داخل المدينة ولايطل على البحر,يبعد عن مطار الملك عبدالعزيز حوالي 15 دقيقة-وكورنيش جدة 25 دقيقة ."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Tahlia",
+        "openingYear": "2016",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 10:30 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "غير متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينة جدة-حي الفيصلية-شارع الأمير محمد بن عبدالعزيز"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966122614131"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            23
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            91
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            21
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-shatee",
+    "name": "بودل الشاطئ",
+    "city": "الدمام",
+    "brand": "Boudl",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "9:00--9:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة خارجي",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "9:00am-9:00pm",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "يبعد حوالي 1.6 كم عن كورنيش الدمام، أي قريب جدًا من البحر لكن الغرف لا تطل مباشرة على البحر. قريب من مول الشاطئ التجاري ومطاعم ومناطق خدمات.قريب جدا من بودل الكورنيش يبعد عنه 2دقيقة على نفس امتداد بودل الكورنيش"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Shataa",
+        "openingYear": "2002",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "غير متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينة الدمام - حي الشاطئ الشرقي شارع الاشرعه"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966138091117"
+      ],
+      "warnings": [
+        "وقت المسبح: 9:00--9:00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            24
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            73
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            18
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-salmia",
+    "name": "بودل السالمية",
+    "city": "السالمية",
+    "brand": "Boudl",
+    "region": "الكويت",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "",
+      "kidsSectionInfo": "",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "",
+      "outdoorSeatingInfo": "",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "قريب من مارينا مول -كورنيش السالمية 10 دقائق-الافنيوز مول."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Salmia",
+        "openingYear": "2004",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "",
+        "babyCot": "",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "الكويت -منطقة السالمية-شارع عمرو بن العاص-"
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+96525757999",
+        "+96525748782"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            25
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            138
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-rawdah-breda",
+    "name": "بودل الروضة",
+    "city": "بريدة",
+    "brand": "Boudl",
+    "region": "القصيم",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "10:00--6:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "10:00am --11:00pm",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 10:30 am",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "قريب من ميدان الروضة -أسواق التميمي -مدينة ملاهي المنتزه – النخيل مول مطار الأمير نايف بن عبدالعزيز حوالي 20-25 دقيقة"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Rawdah Buryedah",
+        "openingYear": "2023",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 10:30 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينة بريدة- طريق الملك سلمان"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966163167930"
+      ],
+      "warnings": [
+        "وقت المسبح: 10:00--6:00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            26
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            105
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            30
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-rass",
+    "name": "بودل الرس",
+    "city": "الرس",
+    "brand": "Boudl",
+    "region": "القصيم",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "غير متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "قريب من المطاعم والأسواق -أسواق ومطاعم الشنانة بجانبة مباشرة -برج الشنانة التاريخي حوالي 10 دقايق حدائق ومنتزهات الرس 15 دقيقة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Rass",
+        "openingYear": "2012",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "الرس -حي الملك عبدالعزيز- شارع الشنانة-شارع طلحة بن مالك."
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966163512288"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            27
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            110
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            28
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-quraish",
+    "name": "بودل قريش",
+    "city": "جدة",
+    "brand": "Boudl",
+    "region": "الغربية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "10:00am-10:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "10:00am-10:00pm",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 10:30 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "يبعد عن بودل التحلية 10 دقائق و قريب من مول العرب 5دقائق وردسي مول 15دقيقة الفندق لايطل على البحر مباشرة يبعد عن مطارالملك عبدالعزيز الدولي حوالي 15 دقيقة وكورنيش جدة 20 دقيقة ."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Quraish",
+        "openingYear": "2016",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 10:30 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "غير متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "مدينة جدة-حي السلامة-شارع قريش"
+      },
+      "connectingRoomTypes": [
+        "غرفتين وصالة +جونيور سويت",
+        "جونيور سويت +جونيور سويت"
+      ],
+      "receptionPhones": [
+        "+966126334445"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            28
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            90
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            22,
+            23
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-qasr",
+    "name": "بودل القصر",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "09:00am-06:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "9:00am-9:00pm",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "متوفر"
+      ],
+      "overview": "يقع في حي السويدي خلف القصر مول عند تقاطع شارع السويدي مع شارع سلطانة في الرياض، بالقرب من حديقة السويدي، ويتميز بسهولة الوصول إلى المطاعم والمرافق التجارية، ويبعد نحو 35–40 دقيقة بالسيارة عن مطار الملك خالد الدولي"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Qasr",
+        "openingYear": "2014",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "أطفال فقط",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "متوفر",
+        "address": "جنوب الرياض-مخرج 26\nالسويدي"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112255400"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            29
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            21,
+            22
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            11
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-olaya",
+    "name": "بودل العليا",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "على طريق العليا العام، وعلى نفس طريق Narcissus Hotel & Spa Riyadh، وقريب من برج الفيصلية، وبجوار المطاعم والكافيات.\nقلب المنطقة التجارية."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Olaya",
+        "openingYear": "2019",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "وسط الرياض\nحي العليا – طريق العليا العام"
+      },
+      "connectingRoomTypes": [
+        "شقة غرفتين وصالة+شقة ثلاث غرف وصالة"
+      ],
+      "receptionPhones": [
+        "+966114626883"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            30
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            8,
+            9
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            14
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-nakhil",
+    "name": "بودل النخيل",
+    "city": "عنيزة",
+    "brand": "Boudl",
+    "region": "القصيم",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "لا يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "مواقف داخلي",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "غير متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "شاليهات خاصة -داخل منطقة النخيل في عنيزة -يبعد عن عنيزة مول 10-15 دقيقة-المسرح الروماني 10 دقائق-المطار 45دقيقة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Nakhil",
+        "openingYear": "2011",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "يقع على شارع الحمراء – حي الحمراء، قريب من جادة النخيل والمزارع."
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966163637121"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            31
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            106
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            25
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-maydan",
+    "name": "بودل الميدان",
+    "city": "حفر الباطن",
+    "brand": "Boudl",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "9:00am-6:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "قريب من مول حفر الباطن التجاري والمطاعم والمقاهي في وسط المدينة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Maydan",
+        "openingYear": "2011",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "أطفال فقط",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "مدينة حفر الباطن - طريق الملك عبدالعزيز – حي الخالدية"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966137293737"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            32
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            144
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            32
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-moaz",
+    "name": "بودل المصيف",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ]
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Masif",
+        "openingYear": "2011",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": ""
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966114559841"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            33
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-malaz",
+    "name": "بودل الملز",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "9:00 am-6:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "يقع وسط مدينة الرياض -يتواجد بالقرب من حديقة حيوان الرياض-استاد الأمير فيصل بن فهد(استاد الملز)\nمناسب للعوائل والاقامات القصيره"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Malaz",
+        "openingYear": "2011",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "وسط الرياض\nحي الملز-تقاطع شارع الاحساء مع شارع فاطمة الزهراء"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112063050"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            34
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            23,
+            24
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            10
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-makkah",
+    "name": "بودل مكة أجياد",
+    "city": "مكة المكرمة",
+    "brand": "Boudl",
+    "region": "الغربية",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "غير متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        "غير متوفر"
+      ],
+      "overview": "يبعد عن المسجد الحرام 2-3 كيلو,يتواجد فيه باصات ترددية من والى الحرم مع أوقات الصلاة وكل 30 دقيقة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Makkah Ajiad",
+        "openingYear": "2023",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "غير متوفر",
+        "address": "مدينة مكة المكرمة-حي اجياد."
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966125506660",
+        "+966125508880"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            35
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            92
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            24
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-majmaa",
+    "name": "بودل المجمعة",
+    "city": "المجمعة",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "9:00am-6:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "مواقف داخلي",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "يقع بالقرب من جامعة المجمعة على بعد 5 دقائق وعن مدينة الأمير سلمان الرياضية زالقرب من حديقة الواحة الجبلية ,يبعد عن قطار المجمعة- الرياض 10الى 16 دقائق"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Majmmaa",
+        "openingYear": "2013",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "طريق الملك عبدالعزيز الرئيسي"
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966164211780"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            36
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            27
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-mahayel",
+    "name": "بودل محايل عسير",
+    "city": "عسير",
+    "brand": "Boudl",
+    "region": "الجنوبية",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ]
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Mahayel Asir",
+        "openingYear": "2015",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": ""
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966172855549"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            37
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            34
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-khamis",
+    "name": "بودل خميس مشيط",
+    "city": "خميس مشيط",
+    "brand": "Boudl",
+    "region": "الجنوبية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "8:00am-11:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "يقع بالقرب من عسير مول 5دقائق -الراشد مول حوالي 15 دقيقه-قريب من مطار ابها الدولي 15 دقيقه"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Khamis Mushait",
+        "openingYear": "2023",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "متوفر",
+        "poolAudience": "نساء فقط",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "خميس مشيط-حي النسيم -طريق الملك فهد"
+      },
+      "connectingRoomTypes": [
+        "جونيور سويت+ستاندردking",
+        "غرفتين شالية المسبح داخل الغرف"
+      ],
+      "receptionPhones": [
+        "+966546841665",
+        "+966172240152"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            38
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            126
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            35,
+            36
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-jubail",
+    "name": "بودل الجبيل",
+    "city": "الجبيل",
+    "brand": "Boudl",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "8:00am-8:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "يطل على المارينا والبحر مباشرة. في منطقه الفناتير\nيسهُل الوصول منه إلى الخدمات والمرافق الصناعية والسكنية داخل المدينة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Jubail",
+        "openingYear": "2018",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "الشرقية -الجبيل- الفناتير\nمدينة الجبيل الصناعية"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966133454930"
+      ],
+      "warnings": [
+        "رقم الاستقبال: يختلف الشيت الجديد عن دليل الأرقام؛ الأرقام الإضافية موسومة بمصدرها."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            39
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            76,
+            77
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            20
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-gardenia",
+    "name": "بودل جاردينيا",
+    "city": "الخبر",
+    "brand": "Boudl",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "9:00am-7:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "مواقف داخلي",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "يبعد حوالي 3–4 كم عن كورنيش الخبر، أي قريب بالسيارة من البحر لكن لا يطل مباشرة على البحر. قريب من سوبرماركت التميمي، طريق الظهران السريع، مركز الراشد، وكورنيش الخبر."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Gardenia",
+        "openingYear": "2011",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "مدينة الخبر - حي العقربية على شارع الأمير حمود بن عبد العزيز"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966138993000"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            40
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            75
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            17
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-jaber",
+    "name": "بودل جابر",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "يقع شرق الرياض بالقرب من استاد الملك فهد الدولي -جامعه الأمير نايف للعلوم الأمنية-يبعد عن مطار الملك خالد الدولي 40 دقيقة-اقرب محطة مترو الخليج5-7 دقائق."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Gaber",
+        "openingYear": "2016",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "غير متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "غير متوفر",
+        "extraBedFee": "",
+        "babyCot": "غير متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "شرق الرياض حي الخليج- شارع الشيخ جابر الأحمد الصباح"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112319221"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            41
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            25
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            12
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-fayha",
+    "name": "بودل الفيحاء",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "9:00am-6:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "يقع بالقرب من مخرج 15 على طريق الدايري الشرقي ,\nعلى طريق هارون الرشيد، وطريق الامام احمد بن حنبل بالقرب من مسجد الراجحي يبعد 10 دقائق ,قريب من الخدمات والأسواق، ومنطقة هادئة.\nخيار اقتصادي"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Fayha",
+        "openingYear": "2011",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "غير متوفر",
+        "extraBedFee": "",
+        "babyCot": "غير متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "شرق الرياض\nحي الفيحاء – طريق هارون الرشيد"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112424500"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            42
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            18,
+            19,
+            20
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            13
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-fakhreyah",
+    "name": "بودل الفاخرية",
+    "city": "عنيزة",
+    "brand": "Boudl",
+    "region": "القصيم",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "8:ooam_6:00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "غير متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "حي الفاخريّة، قريب من وسط المدينة والأسواق.ويبعد عن بيت البسام التراثي 5 دقائق,مول عنيزة والأسواق التجارية 15 دقيقة.المطار 35 دقيقة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Fakhreyah",
+        "openingYear": "2013",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "غير متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "مدينة عنيزة-يقع في حي الفاخريّة-شارع زامل بن عبدالله السليم-"
+      },
+      "connectingRoomTypes": [
+        "غرفتين وصالة+غرفة ستاندرد",
+        "غرفة وصالة+غرفة ستاندرد"
+      ],
+      "receptionPhones": [
+        "+966163216555"
+      ],
+      "warnings": [
+        "وقت المسبح: 8:ooam_6:00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            43
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            108
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            26,
+            27
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-fahahil",
+    "name": "بودل الفحيحيل",
+    "city": "الفحيحيل",
+    "brand": "Boudl",
+    "region": "الكويت",
+    "fields": {
+      "poolInfo": "",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "بالقرب من كورنيش الفحيحيل جلسات مطلة عالبحر-مجمع الكوت مول -"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Fahahil",
+        "openingYear": "2012",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "الكويت -محافظة الاحمدي-شارع الخليج العربي"
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+96523922507",
+        "+96523922506"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            44
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            137
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-cornish",
+    "name": "بودل الكورنيش",
+    "city": "الدمام",
+    "brand": "Boudl",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ]
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Cornish",
+        "openingYear": "2019",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "غير متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": ""
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966138021274"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            45
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            19
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-burayda",
+    "name": "بودل بريدة",
+    "city": "بريدة",
+    "brand": "Boudl",
+    "region": "القصيم",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "9:00am-6:00pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "قريب من المراكز التجارية,النخيل مول 10 دقيقة-يبعد عن مطار الأمير نايف بن عبدالعزيز حوالي20 دقيقة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Buraydah",
+        "openingYear": "2011",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "مدينة بريدة -حي الحزم-يقع على طريق عمر بن الخطاب – حي الراشديات"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966163810919"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            46
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            104
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            29
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-sulaimaniyah",
+    "name": "بودل السليمانية",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "غير متوفر",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "على شارع الأمير مساعد بن عبدالعزيز (الضباب)، قريب من مستشفى الأمير سلطان العسكري، يبعد 9 دقائق من مدينة الملك فهد الطبية ,, ويبعد عن مستشفى قوى الامن 10 دقائق وبالقرب من شارع التحلية والمطاعم.\nموقع مركزي وحيوي"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl ALSulaimanyah",
+        "openingYear": "2022",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "وسط الرياض\nحي السليمانية – شارع الأمير مساعد بن عبدالعزيز (الضباب)"
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966112227900"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            47
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            10,
+            11
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-mounsiya",
+    "name": "بودل المونسية",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "لا يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "على طريق الثمامة مباشرة، قريب من محطة قطار سار ومقابل IKEA Riyadh، وقريب من واجهة الرياض ومطار الملك خالد. يقع بجانب عابر المونسية.\nموقع حيوي للمسافرين والفعاليات."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl ALMounsiyah",
+        "openingYear": "2016",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "شرق الرياض\nحي المونسية – طريق الثمامة"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966118103725"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            48
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            6,
+            7
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            7
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-wadi",
+    "name": "بودل الوادي",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "غير متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "على طريق عثمان بن عفان، قريب من النخيل مول والمجمعات التجارية.يبعد عن بريرا النخيل 6 دقائق\nمناسب للتسوق"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl AL Wadi",
+        "openingYear": "2019",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "شمال الرياض\nحي الوادي – طريق عثمان بن عفان"
+      },
+      "connectingRoomTypes": [
+        "شقه غرفتين وصاله +شقة غرفتين وصالة يربطهم باب"
+      ],
+      "receptionPhones": [
+        "+966112500010"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            49
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            16,
+            17
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            15
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-abha",
+    "name": "بودل أبها",
+    "city": "أبها",
+    "brand": "Boudl",
+    "region": "الجنوبية",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "يقع بجانب ابها مول يتواجد بالقرب من الخدمات المطاعم والكوفيهات,حديقة الشلال تبعد 5 دقائق مشي ,اقريب من لتلفريك 5-10 دقائق مشي,بالقرب من سوق الثلاثاء-قصر شدا الاثري -المدينةالثقافية بأبها ."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Abha",
+        "openingYear": "2011",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "مدينة ابها-حي الشرفية-طريق الملك عبدالعزيز-"
+      },
+      "connectingRoomTypes": [
+        "غرفة وصالة+غرفة وصالة"
+      ],
+      "receptionPhones": [
+        "+966172322222"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            50
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            125
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            33
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-sahafa",
+    "name": "بودل الصحافة",
+    "city": "الرياض",
+    "brand": "Boudl",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "10am-10pm",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "على طريق أنس بن مالك، قريب من طريق الملك فهد، وحولك كافيهات ومطاعم كثيرة.\nشمال الرياض – راقٍ وهادئ"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Boudl Sahafa",
+        "openingYear": "2018",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "شمال الرياض\nحي الصحافة – طريق أنس بن مالك"
+      },
+      "connectingRoomTypes": [
+        "جونيور سويت+جناح تنفيذي وسوبيورtwin+سوبوريورking"
+      ],
+      "receptionPhones": [
+        "+966114107033",
+        "+966114107022"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            51
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            14,
+            15
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            9
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aber-uniza",
+    "name": "عابر عنيزة",
+    "city": "عنيزة",
+    "brand": "Aber",
+    "region": "القصيم",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 10:30 am",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "قريب من عنيزة مول وسوق المسوكف ومناطق الفعاليات حسب المواسم-مطار الأمير نايف يبعد40 دقيقة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Aber Uniza",
+        "openingYear": "2019",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 10:30 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "عنيزة- حي الأشرفية – تقاطع شارع سلطان عبدالعزيز"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966163632785",
+        "+966163632629"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            52
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            111,
+            115
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            41
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aber-khamis",
+    "name": "عابر خميس مشيط",
+    "city": "خميس مشيط",
+    "brand": "Aber",
+    "region": "الجنوبية",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة خارجي",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 10:30 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "بالقرب من مستشفى الحياة الوطني-يبعج عن بودل خميس مشيط 5 دقائق -قريب من عسير مول."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Aber Kamis Mushait",
+        "openingYear": "2020",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 10:30 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "مدينة خميس مشيط-طريق الملك فهد"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966509150191"
+      ],
+      "warnings": [
+        "رقم الاستقبال: يختلف الشيت الجديد عن دليل الأرقام؛ الأرقام الإضافية موسومة بمصدرها."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            53
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            131
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            44
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aber-city-center",
+    "name": "عابر سيتي سنتر",
+    "city": "حفر الباطن",
+    "brand": "Aber",
+    "region": "الشرقية",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة خارجي",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "قريب من وسط المدينة، سوق حفر الباطن، بودل لاند الترفيهية وحديقة أبو موسى الأشعري، يبعد عن بودل 4 دقائق وعن بريرا حفر الباطن 2 دقيقة موقع مركزي ومناسب للإقامة."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Aber City Center",
+        "openingYear": "2020",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "مدينة حفر الباطن - شارع الملك عبد العزيز، حي أبو موسى الأشعري"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966137239361"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            54
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            148
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            42
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "boudl-bani-amro",
+    "name": "عابر بني عمرو",
+    "city": "عسير",
+    "brand": "Aber",
+    "region": "الجنوبية",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "لا يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ]
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Aber Bani Amrro",
+        "openingYear": "2020",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": ""
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966172820001"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            55
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            45
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aber-yasmin",
+    "name": "عابر الياسمين",
+    "city": "الرياض",
+    "brand": "Aber",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "9:00am-6:00pm",
+      "coffeeShopInfo": "لا يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "على طريق أنس بن مالك، .يقع بجانب مخازن العناية ,,يبعد 20د من واجهة روشن يبعد عن عابر الصحافة اقل من 5 دقائق\nمناسب للعوائل"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Aber ALYasmain",
+        "openingYear": "2017",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "شمال الرياض\nحي الياسمين – طريق أنس بن مالك"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112114980",
+        "+966113114981"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            56
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            33,
+            34
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            37
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aber-sahafa",
+    "name": "عابر الصحافة",
+    "city": "الرياض",
+    "brand": "Aber",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "9:00am-6:00pm",
+      "coffeeShopInfo": "لا يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "على طريق أنس بن مالك، قريب من طريق الملك فهد، يبعد 4دقائق عن بودل الصحافة وبالقرب من المطاعم والكافيهات.يبعد عن عابر الياسمين اقل من 5 دقائق .\nموقع عملي"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Aber ALSahafa",
+        "openingYear": "2017",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "شمال الرياض\nحي الصحافة – طريق أنس بن مالك"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112270093"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            57
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            31,
+            32
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            38
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aber-takhassusi",
+    "name": "عابر التخصصي",
+    "city": "الرياض",
+    "brand": "Aber",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "24 ساعة",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "غير متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · منيو خدمة الغرف",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "على طريق التخصصي مباشرة، يبعد عن مستشفى الملك فيصل التخصصي 5 دقائق والجهات الحكومية.\nموقع مركزي مهم"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Aber AL Takhsussi",
+        "openingYear": "2020",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "منيو خدمة الغرف",
+        "restaurantType": "خدمة غرف",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "وسط الرياض\nطريق التخصصي"
+      },
+      "connectingRoomTypes": [
+        "ستاندرد king+ستاندردtwin"
+      ],
+      "receptionPhones": [
+        "+966112163900"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            58
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            35,
+            36
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            40
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aber-mounsiya",
+    "name": "عابر المونسية",
+    "city": "الرياض",
+    "brand": "Aber",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "متوفر",
+      "poolHours": "9:00-6;00",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة قبو",
+      "kidsSectionInfo": "متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "على طريق الثمامة، قريب من المطار وواجهة الرياض، وفي منطقة حديثة.يقع جانب بودل المونسية يقع بالقرب من بارك افنيو مول.\nمناسب للمسافرين"
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Aber AL Munsiyah",
+        "openingYear": "2019",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "رجال وأطفال",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "شرق الرياض\nحي المونسية – طريق الثمامة"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966112637693"
+      ],
+      "warnings": [
+        "وقت المسبح: 9:00-6;00؛ الفترة صباحًا أو مساءً غير واضحة في الشيت."
+      ],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            59
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            37,
+            38
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            39
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "aber-abha",
+    "name": "عابر أبها",
+    "city": "أبها",
+    "brand": "Aber",
+    "region": "الجنوبية",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة عام",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "متوفر",
+      "gymInfo": "متوفر",
+      "gymHours": "",
+      "balconyInfo": "متوفر",
+      "breakfastInfo": "متوفر · 06:30 am - 10:30 am",
+      "hallPackages": [
+        "اجتماعات: متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ],
+      "overview": "يقع بالقرب من عسير مول 5دقائق- مطار ابها الدولي 10 دقائق -منتزه عسير الوطني-سد ابها 10 دقائق-التلفريك 15 دقيقه ."
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Aber Abha",
+        "openingYear": "2020",
+        "stars": "⭐⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "06:30 am - 10:30 am",
+        "restaurantType": "بوفيه",
+        "view": "متوفر",
+        "poolAudience": "",
+        "smokingRooms": "غير متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "57.5 (القيمة في الشيت؛ العملة وشمول الضريبة يحتاجان تأكيدًا من الفرع)",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": "مدينة ابها-طريق الملك فهد"
+      },
+      "connectingRoomTypes": [
+        "لا يوجد"
+      ],
+      "receptionPhones": [
+        "+966172740880"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            60
+          ]
+        },
+        {
+          "sheet": "وصف الفنادق والمعالم الأقرب",
+          "rows": [
+            130
+          ]
+        },
+        {
+          "sheet": "غرف الكونكت للفنادق وأنواعها",
+          "rows": [
+            43
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "zamn-riyadh",
+    "name": "زمن",
+    "city": "الرياض",
+    "brand": "Z'MN",
+    "region": "الوسطى",
+    "fields": {
+      "poolInfo": "غير متوفر",
+      "poolHours": "",
+      "coffeeShopInfo": "يوجد",
+      "restaurantInfo": "متوفر",
+      "parkingInfo": "موقف سيارة خارجي",
+      "kidsSectionInfo": "غير متوفر",
+      "jacuzziInfo": "غير متوفر",
+      "spaInfo": "غير متوفر",
+      "spaHours": "",
+      "laundryInfo": "متوفر",
+      "outdoorSeatingInfo": "غير متوفر",
+      "gymInfo": "غير متوفر",
+      "gymHours": "",
+      "balconyInfo": "غير متوفر",
+      "breakfastInfo": "متوفر · 07:00 am - 11:00 am",
+      "hallPackages": [
+        "اجتماعات: غير متوفر\nمؤتمرات: غير متوفر\nمناسبات: غير متوفر",
+        ""
+      ]
+    },
+    "workbook": {
+      "sourceName": "معلومات الفنادق اخر نسخه(1).xlsx",
+      "importedOn": "2026-09-18",
+      "facts": {
+        "englishName": "Zamn",
+        "openingYear": "2026",
+        "stars": "⭐⭐",
+        "checkIn": "14:00",
+        "checkOut": "12:00",
+        "earlyCheckIn": "متوفر حسب الامكانية",
+        "breakfastHours": "07:00 am - 11:00 am",
+        "restaurantType": "بوفيه",
+        "view": "غير متوفر",
+        "poolAudience": "",
+        "smokingRooms": "متوفر",
+        "connectingRooms": "غير متوفر",
+        "extraBed": "متوفر",
+        "extraBedFee": "",
+        "babyCot": "متوفر",
+        "airportTransfer": "غير متوفر",
+        "meetingRooms": "غير متوفر",
+        "conferenceHall": "غير متوفر",
+        "eventHall": "غير متوفر",
+        "weddingPackage": "",
+        "address": ""
+      },
+      "connectingRoomTypes": [],
+      "receptionPhones": [
+        "+966549427334"
+      ],
+      "warnings": [],
+      "references": [
+        {
+          "sheet": "قاعدة البيانات",
+          "rows": [
+            61
+          ]
+        }
+      ]
+    }
+  }
+]

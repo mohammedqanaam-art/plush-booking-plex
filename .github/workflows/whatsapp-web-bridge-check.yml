@@ -1,0 +1,31 @@
+name: WhatsApp Web Bridge Check
+
+on:
+  pull_request:
+    paths:
+      - 'services/whatsapp-web-bridge/**'
+      - '.github/workflows/whatsapp-web-bridge-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/whatsapp-web-bridge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: services/whatsapp-web-bridge/package.json
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: Syntax check
+        run: node --check src/server.mjs
+      - name: Dependency tree
+        run: npm ls --depth=0

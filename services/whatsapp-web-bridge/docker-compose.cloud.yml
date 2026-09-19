@@ -1,0 +1,24 @@
+services:
+  whatsapp-web-bridge:
+    image: ghcr.io/mohammedqanaam-art/bhg-whatsapp-web-bridge:latest
+    container_name: bhg-whatsapp-web-bridge
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      BRIDGE_TOKEN: ${BRIDGE_TOKEN}
+      N8N_INBOUND_URL: ${N8N_INBOUND_URL}
+      WA_PHONE_NUMBER: ${WA_PHONE_NUMBER}
+      WA_AUTH_DIR: /data/auth
+      ALLOW_GROUPS: ${ALLOW_GROUPS:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MODEL_API_KEY: ${MODEL_API_KEY:-}
+      MODEL_BASE_URL: ${MODEL_BASE_URL:-https://api.meta.ai/v1}
+      MODEL_NAME: ${MODEL_NAME:-muse-spark-1.2}
+      MODEL_REASONING_EFFORT: ${MODEL_REASONING_EFFORT:-high}
+    volumes:
+      - whatsapp_auth:/data/auth
+
+volumes:
+  whatsapp_auth:

@@ -1,0 +1,93 @@
+import { useEffect, useState } from "react";
+import { Lock } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getAdminSession } from "@/lib/adminAuth";
+import { api } from "@/lib/api";
+import PageHeader from "@/components/PageHeader";
+import RegistrationForm from "@/components/RegistrationForm";
+
+const AdminLogin = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const requestedPath = (location.state as { from?: unknown } | null)?.from;
+  const returnTo = typeof requestedPath === "string"
+    && requestedPath.startsWith("/")
+    && !requestedPath.startsWith("//")
+    && requestedPath !== "/admin/login"
+    ? requestedPath
+    : "/admin";
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [registering, setRegistering] = useState(false);
+
+  useEffect(() => {
+    if (getAdminSession()) {
+      navigate(returnTo, { replace: true });
+    }
+  }, [navigate, returnTo]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await api.login(username, password);
+      navigate(returnTo, { replace: true });
+    } catch {
+      setError("تعذر الدخول. تحقق من البيانات ومن تفعيل الحساب لدى مدير النظام.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="page-wrap-narrow">
+      <PageHeader title="الدخول إلى مساحة العمل" icon={Lock} />
+
+      {registering ? <RegistrationForm onBack={() => setRegistering(false)} /> : <div className="glass-card p-8 text-center space-y-4">
+        <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+          <Lock className="w-8 h-8 text-primary" />
+        </div>
+        <h3 className="text-lg font-semibold">دخول الموظفين والمشرفين</h3>
+        <p className="mx-auto max-w-sm text-xs leading-6 text-muted-foreground">المساعد التشغيلي وتقارير الموظفين وبنك الإجراءات متاحة للحسابات المخولة فقط.</p>
+
+        <form onSubmit={handleSubmit} className="space-y-3 pt-2">
+          <input
+            type="text"
+            placeholder="البريد الإلكتروني أو اسم المستخدم"
+            aria-label="البريد الإلكتروني أو اسم المستخدم"
+            autoComplete="username"
+            dir="ltr"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            className="w-full max-w-sm mx-auto h-11 px-4 rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm block"
+          />
+          <input
+            type="password"
+            placeholder="كلمة المرور"
+            aria-label="كلمة المرور"
+            autoComplete="current-password"
+            dir="ltr"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="w-full max-w-sm mx-auto h-11 px-4 rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm block"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full max-w-sm mx-auto h-11 rounded-lg gold-gradient text-primary-foreground font-semibold text-sm block disabled:opacity-50"
+          >
+            {loading ? "جاري التحقق..." : "تسجيل الدخول"}
+          </button>
+        </form>
+
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        <button onClick={() => setRegistering(true)} className="w-full max-w-sm h-11 rounded-lg border text-primary font-semibold">طلب تسجيل حساب جديد</button>
+      </div>}
+    </div>
+  );
+};
+
+export default AdminLogin;
