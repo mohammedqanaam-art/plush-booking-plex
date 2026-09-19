@@ -1,84 +1,28 @@
 [build]
-  command = "bash scripts/netlify-setup-ssh.sh && npm run build"
-  publish = "dist"
-
-[build.environment]
-  NETLIFY_NEXT_PLUGIN_SKIP = "true"
-  NODE_VERSION = "22"
-
+command = "echo 'Closed static website'"
+publish = "closed"
 [functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Content-Type-Options = "nosniff"
-    X-Frame-Options = "DENY"
-    X-DNS-Prefetch-Control = "off"
-    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
-    Cross-Origin-Opener-Policy = "same-origin"
-    Cross-Origin-Resource-Policy = "same-site"
-    Origin-Agent-Cluster = "?1"
-    X-Permitted-Cross-Domain-Policies = "none"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; manifest-src 'self'; upgrade-insecure-requests"
-
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/admin/*"
-  [headers.values]
-    Cache-Control = "private, no-store, max-age=0, must-revalidate"
-    Pragma = "no-cache"
-    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
-
-[[headers]]
-  for = "/assistant"
-  [headers.values]
-    Cache-Control = "private, no-store, max-age=0, must-revalidate"
-    Pragma = "no-cache"
-    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
-
-[[headers]]
-  for = "/operations"
-  [headers.values]
-    Cache-Control = "private, no-store, max-age=0, must-revalidate"
-    Pragma = "no-cache"
-    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
-
-[[headers]]
-  for = "/booking-reports"
-  [headers.values]
-    Cache-Control = "private, no-store, max-age=0, must-revalidate"
-    Pragma = "no-cache"
-    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
-
-[[headers]]
-  for = "/knowledge-bank"
-  [headers.values]
-    Cache-Control = "private, no-store, max-age=0, must-revalidate"
-    Pragma = "no-cache"
-    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
-
-[[headers]]
-  for = "/workplace"
-  [headers.values]
-    Cache-Control = "private, no-store, max-age=0, must-revalidate"
-    Pragma = "no-cache"
-    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
-
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Cache-Control = "private, no-store, max-age=0"
-    Pragma = "no-cache"
-
+directory = "disabled-functions"
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+from = "/api/*"
+to = "/index.html"
+status = 404
+force = true
+[[redirects]]
+from = "/.netlify/functions/*"
+to = "/index.html"
+status = 404
+force = true
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+force = true
+[[headers]]
+for = "/*"
+[headers.values]
+Cache-Control = "no-store, max-age=0"
+X-Robots-Tag = "noindex, nofollow, noarchive"
+X-Content-Type-Options = "nosniff"
+X-Frame-Options = "DENY"
+Content-Security-Policy = "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
