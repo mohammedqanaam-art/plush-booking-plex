@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 describe("app shell and web app metadata", () => {
-  it("enables app-like metadata in index.html", () => {
+  it("publishes Madareem app metadata without carrying over BHG identity", () => {
     const html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
 
     expect(html).toContain('<html lang="ar" dir="rtl">');
@@ -11,17 +11,21 @@ describe("app shell and web app metadata", () => {
     expect(html).toContain('<link rel="manifest" href="/manifest.json">');
     expect(html).toContain('name="apple-mobile-web-app-capable" content="yes"');
     expect(html).toContain('name="apple-mobile-web-app-status-bar-style" content="default"');
-    expect(html).toContain('name="theme-color" content="#F5F5F7"');
-    expect(html).toContain('<title>داش بورد الحجز المركزي</title>');
-    expect(html).toContain('property="og:title" content="داش بورد الحجز المركزي"');
-    expect(html).toContain('property="og:site_name" content="مجموعة بودل للضيافة"');
-    expect(html).toContain('property="og:image" content="https://www.res-dashbord.com/bhg-hospitality-group.jpg?v=20260716"');
+    expect(html).toContain('name="theme-color" content="#142e3a"');
+    expect(html).toContain('<title>مداريم الرياض | دليل موظف الكول سنتر</title>');
+    expect(html).toContain('property="og:site_name" content="دليل مداريم للحجز"');
+    expect(html).not.toMatch(/بودل|BHG|res-dashbord|res-bhg/i);
     expect(html).not.toContain("Worm-AI");
     expect(html).not.toContain("Lovable");
 
-    const manifest = fs.readFileSync(path.join(process.cwd(), "public/manifest.json"), "utf8");
-    expect(manifest).toContain('"background_color": "#F5F5F7"');
-    expect(manifest).toContain('"theme_color": "#F5F5F7"');
+    const manifest = JSON.parse(fs.readFileSync(path.join(process.cwd(), "public-madareem/manifest.json"), "utf8"));
+    expect(manifest.name).toContain("مداريم");
+    expect(manifest.display).toBe("standalone");
+    expect(manifest.theme_color).toBe("#142e3a");
+    expect(JSON.stringify(manifest)).not.toMatch(/بودل|BHG|res-dashbord|res-bhg/i);
+    for (const icon of manifest.icons) {
+      expect(fs.existsSync(path.join(process.cwd(), "public-madareem", icon.src))).toBe(true);
+    }
   });
 
   it("defines safe-area and app-shell utilities", () => {

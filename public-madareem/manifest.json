@@ -1,0 +1,12 @@
+{
+  "name": "مداريم الرياض | دليل موظف الكول سنتر",
+  "short_name": "دليل مداريم",
+  "description": "معلومات فندق مداريم لموظف الحجز",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f6f8",
+  "theme_color": "#142e3a",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
