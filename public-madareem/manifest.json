@@ -8,5 +8,5 @@
   "theme_color": "#142e3a",
   "dir": "rtl",
   "lang": "ar",
-  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "icons": [{ "src": "/madareem-icon-192.jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "any" }]
 }

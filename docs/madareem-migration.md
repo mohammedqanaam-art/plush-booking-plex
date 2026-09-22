@@ -21,7 +21,15 @@ The Madareem entry point does not import the BHG application, analytics, theme l
 
 Existing BHG source files are preserved in the repository history and checkout; they are not part of the Madareem browser bundle. This project contains no live connection to Madareem's reservation system, no transferred employee accounts and no fabricated booking statistics.
 
-The existing BHG production site is not to be replaced merely to demonstrate this migration. Use a draft deploy or deploy preview for review. A future production cutover must explicitly choose the destination domain and the required operational features; the guide alone does not replace booking, authentication or reporting systems.
+On 2026-09-22, the owner requested replacing the existing site's Boudl identity and information with Madareem. This change is prepared for production on the existing domain. The published experience is the single-hotel call-center information guide; it does not connect to a live reservation system.
+
+## Official branding
+
+The sidebar, mobile header, browser icon and home-screen icon use the hotel's own unmodified assets, downloaded from its official homepage on 2026-09-22. They are served locally so the site's content-security policy can remain unchanged.
+
+- Logo: https://hotelmadareem.com/wp-content/uploads/2020/03/Website-Logo.png
+- Browser/app icon: https://hotelmadareem.com/wp-content/uploads/2026/03/cropped-favicon4-192x192.jpg
+- Apple home-screen icon: https://hotelmadareem.com/wp-content/uploads/2026/03/cropped-favicon4-180x180.jpg
 
 ## Information required from hotel operations
 
