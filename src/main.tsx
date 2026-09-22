@@ -1,12 +1,6 @@
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
+import App from "./madareem/MadareemApp";
 import AppErrorBoundary from "./components/AppErrorBoundary";
-import "./index.css";
-import "./styles/boudlExecutiveTheme.css";
-import "./styles/bhg2026.css";
-import "./styles/admin2026.css";
-import "./styles/visitorChat.css";
-import "./styles/bhgDamask.css";
 
 createRoot(document.getElementById("root")!).render(
   <AppErrorBoundary>
