@@ -1,5 +1,5 @@
 [build]
-  command = "bash scripts/netlify-setup-ssh.sh && npm run build"
+  command = "npm run build"
   publish = "dist"
 
 [build.environment]
@@ -7,7 +7,7 @@
   NODE_VERSION = "22"
 
 [functions]
-  directory = "netlify/functions"
+  directory = "netlify/madareem-functions"
   node_bundler = "esbuild"
 
 [[headers]]
