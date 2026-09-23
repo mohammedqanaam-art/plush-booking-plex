@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpLeft, BedDouble, BookOpen, CalendarClock, Check, CheckCheck, ChevronLeft, CircleHelp, ClipboardList, Copy, ExternalLink, FileCheck2, LayoutGrid, MapPin, Menu, Phone, Search, ShieldCheck, Table2, Users, UtensilsCrossed, Waves, X } from "lucide-react";
 import { contacts, facts, halls, official, reviewedAt, rooms, searchFacts, sourceList, type Fact, type Section } from "./data";
+import { protocols, roomChecks } from "./supplement";
 import "./madareem.css";
+import "./luxury.css";
 
 const sections: { id: Section; label: string; icon: typeof BookOpen }[] = [
   { id: "overview", label: "دليل الموظف", icon: BookOpen },
@@ -10,6 +12,7 @@ const sections: { id: Section; label: string; icon: typeof BookOpen }[] = [
   { id: "services", label: "المرافق والخدمات", icon: Waves },
   { id: "halls", label: "القاعات والمناسبات", icon: Users },
   { id: "policies", label: "سياسات الإقامة", icon: ShieldCheck },
+  { id: "protocol", label: "دليل المكالمة", icon: ClipboardList },
   { id: "contacts", label: "دليل الاتصال", icon: Phone },
   { id: "review", label: "المصادر والاعتماد", icon: FileCheck2 },
 ];
@@ -75,7 +78,7 @@ export default function MadareemApp() {
       {fact.hours && <div className="md-time"><CalendarClock size={17} /><span>{fact.hours}</span></div>}
       {fact.extension && <div className="md-extension"><span>تحويلة القسم</span><b dir="ltr">{fact.extension}</b></div>}
       {fact.note && <p className="md-note">{fact.note}</p>}
-      <div className="md-card-foot"><Source source={fact.source} /><CopyButton text={copyText} id={fact.id} /></div>
+      <div className="md-card-foot"><>{fact.section === "protocol" ? <span className="md-pending">إرشاد وصياغة مقترحة</span> : <Source source={fact.source} />}</><CopyButton text={copyText} id={fact.id} /></div>
     </article>;
   }
 
@@ -87,6 +90,7 @@ export default function MadareemApp() {
       <div className="md-bed"><BedDouble size={18} />{r.bed}</div>
       <p className="md-room-desc">{r.features}</p>
       {r.note && <p className="md-note">{r.note}</p>}
+      <details className="md-room-details"><summary>أسئلة التأكيد قبل الحجز</summary><ul>{roomChecks[r.id]?.map(x => <li key={x}>{x}</li>)}</ul><p>عدد وحدات هذه الفئة يُراجع مع الفندق.</p></details>
       <div className="md-card-foot"><Source source={r.source} label="تفاصيل الفئة" /><CopyButton text={`${r.name} (${r.english}): ${r.area} م²، السعة المنشورة ${adultText(r.adults)}. ${r.bed}. ${r.features}${r.note ? ` ${r.note}` : ""}`} id={r.id} /></div>
     </article>)}</div>;
   }
@@ -117,6 +121,8 @@ export default function MadareemApp() {
 
         {isSearching ? <section aria-label="نتائج البحث"><div className="md-section-head"><h2>نتائج البحث</h2><span role="status">{results.length} نتيجة</span></div>{results.length ? <div className="md-fact-grid">{results.map(f => <FactCard fact={f} key={f.id} />)}</div> : <div className="md-empty"><Search size={34} /><h2>لا توجد معلومة مطابقة</h2><p>جرّب كلمة أقصر مثل «إفطار» أو «مسبح». للمعلومة غير المنشورة، ارجع إلى الفندق.</p><button onClick={() => navigate("review")}>عرض المعلومات المطلوب اعتمادها</button></div>}</section> : <>
           {section === "overview" && <>
+            <section className="md-hotel-cover" aria-label="بطاقة فندق مداريم"><div className="md-cover-copy"><span className="md-cover-kicker">MADAREEM HOTEL · RIYADH</span><h2>فندق مداريم</h2><p>الفلاح · طريق المطار · مخرج 8</p><div className="md-cover-facts"><span>4 نجوم وفق موقع الفندق</span><span>25,000 م² تقريبًا</span></div><a href="tel:+966112758888" dir="ltr"><Phone size={18} />011 275 8888</a></div><figure><img src="/madareem-night.jpg" alt="فندق مداريم مساءً — صورة من موقع الفندق الرسمي" width="900" height="600" /><figcaption><a href={`${official}/about-us/`} target="_blank" rel="noreferrer">صورة ومعلومات الفندق الرسمية <ExternalLink size={12} /></a></figcaption></figure></section>
+
             <div className="md-stats"><article className="md-stat md-stat-primary"><span>إجمالي وحدات الإقامة</span><strong>180<BedDouble size={30} /></strong><small>غرف وأجنحة وفلل <Source source="/about-us/" label="المصدر" /></small></article><article className="md-stat"><span>فئات الإقامة المنشورة</span><strong>11<LayoutGrid size={26} /></strong><small>4 غرف · 5 أجنحة · فئتا فلل</small></article><article className="md-stat"><span>القاعات والمناسبات</span><strong>13<Users size={26} /></strong><small>سعات منشورة من 12 إلى 500 ضيف</small></article><article className="md-stat"><span>الدخول / المغادرة</span><strong className="md-stat-time" dir="ltr">14:00 <span>/</span> 12:00</strong><small>بتوقيت الرياض <Source source="/faq/" label="المصدر" /></small></article></div>
             <div className="md-overview-grid"><section className="md-panel"><div className="md-section-head"><h2>الأكثر استخدامًا في المكالمة</h2><span>وصول سريع</span></div><div className="md-shortcuts">{[{ q: "الإفطار", label: "وقت الإفطار", icon: UtensilsCrossed }, { q: "دخول مبكر", label: "الدخول المبكر", icon: CalendarClock }, { q: "سرير إضافي", label: "الأطفال والأسرة", icon: BedDouble }, { q: "الإلغاء", label: "شروط الإلغاء", icon: ShieldCheck }, { q: "مسبح", label: "المسابح", icon: Waves }, { q: "تحويلة", label: "تحويلات الأقسام", icon: Phone }].map(x => <button onClick={() => setQuery(x.q)} key={x.q}><x.icon size={21} /><span>{x.label}</span><ChevronLeft size={16} /></button>)}</div></section><section className="md-call-note"><span className="md-tag"><ClipboardList size={16} />قبل تأكيد الحجز</span><h2>اسأل. تحقّق. ثم أكّد.</h2><ol><li>التواريخ، عدد البالغين وأعمار الأطفال.</li><li>الفئة، نوع السرير، الوجبات والطلبات الخاصة.</li><li>التوافر والسعر النهائي وشروط الحجز في النظام.</li></ol><span className="md-muted">تسلسل مقترح للمكالمة</span></section></div>
             <div className="md-section-head"><h2>بطاقة الفندق</h2><button onClick={() => navigate("contacts")}>دليل الاتصال<ChevronLeft size={16} /></button></div>
@@ -125,6 +131,8 @@ export default function MadareemApp() {
           </>}
 
           {section === "rooms" && <>
+            <section className="md-photo-banner"><img src="/royal-suite.jpg" alt="الجناح الملكي في فندق مداريم" loading="lazy" width="900" height="600" /><div><span className="md-eyebrow">ROOMS · SUITES · VILLAS</span><h2>اختَر الفئة على أساس احتياج الضيف</h2><p>قارن السعة والمساحة وتكوين الأسرة، ثم راجع تفاصيل الطلب قبل التأكيد.</p><a className="md-source" href={`${official}/royal-suite/`} target="_blank" rel="noreferrer">الصورة: الجناح الملكي <ExternalLink size={13} /></a></div></section>
+
             <div className="md-information"><BedDouble size={21} /><p><b>180 وحدة إجمالًا.</b> الأعداد التفصيلية لكل فئة غير منشورة. السعات أدناه للبالغين؛ تُراجع إضافة الأطفال والمرافقين مع الفندق.</p></div>
             <div className="md-filter-row"><div className="md-filters" aria-label="تصفية فئات الإقامة">{["الكل", "غرف", "أجنحة", "فلل"].map(g => <button key={g} aria-pressed={roomGroup === g} className={roomGroup === g ? "selected" : ""} onClick={() => setRoomGroup(g)}>{g}<span>{g === "الكل" ? rooms.length : rooms.filter(r => r.group === g).length}</span></button>)}</div><button className="md-view-toggle" onClick={() => setTableMode(!tableMode)}>{tableMode ? <LayoutGrid size={18} /> : <Table2 size={18} />}{tableMode ? "عرض البطاقات" : "جدول مقارنة"}</button></div>
             {tableMode ? <RoomTable /> : <RoomCards />}
@@ -132,14 +140,22 @@ export default function MadareemApp() {
           </>}
 
           {["dining", "services", "policies"].includes(section) && <>
+            {section === "dining" && <section className="md-photo-banner"><img src="/tropicana.jpg" alt="مطعم تروبيكانا في فندق مداريم" loading="lazy" width="900" height="600" /><div><span className="md-eyebrow">DINING AT MADAREEM</span><h2>المطاعم والمقاهي في مكان واحد</h2><p>أوقات الوجبات، نوع الجلسة، وتحويلة القسم لتأكيد طلب الضيف.</p><Source source="/restaurant/" label="الصورة: مطعم تروبيكانا" /></div></section>}
+
             <div className="md-information"><CircleHelp size={21} /><p>{section === "policies" ? "هذه السياسات العامة المنشورة. تُراجع شروط الحجز المحدد قبل تقديم التزام للضيف، خصوصًا الإلغاء والرسوم." : "المواعيد المنشورة بتوقيت الرياض، وقد تتغير في المواسم. أكّد التفاصيل الخاصة والرسوم مع القسم المعني."}</p></div>
             <div className="md-fact-grid">{facts.filter(f => f.section === section).map(f => <FactCard fact={f} key={f.id} />)}</div>
           </>}
 
           {section === "halls" && <>
+            <div className="md-fact-grid md-hall-intro">{facts.filter(f => f.section === "halls").map(f => <FactCard key={f.id} fact={f} />)}</div>
             <div className="md-information"><Users size={21} /><p><b>13 قاعة منشورة:</b> 11 للاجتماعات ومناسبات الأعمال، وقاعتان للزفاف. تُراجع السعة مع القسم حسب شكل الجلوس والتجهيزات.</p></div>
             <div className="md-table-wrap"><table className="md-table"><caption>قاعات الاجتماعات والزفاف</caption><thead><tr><th>القاعة</th><th>النوع</th><th>السعة حتى</th><th>التوزيع المنشور</th><th>المصدر</th></tr></thead><tbody>{halls.map(h => <tr key={h.english}><td><b>{h.name}</b><small lang="en">{h.english}</small></td><td>{h.wedding ? "زفاف ومناسبات" : "اجتماعات"}</td><td><b className="md-capacity">{h.capacity}</b> ضيف</td><td>{h.layout || "يُراجع مع القسم"}</td><td><Source source={h.wedding ? "/wedding/" : "/meeting-events/"} /></td></tr>)}</tbody></table></div>
             <div className="md-contact-strip"><div><h3>تنسيق الاجتماعات والمناسبات</h3><p>التاريخ، عدد الحضور، التوزيع، الضيافة والتجهيزات المطلوبة.</p></div><span>تحويلة <b dir="ltr">7744</b></span><a href="tel:+966505932876" dir="ltr">050 593 2876<Phone size={18} /></a></div>
+          </>}
+
+          {section === "protocol" && <>
+            <div className="md-information"><ClipboardList size={22} /><p>إرشادات وصياغات مقترحة لدعم المكالمة؛ ليست سياسات معتمدة من الفندق. اختر الحالة لعرض خطوات العمل والرد القابل للنسخ.</p></div>
+            <div className="md-protocol-grid">{protocols.map((p, i) => <details className="md-protocol" key={p.id} open={i === 0}><summary><span>{String(i + 1).padStart(2, "0")}</span><h2>{p.title}</h2><ChevronLeft size={18} /></summary><div className="md-protocol-body"><p>{p.intro}</p><ol>{p.steps.map(step => <li key={step}>{step}</li>)}</ol><div className="md-reply"><span>صياغة مقترحة للضيف</span><p>{p.reply}</p><CopyButton text={p.reply} id={`reply-${p.id}`} label="نسخ الرد" /></div></div></details>)}</div>
           </>}
 
           {section === "contacts" && <>
