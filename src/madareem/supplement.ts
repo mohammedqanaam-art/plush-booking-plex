@@ -46,4 +46,27 @@ export const protocols = [
   { id: "complaint", title: "استقبال شكوى ومتابعتها", intro: "استمع ودوّن المطلوب بوضوح دون وعد غير مخوّل.", steps: ["تحديد المشكلة ووقت حدوثها ورقم الحجز عند الحاجة.", "تلخيص طلب الضيف ورفعه للقسم المسؤول.", "تثبيت قناة المتابعة؛ أي تعويض يحتاج موافقة صاحب الصلاحية."], reply: "أعتذر عن التجربة التي واجهتك. سأوثّق ملاحظتك وأتابعها مع القسم المختص، ما أفضل وسيلة للتواصل معك؟", tags: "شكوى تصعيد مشكلة تعويض مدير مناوب" },
   { id: "confirmation", title: "مراجعة التأكيد مع الضيف", intro: "أعد قراءة عناصر الحجز قبل إنهاء المكالمة.", steps: ["الاسم والتواريخ والفئة وعدد الوحدات والنزلاء.", "الإجمالي والوجبات والدفع وشروط الإلغاء.", "رقم التأكيد والطلبات الخاصة التي تم تأكيدها بالفعل."], reply: "للتأكد من صحة التفاصيل، أراجع معك التواريخ ونوع الإقامة والمبلغ والشروط ورقم التأكيد.", tags: "تأكيد تلخيص انهاء اغلاق مكالمة" },
   { id: "not-published", title: "عندما لا تتوفر معلومة مؤكدة", intro: "المعلومة غير المنشورة تحتاج مراجعة، لا تخمينًا.", steps: ["حدّد السؤال بدقة والجهة القادرة على الإجابة.", "راجع دليل الاتصال ثم تحقّق من القسم.", "ارجع للضيف بإجابة واضحة، ولا تعد بوقت متابعة غير متفق عليه."], reply: "حرصًا على إعطائك معلومة دقيقة، سأتحقق من هذه النقطة مع القسم المختص.", tags: "غير معروف لا اعرف غير منشور تأكيد معلومة" },
+  { id: "unavailable", title: "عند عدم توافر الفئة المطلوبة", intro: "قدّم بديلًا مناسبًا بعد مراجعة التوافر الفعلي.", steps: ["تحقّق من التواريخ والفئة في نظام الحجز.", "اسأل عن مرونة التواريخ أو قبول فئة أخرى.", "اشرح فرق السعة والمواصفات والسعر قبل موافقة الضيف."], reply: "سأراجع لك فئة بديلة تناسب عدد الضيوف واحتياجك. هل تفضّل نفس التواريخ أم توجد مرونة في موعد الإقامة؟", tags: "فل كامل لا يوجد امكانية بديل غير متاح sold out availability" },
+  { id: "price-objection", title: "مقارنة الأسعار والاعتراض على السعر", intro: "تأكّد أن المقارنة لنفس تفاصيل الإقامة.", steps: ["طابق التواريخ والفئة وعدد النزلاء والوجبات.", "راجع شمول الضرائب وشروط الدفع والإلغاء.", "راجع العروض المعتمدة دون وعد بمطابقة سعر أو خصم غير مخوّل."], reply: "يسعدني مراجعة الخيارات معك. لنتأكد أن العرضين لنفس الفئة والتواريخ وما يشمله السعر، ثم أتحقق من العروض المتاحة لك.", tags: "غالي ارخص سعر خصومات مقارنة عروض price discount" },
+  { id: "booking-channel", title: "الحجز عبر منصة أو شركة", intro: "حدّد جهة إدارة الحجز قبل توجيه الضيف.", steps: ["اسأل عن اسم المنصة ورقم التأكيد.", "راجع إن كان المطلوب خدمة أثناء الإقامة أم تعديلًا على الحجز.", "تحقّق من صلاحية التعديل والقناة المسؤولة قبل توجيه الضيف."], reply: "ما المنصة التي تم الحجز من خلالها، وما رقم التأكيد؟ سأراجع طلبك والجهة المختصة بتنفيذه.", tags: "منصة شركة بوكينج تطبيق وسيط booking channel OTA" },
+  { id: "hold", title: "الانتظار والتحويل إلى القسم", intro: "اشرح سبب الانتظار واحفظ تفاصيل الطلب.", steps: ["استأذن الضيف قبل وضع المكالمة على الانتظار.", "تأكّد من القسم الصحيح ووضّح ملخص الطلب عند التحويل.", "إذا تعذر الرد، اتفق على قناة متابعة دون وعد بوقت غير مؤكد."], reply: "هل تسمح لي بوضعك على الانتظار قليلًا للتحقق من القسم المختص؟ سأوضح لهم طلبك لتسهيل خدمتك.", tags: "انتظار تحويل مكالمة تحويلات قسم hold transfer" },
 ];
+
+export const englishReplies: Record<string, string> = {
+  opening: "Welcome to Madareem Hotel in Riyadh. My name is [agent name]. How may I help you?",
+  "new-booking": "I would be happy to check suitable options for you. What are your check-in and check-out dates, the number of adults, and the ages of any children?",
+  family: "Would you prefer separate rooms or a villa with bedrooms and a living area? Would you need a private pool?",
+  quote: "Before you confirm, I will explain the total cost of your stay, what is included, and the booking conditions.",
+  arrival: "I will note your preferred time and check availability and any charges with reception before confirming.",
+  "special-needs": "What facilities would help make your stay comfortable? I will check with the relevant department to confirm availability.",
+  "transfer-request": "To arrange your transfer, may I have your flight details and the number of passengers and bags? I will then confirm the price and arrangements.",
+  "event-request": "We would be pleased to host your event. What is the date, the number of attendees, and your catering and equipment requirements?",
+  "cancellation-request": "I will first review your booking conditions, then explain the available amendment or cancellation options and any charges before taking action.",
+  complaint: "I am sorry to hear about your experience. I will record your concerns and follow up with the relevant department. What is the best way to contact you?",
+  confirmation: "To make sure everything is correct, let me review your dates, accommodation type, total amount, booking conditions, and confirmation number with you.",
+  "not-published": "To give you accurate information, I will check this point with the relevant department.",
+  unavailable: "I will check an alternative that suits your party and requirements. Would you prefer the same dates, or do you have some flexibility?",
+  "price-objection": "I would be happy to review the options with you. Let us first check that both offers cover the same room type, dates, and inclusions, then I will check which offers apply to you.",
+  "booking-channel": "Which platform did you book through, and what is your confirmation number? I will review your request and check which team can handle it.",
+  hold: "May I place you on hold briefly while I check with the relevant department? I will explain your request to help them assist you.",
+};
