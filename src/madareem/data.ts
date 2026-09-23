@@ -1,6 +1,7 @@
-export const reviewedAt = "22 سبتمبر 2026";
+import { extraFacts, protocols } from "./supplement";
+export const reviewedAt = "23 سبتمبر 2026";
 export const official = "https://hotelmadareem.com";
-export type Section = "overview" | "rooms" | "dining" | "services" | "halls" | "policies" | "contacts" | "review";
+export type Section = "protocol" | "overview" | "rooms" | "dining" | "services" | "halls" | "policies" | "contacts" | "review";
 export type Fact = { id: string; section: Section; title: string; text: string; source?: string; note?: string; tags?: string; pending?: boolean; extension?: string; hours?: string };
 export type Room = { id: string; name: string; english: string; group: "غرف" | "أجنحة" | "فلل"; area: string; adults: number; bed: string; features: string; source: string; note?: string };
 
@@ -19,6 +20,7 @@ export const rooms: Room[] = [
 ];
 
 export const facts: Fact[] = [
+  ...extraFacts,
   { id: "inventory", section: "overview", title: "عدد الغرف والوحدات", text: "180 وحدة إقامة إجمالًا تشمل الغرف والأجنحة والفلل، وفق تعريف الفندق الرسمي.", source: "/about-us/", note: "عدد الوحدات لكل فئة وعدد غرف النوم الإجمالي غير منشورين. الرقم ليس توافرًا حيًا للحجز.", tags: "كم عدد الغرف اجمالي غرفه جناح فيلا inventory room count" },
   { id: "location", section: "overview", title: "العنوان والوصول", text: "حي الفلاح، طريق المطار، مخرج 8، الرياض 11695، المملكة العربية السعودية.", source: "/contact-us/", tags: "وين الموقع عنوان لوكيشن location address" },
   { id: "classification", section: "overview", title: "التصنيف والمساحة", text: "4 نجوم حسب التعريف المنشور في موقع الفندق. مساحة الموقع نحو 25,000 م².", source: "/about-us/", note: "هذا نقل لتعريف الفندق، وليس تحققًا مستقلًا من سجل الترخيص.", tags: "تصنيف نجوم stars" },
@@ -89,6 +91,7 @@ export const sourceList = [
 
 export const searchableFacts: Fact[] = [
   ...facts,
+  ...protocols.map(p => ({ id: `protocol-${p.id}`, section: "protocol" as const, title: p.title, text: p.reply, note: p.steps.join(" • "), tags: p.tags })),
   ...rooms.map(r => ({ id: `room-${r.id}`, section: "rooms" as const, title: r.name, text: `${r.english} — ${r.area} م²، ${r.adults} بالغ. ${r.bed}. ${r.features}`, source: r.source, note: r.note, tags: `${r.group} غرفة غرف غرفه جناح فلل ${r.english}` })),
   ...halls.map((h, i) => ({ id: `hall-${i}`, section: "halls" as const, title: `قاعة ${h.name}`, text: `حتى ${h.capacity} ضيف${h.layout ? `، بتوزيع ${h.layout}` : ""}.`, source: h.wedding ? "/wedding/" : "/meeting-events/", note: "تُراجع السعة حسب توزيع الجلوس وتجهيز المناسبة.", tags: `قاعه قاعة اجتماع مناسبات زفاف فرح ${h.english}` })),
   ...contacts.map((c, i) => ({ id: `contact-${i}`, section: "contacts" as const, title: c.name, text: [c.phone, c.extension ? `تحويلة ${c.extension} على 0112758888` : "", c.email].filter(Boolean).join(" • "), source: c.source, tags: "رقم اتصال تواصل هاتف تحويله تحويلة ايميل email phone" })),

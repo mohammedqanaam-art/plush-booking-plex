@@ -11,7 +11,7 @@ describe("app shell and web app metadata", () => {
     expect(html).toContain('<link rel="manifest" href="/manifest.json">');
     expect(html).toContain('name="apple-mobile-web-app-capable" content="yes"');
     expect(html).toContain('name="apple-mobile-web-app-status-bar-style" content="default"');
-    expect(html).toContain('name="theme-color" content="#142e3a"');
+    expect(html).toContain('name="theme-color" content="#30271f"');
     expect(html).toContain('<title>مداريم الرياض | دليل موظف الكول سنتر</title>');
     expect(html).toContain('property="og:site_name" content="دليل مداريم للحجز"');
     expect(html).not.toMatch(/بودل|BHG|res-dashbord|res-bhg/i);
@@ -21,7 +21,7 @@ describe("app shell and web app metadata", () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(process.cwd(), "public-madareem/manifest.json"), "utf8"));
     expect(manifest.name).toContain("مداريم");
     expect(manifest.display).toBe("standalone");
-    expect(manifest.theme_color).toBe("#142e3a");
+    expect(manifest.theme_color).toBe("#30271f");
     expect(JSON.stringify(manifest)).not.toMatch(/بودل|BHG|res-dashbord|res-bhg/i);
     for (const icon of manifest.icons) {
       expect(fs.existsSync(path.join(process.cwd(), "public-madareem", icon.src))).toBe(true);

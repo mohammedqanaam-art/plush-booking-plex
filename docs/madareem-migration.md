@@ -65,3 +65,14 @@ Each accommodation record in `src/madareem/data.ts` points to its individual off
 - Inspect built files for old BHG hotel domains, phone numbers, operational API routes and assets.
 
 Use `npm run dev -- --host 127.0.0.1` for a local preview where loopback browsing is supported.
+
+## 2026-09-23 visual and content update
+
+The public guide now uses bronze, walnut and ivory derived from the hotel mark, self-hosted Tajawal type, official hotel photography and expanded service facts. Twelve suggested call-handling scenarios are explicitly separated from official hotel policies. Each accommodation category has tailored confirmation prompts. The published 180-unit aggregate remains unchanged; per-category inventory and live rates are not invented.
+
+Official photo sources (unaltered):
+- https://hotelmadareem.com/wp-content/uploads/2025/06/Madareem-Night.jpg
+- https://hotelmadareem.com/wp-content/uploads/2025/06/Royal_Suite-8.jpg
+- https://hotelmadareem.com/wp-content/uploads/2025/06/Tropicana.jpg
+
+Tajawal is distributed under the SIL Open Font License; see public-madareem/fonts/OFL.txt.
