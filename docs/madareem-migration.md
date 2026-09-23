@@ -76,3 +76,16 @@ Official photo sources (unaltered):
 - https://hotelmadareem.com/wp-content/uploads/2025/06/Tropicana.jpg
 
 Tajawal is distributed under the SIL Open Font License; see public-madareem/fonts/OFL.txt.
+
+
+## 2026-09-23 employee services update
+
+The product name is now **خدمات موظف الحجز** across the home page, navigation, footer, HTML metadata and installation manifest. The home page exposes four primary employee tasks before the hotel overview.
+
+- Room filtering uses published adult capacity and explicit feature mappings; a pool view is never treated as a private pool. Compare up to three categories across group filters and copy their sourced descriptions. Filters do not represent live availability.
+- Search accepts common Arabic and English aliases, Arabic extension digits and category filtering. The slash key focuses search and Escape clears it.
+- Sixteen proposed call scenarios now include Arabic and English replies. Copying from a scenario copies only the selected guest reply. These remain suggested wording, not hotel-approved policy.
+- The discount calculator accepts Arabic/Western digits, validates decimals and percentage bounds, and shows the discount value and net amount. It does not infer taxes or hotel rates.
+- New operational data and guest records are not collected. The existing official assets, sources and single-property scope remain.
+
+Validation: production build, ESLint on changed files, nine targeted tests covering published-capacity filtering, private pools, comparison limits, Arabic arithmetic, invalid inputs, search and English reply copying. Public UI verification follows deployment.

@@ -12,8 +12,8 @@ describe("app shell and web app metadata", () => {
     expect(html).toContain('name="apple-mobile-web-app-capable" content="yes"');
     expect(html).toContain('name="apple-mobile-web-app-status-bar-style" content="default"');
     expect(html).toContain('name="theme-color" content="#30271f"');
-    expect(html).toContain('<title>مداريم الرياض | دليل موظف الكول سنتر</title>');
-    expect(html).toContain('property="og:site_name" content="دليل مداريم للحجز"');
+    expect(html).toContain('<title>خدمات موظف الحجز | فندق مداريم الرياض</title>');
+    expect(html).toContain('property="og:site_name" content="خدمات موظف الحجز"');
     expect(html).not.toMatch(/بودل|BHG|res-dashbord|res-bhg/i);
     expect(html).not.toContain("Worm-AI");
     expect(html).not.toContain("Lovable");

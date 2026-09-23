@@ -98,18 +98,41 @@ export const searchableFacts: Fact[] = [
 ];
 
 export function normalize(value: string) {
-  return value.toLowerCase().replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/[\u064B-\u065F\u0670ـ]/g, "").replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+  return value.toLowerCase().replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 1776)).replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/[\u064B-\u065F\u0670ـ]/g, "").replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
 }
 
+const aliases = [
+  ["فطور", "افطار", "فطار", "breakfast"], ["غداء", "lunch"], ["عشاء", "dinner"],
+  ["وايفاي", "انترنت", "wifi"], ["توين", "twin"], ["كينج", "king"],
+  ["مسبح", "سباحه", "مسابح", "pool"], ["جاكوزي", "jacuzzi"],
+  ["الغاء", "كنسل", "كنسله", "cancellation", "cancel"],
+  ["اطفال", "طفل", "children", "kids"], ["سياره", "مواقف", "parking"],
+  ["مطار", "airport"], ["موقع", "عنوان", "لوكيشن", "location"],
+  ["جيم", "نادي", "gym"], ["تحويله", "ext", "extension"],
+  ["اسعار", "سعر", "price", "rate"], ["اعاقه", "مهيأ", "accessible"],
+].map(group => group.map(normalize));
+const withoutArticle = (value: string) => value.startsWith("ال") && value.length > 3 ? value.slice(2) : value;
+const stopWords = new Set(["كم", "هل", "يوجد", "في", "عندكم", "ابغى", "ابي", "عن", "ما", "هو", "هي", "متى", "وقت", "الفندق", "فندق", "وش", "ايش", "ممكن", "لو", "سمحت", "مواعيد", "the", "what", "is", "a", "an", "are", "when", "do", "you", "have"].map(normalize));
+const phrases = (value: string) => normalize(value).replace(/(?:check|تشيك|شيك)\s+(?:in|ان)/g, "دخول").replace(/(?:check|تشيك|شيك)\s+(?:out|اوت)/g, "خروج").replace(/واي\s+فاي|wi\s+fi/g, "وايفاي");
+
 export function searchFacts(query: string) {
-  const stop = new Set(["كم", "هل", "يوجد", "في", "عندكم", "ابغى", "ابي", "عن", "ما", "هو", "هي", "متى", "متي", "وقت", "الفندق", "فندق", "وش", "ايش"]);
-  const tokens = normalize(query).split(" ").filter(t => t && !stop.has(t));
+  const tokens = [...new Set(phrases(query).split(" ").filter(t => t && !stopWords.has(t)))];
   if (!tokens.length) return [];
+  const terms = tokens.map(t => {
+    const plain = withoutArticle(t);
+    return { original: plain, alternatives: aliases.find(group => group.includes(plain)) || [plain] };
+  });
   return searchableFacts.map(f => {
-    const title = normalize(f.title);
-    const haystack = normalize([f.title, f.text, f.tags, f.note, f.hours, f.extension].filter(Boolean).join(" "));
+    const words = (value: string) => phrases(value).split(" ").map(withoutArticle);
+    const title = words(f.title);
+    const haystack = words([f.title, f.text, f.tags, f.note, f.hours, f.extension].filter(Boolean).join(" "));
     let matched = 0;
-    const score = tokens.reduce((sum, t) => { const hit = haystack.includes(t); if (hit) matched++; return sum + (title.includes(t) ? 4 : hit ? 1 : 0); }, 0);
-    return { fact: f, score: score + (matched === tokens.length ? 10 : 0), matched };
+    const score = terms.reduce((sum, term) => {
+      const titleHit = term.alternatives.some(t => title.includes(t));
+      const hit = titleHit || term.alternatives.some(t => haystack.includes(t));
+      if (hit) matched++;
+      return sum + (title.includes(term.original) ? 8 : titleHit ? 6 : hit ? 2 : 0);
+    }, 0);
+    return { fact: f, score: score + (matched === terms.length ? 20 : 0), matched };
   }).filter(x => x.matched > 0).sort((a, b) => b.score - a.score).map(x => x.fact);
 }
